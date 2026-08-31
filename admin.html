@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Command Center - TGC Connect</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="brand-logo">
+                <span class="brand-badge">TGC</span>
+                <span>Connect Admin</span>
+            </a>
+            <div class="nav-menu" id="navMenu">
+                <a href="admin.html" class="nav-link active"><i data-lucide="layout-dashboard" style="width: 18px;"></i> Dashboard</a>
+                <a href="qr_scanner.html" class="nav-link"><i data-lucide="qr-code" style="width: 18px;"></i> QR Punch</a>
+            </div>
+            <div id="navUserArea"></div>
+        </div>
+    </nav>
+
+    <main class="main-container">
+        <div style="display: flex; flex-direction: column; gap: 2rem;">
+            
+            <!-- Executive Action Bar -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; background: #ffffff; padding: 1.5rem 1.75rem; border-radius: var(--radius-lg); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
+                <div>
+                    <div style="font-size: 0.8rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px;">Executive Dashboard</div>
+                    <h1 style="font-size: 1.75rem; font-weight: 800; letter-spacing: -0.5px; margin-top: 0.15rem;">Workforce & Operations Center</h1>
+                </div>
+
+                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                    <button type="button" onclick="openModal('generateGpsModal')" class="btn btn-secondary">
+                        <i data-lucide="map-pin" style="width: 18px; color: #d97706;"></i> Generate GPS Link
+                    </button>
+                    <button type="button" onclick="openQrModal()" class="btn btn-secondary">
+                        <i data-lucide="qr-code" style="width: 18px; color: var(--primary);"></i> Office QR Standee
+                    </button>
+                    <button type="button" onclick="openModal('runPayrollModal')" class="btn btn-primary">
+                        <i data-lucide="calculator" style="width: 18px;"></i> Calculate Monthly Payroll
+                    </button>
+                </div>
+            </div>
+
+            <!-- Real-Time Metrics Cards -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-icon" style="background: #eff6ff; color: #2563eb;">
+                        <i data-lucide="users" style="width: 26px;"></i>
+                    </div>
+                    <div>
+                        <div class="metric-value" id="statTotalEmployees">0</div>
+                        <div class="metric-label">Active Employees</div>
+                    </div>
+                </div>
+
+                <div class="metric-card" style="border-left: 4px solid var(--success);">
+                    <div class="metric-icon" style="background: var(--success-bg); color: var(--success);">
+                        <i data-lucide="user-check" style="width: 26px;"></i>
+                    </div>
+                    <div>
+                        <div class="metric-value" id="statPresentToday" style="color: var(--success);">0</div>
+                        <div class="metric-label">Present On Time</div>
+                    </div>
+                </div>
+
+                <div class="metric-card" style="border-left: 4px solid var(--warning);">
+                    <div class="metric-icon" style="background: var(--warning-bg); color: var(--warning);">
+                        <i data-lucide="clock" style="width: 26px;"></i>
+                    </div>
+                    <div>
+                        <div class="metric-value" id="statLateToday" style="color: var(--warning);">0</div>
+                        <div class="metric-label">Late Check-ins</div>
+                    </div>
+                </div>
+
+                <div class="metric-card" style="border-left: 4px solid var(--danger);">
+                    <div class="metric-icon" style="background: var(--danger-bg); color: var(--danger);">
+                        <i data-lucide="user-x" style="width: 26px;"></i>
+                    </div>
+                    <div>
+                        <div class="metric-value" id="statAbsentToday" style="color: var(--danger);">0</div>
+                        <div class="metric-label">Unmarked / Absent</div>
+                    </div>
+                </div>
+
+                <div class="metric-card" style="border-left: 4px solid #8b5cf6;">
+                    <div class="metric-icon" style="background: #f3e8ff; color: #8b5cf6;">
+                        <i data-lucide="calendar-clock" style="width: 26px;"></i>
+                    </div>
+                    <div>
+                        <div class="metric-value" id="statPendingLeaves">0</div>
+                        <div class="metric-label">Pending Leaves</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active GPS Link Alert Bar -->
+            <div id="activeGpsLinkAlert" style="display: none; background: #fffbeb; border: 1.5px solid #fde68a; border-radius: var(--radius-lg); padding: 1.15rem 1.5rem; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; box-shadow: var(--shadow-sm);">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div style="width: 44px; height: 44px; border-radius: 50%; background: #fef3c7; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">
+                        📍
+                    </div>
+                    <div>
+                        <strong style="color: #92400e; font-size: 1.05rem;" id="gpsAlertTitle">Active GPS Link</strong>
+                        <div style="font-size: 0.88rem; color: #78350f;" id="gpsAlertTimer">Expires soon</div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.6rem; align-items: center;">
+                    <input type="text" id="gpsUrlCopyInput" readonly class="form-control" style="width: 320px; font-size: 0.88rem; padding: 0.5rem 0.8rem; background: #fff;">
+                    <button type="button" onclick="copyGpsUrl()" class="btn btn-secondary btn-sm" style="font-weight: 700;">
+                        <i data-lucide="copy" style="width: 16px;"></i> Copy Link
+                    </button>
+                    <a id="openGpsBtn" href="#" target="_blank" class="btn btn-primary btn-sm">Open</a>
+                </div>
+            </div>
+
+            <!-- Visual Analytics Charts Row -->
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i data-lucide="trending-up" style="color: var(--primary);"></i> 7-Day Attendance Trend Analytics
+                        </div>
+                    </div>
+                    <div style="height: 240px; position: relative;">
+                        <canvas id="attendanceTrendChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i data-lucide="pie-chart" style="color: var(--primary);"></i> Department Distribution
+                        </div>
+                    </div>
+                    <div style="height: 240px; position: relative; display: flex; align-items: center; justify-content: center;">
+                        <canvas id="deptChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <div style="display: flex; gap: 0.75rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem; flex-wrap: wrap;">
+                <button type="button" id="tabEmpBtn" onclick="showAdminTab('employees')" class="btn btn-primary btn-sm">
+                    <i data-lucide="users" style="width: 16px;"></i> Employee Directory
+                </button>
+                <button type="button" id="tabAttBtn" onclick="showAdminTab('attendance')" class="btn btn-secondary btn-sm">
+                    <i data-lucide="calendar-check" style="width: 16px;"></i> Daily Attendance
+                </button>
+                <button type="button" id="tabLeaveBtn" onclick="showAdminTab('leaves')" class="btn btn-secondary btn-sm">
+                    <i data-lucide="calendar" style="width: 16px;"></i> Leave Approvals
+                </button>
+                <button type="button" id="tabPayBtn" onclick="showAdminTab('payroll')" class="btn btn-secondary btn-sm">
+                    <i data-lucide="banknote" style="width: 16px;"></i> Salary & Payroll
+                </button>
+                <button type="button" id="tabHoliBtn" onclick="showAdminTab('holidays')" class="btn btn-secondary btn-sm">
+                    <i data-lucide="sparkles" style="width: 16px;"></i> Company Holidays
+                </button>
+            </div>
+
+            <!-- Tab 1: Employee Directory -->
+            <div id="sectionEmployees" class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i data-lucide="user-check" style="color: var(--primary);"></i> Employee Directory & Admin Oversight
+                    </div>
+                    <div style="display: flex; gap: 0.75rem; align-items: center;">
+                        <input type="text" id="employeeSearchInput" oninput="loadEmployees()" placeholder="Search staff by name, role, dept..." class="form-control" style="width: 260px; font-size: 0.88rem; padding: 0.45rem 0.85rem;">
+                        <a href="register.html" class="btn btn-primary btn-sm">
+                            <i data-lucide="user-plus" style="width: 16px;"></i> Add Employee
+                        </a>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>Employee</th>
+                                <th>Department</th>
+                                <th>Job Profile</th>
+                                <th>Joining Date</th>
+                                <th>Base Salary</th>
+                                <th>Leave Balances</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="employeesTableBody">
+                            <tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Loading employees...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab 2: Real-time Attendance Logs -->
+            <div id="sectionAttendance" class="card" style="display: none;">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i data-lucide="calendar-check" style="color: var(--primary);"></i> Real-Time Attendance Overview
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Filter Date:</label>
+                        <input type="date" id="attendanceFilterDate" onchange="loadAttendanceLogs()" class="form-control" style="font-size: 0.88rem; padding: 0.45rem; width: 170px;">
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>Employee</th>
+                                <th>Date</th>
+                                <th>Method</th>
+                                <th>Check-In</th>
+                                <th>Check-Out</th>
+                                <th>Status</th>
+                                <th>Notes / GPS Location</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminAttendanceTableBody">
+                            <tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Loading logs...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab 3: Leave Approvals Board -->
+            <div id="sectionLeaves" class="card" style="display: none;">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i data-lucide="calendar" style="color: var(--primary);"></i> Leave Applications & Review Board
+                    </div>
+                    <select id="leaveFilterStatus" onchange="loadAdminLeaves()" class="form-control" style="width: 160px; font-size: 0.88rem; padding: 0.45rem;">
+                        <option value="all">All Statuses</option>
+                        <option value="pending" selected>Pending Only</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                    </select>
+                </div>
+                <div class="table-responsive">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>Employee</th>
+                                <th>Leave Type</th>
+                                <th>Duration</th>
+                                <th>Total Days</th>
+                                <th>Reason</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminLeavesTableBody">
+                            <tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Loading leaves...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab 4: Salary & Payroll Engine -->
+            <div id="sectionPayroll" class="card" style="display: none;">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i data-lucide="banknote" style="color: var(--primary);"></i> Automated Salary Calculation & Monthly Payslips
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <select id="payrollMonthSelect" class="form-control" style="font-size: 0.88rem; padding: 0.45rem;"></select>
+                        <select id="payrollYearSelect" class="form-control" style="font-size: 0.88rem; padding: 0.45rem;"></select>
+                        <button type="button" onclick="loadAdminPayroll()" class="btn btn-secondary btn-sm">Filter</button>
+                        <button type="button" onclick="openModal('runPayrollModal')" class="btn btn-primary btn-sm">Run Auto-Calc</button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>Employee</th>
+                                <th>Base Salary</th>
+                                <th>Working Days</th>
+                                <th>Present / Paid</th>
+                                <th>Unpaid Deductions</th>
+                                <th>Net Payable</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminPayrollTableBody">
+                            <tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Select month and calculate...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab 5: Company Holidays -->
+            <div id="sectionHolidays" class="card" style="display: none;">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i data-lucide="sparkles" style="color: var(--primary);"></i> Configured Company & National Holidays
+                    </div>
+                    <button type="button" onclick="openModal('addHolidayModal')" class="btn btn-primary btn-sm">
+                        <i data-lucide="plus-circle" style="width: 16px;"></i> Add Holiday
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>Holiday Name</th>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminHolidaysTableBody">
+                            <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Loading holidays...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Modals -->
+
+    <!-- 1. QR Standee Modal -->
+    <div class="modal-overlay" id="qrModal">
+        <div class="modal-content" style="max-width: 480px; text-align: center;">
+            <div class="modal-header">
+                <h3 style="font-size: 1.2rem; font-weight: 800;">TGC Office Entrance QR Standee</h3>
+                <button class="close-btn" onclick="closeModal('qrModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 1.5rem;">
+                    Place this QR Code at the office entrance reception for employee badge scanning.
+                </p>
+                <div class="qr-preview-box" style="margin-bottom: 1.5rem;">
+                    <div id="qrcodeDisplay" style="padding: 12px; background: #fff; border-radius: var(--radius-sm);"></div>
+                    <div id="qrTokenLabel" style="margin-top: 0.85rem; font-weight: 800; font-family: var(--font-mono); font-size: 1.05rem; color: var(--primary);"></div>
+                </div>
+                <div style="display: flex; gap: 0.75rem; justify-content: center;">
+                    <button type="button" onclick="generateNewQr()" class="btn btn-secondary btn-sm">
+                        <i data-lucide="refresh-cw" style="width: 16px;"></i> Refresh QR Token
+                    </button>
+                    <button type="button" onclick="window.print()" class="btn btn-primary btn-sm">
+                        <i data-lucide="printer" style="width: 16px;"></i> Print Standee
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Generate Time-bound GPS Modal -->
+    <div class="modal-overlay" id="generateGpsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="font-size: 1.2rem; font-weight: 800;">Generate Time-Bound GPS Attendance Link</h3>
+                <button class="close-btn" onclick="closeModal('generateGpsModal')">&times;</button>
+            </div>
+            <form onsubmit="handleGenerateGpsLink(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Link Title / Purpose</label>
+                        <input type="text" id="gpsTitleInput" class="form-control" value="Morning Attendance Verification" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Validity Duration (Minutes) *</label>
+                        <select id="gpsValidityInput" class="form-control" required>
+                            <option value="5">5 Minutes</option>
+                            <option value="10" selected>10 Minutes</option>
+                            <option value="15">15 Minutes</option>
+                            <option value="30">30 Minutes</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Geofence Radius (Meters)</label>
+                        <input type="number" id="gpsRadiusInput" class="form-control" value="500">
+                        <small style="color: var(--text-muted); font-size: 0.8rem;">Allowed distance threshold from office location.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('generateGpsModal')">Cancel</button>
+                    <button type="submit" id="btnGenGps" class="btn btn-primary">Generate & Copy Link</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 3. Automated Payroll Modal -->
+    <div class="modal-overlay" id="runPayrollModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="font-size: 1.2rem; font-weight: 800;">Automated Salary Calculation Engine</h3>
+                <button class="close-btn" onclick="closeModal('runPayrollModal')">&times;</button>
+            </div>
+            <form onsubmit="handleRunPayroll(event)">
+                <div class="modal-body">
+                    <p style="font-size: 0.92rem; color: var(--text-muted); margin-bottom: 1.25rem; line-height: 1.5;">
+                        Calculates standard working days (excluding Sundays & holidays), sums verified punch-ins and approved paid leaves, and calculates daily-rate absent deductions.
+                    </p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Month *</label>
+                            <select id="runPayrollMonth" class="form-control" required></select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Year *</label>
+                            <input type="number" id="runPayrollYear" class="form-control" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('runPayrollModal')">Cancel</button>
+                    <button type="submit" id="btnRunPayrollSubmit" class="btn btn-primary">Run Calculation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 4. Edit Employee Modal -->
+    <div class="modal-overlay" id="editEmployeeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="font-size: 1.2rem; font-weight: 800;">Edit Employee Profile</h3>
+                <button class="close-btn" onclick="closeModal('editEmployeeModal')">&times;</button>
+            </div>
+            <form onsubmit="handleUpdateEmployee(event)">
+                <input type="hidden" id="editEmpId">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Full Name *</label>
+                        <input type="text" id="editEmpName" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Work Email *</label>
+                        <input type="email" id="editEmpEmail" class="form-control" required>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Department *</label>
+                            <input type="text" id="editEmpDepartment" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Job Profile *</label>
+                            <input type="text" id="editEmpJob" class="form-control" required>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Base Salary (₹) *</label>
+                            <input type="number" id="editEmpSalary" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Status *</label>
+                            <select id="editEmpStatus" class="form-control">
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('editEmployeeModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 5. Add Holiday Modal -->
+    <div class="modal-overlay" id="addHolidayModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="font-size: 1.2rem; font-weight: 800;">Add Company Holiday</h3>
+                <button class="close-btn" onclick="closeModal('addHolidayModal')">&times;</button>
+            </div>
+            <form onsubmit="handleAddHoliday(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Holiday Title *</label>
+                        <input type="text" id="holidayTitleInput" class="form-control" placeholder="e.g. Diwali Celebration" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Holiday Date *</label>
+                        <input type="date" id="holidayDateInput" class="form-control" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('addHolidayModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Holiday</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 6. Payslip View / Print Modal -->
+    <div class="modal-overlay" id="adminSlipModal">
+        <div class="modal-content" style="max-width: 680px;">
+            <div class="modal-header">
+                <h3 style="font-size: 1.2rem; font-weight: 800;">Employee Payslip Breakdown</h3>
+                <button class="close-btn" onclick="closeModal('adminSlipModal')">&times;</button>
+            </div>
+            <div class="modal-body" id="adminSlipBody"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="window.print()">
+                    <i data-lucide="printer" style="width: 16px;"></i> Print Payslip
+                </button>
+                <button type="button" class="btn btn-primary" onclick="closeModal('adminSlipModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script src="js/app.js"></script>
+    <script>
+        let currentActiveQrToken = '';
+        let trendChartInstance = null;
+        let deptChartInstance = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const authRes = await apiRequest('auth.php?action=me');
+            if (!authRes.ok || !authRes.data.authenticated || authRes.data.user.role !== 'admin') {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            checkAuthNav();
+            initMonthSelects();
+
+            document.getElementById('attendanceFilterDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('holidayDateInput').value = new Date().toISOString().split('T')[0];
+
+            loadDashboardStats();
+            loadEmployees();
+            loadAttendanceLogs();
+            loadAdminLeaves();
+            loadAdminPayroll();
+            loadAdminHolidays();
+        });
+
+        function initMonthSelects() {
+            const now = new Date();
+            const currMonth = now.getMonth() + 1;
+            const currYear = now.getFullYear();
+
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            
+            const pMonth = document.getElementById('payrollMonthSelect');
+            const runMonth = document.getElementById('runPayrollMonth');
+            pMonth.innerHTML = monthNames.map((m, i) => `<option value="${i+1}" ${i+1 === currMonth ? 'selected' : ''}>Month ${i+1} (${m})</option>`).join('');
+            runMonth.innerHTML = pMonth.innerHTML;
+
+            const pYear = document.getElementById('payrollYearSelect');
+            pYear.innerHTML = `<option value="${currYear}" selected>${currYear}</option><option value="${currYear-1}">${currYear-1}</option>`;
+            document.getElementById('runPayrollYear').value = currYear;
+        }
+
+        function showAdminTab(tab) {
+            const tabs = ['employees', 'attendance', 'leaves', 'payroll', 'holidays'];
+            tabs.forEach(t => {
+                const sec = document.getElementById(`section${t.charAt(0).toUpperCase() + t.slice(1)}`);
+                if (sec) sec.style.display = (t === tab) ? 'block' : 'none';
+            });
+            document.getElementById('tabEmpBtn').className = (tab === 'employees') ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+            document.getElementById('tabAttBtn').className = (tab === 'attendance') ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+            document.getElementById('tabLeaveBtn').className = (tab === 'leaves') ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+            document.getElementById('tabPayBtn').className = (tab === 'payroll') ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+            document.getElementById('tabHoliBtn').className = (tab === 'holidays') ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+            lucide.createIcons();
+        }
+
+        async function loadDashboardStats() {
+            const res = await apiRequest('admin.php?action=stats');
+            if (res.ok && res.data.success) {
+                const s = res.data.stats;
+                document.getElementById('statTotalEmployees').textContent = s.total_employees;
+                document.getElementById('statPresentToday').textContent = s.present_today;
+                document.getElementById('statLateToday').textContent = s.late_today;
+                document.getElementById('statAbsentToday').textContent = s.absent_today;
+                document.getElementById('statPendingLeaves').textContent = s.pending_leaves;
+
+                if (res.data.active_qr) {
+                    currentActiveQrToken = res.data.active_qr.token;
+                }
+
+                const bar = document.getElementById('activeGpsLinkAlert');
+                if (res.data.active_gps_link && res.data.active_gps_link.seconds_remaining > 0) {
+                    bar.style.display = 'flex';
+                    document.getElementById('gpsAlertTitle').textContent = `Active GPS Link: ${res.data.active_gps_link.title}`;
+                    document.getElementById('gpsAlertTimer').textContent = `Expires in ${Math.ceil(res.data.active_gps_link.seconds_remaining / 60)} minutes`;
+                    
+                    const fullUrl = window.location.origin + window.location.pathname.replace('admin.html', '') + res.data.active_gps_link.url;
+                    document.getElementById('gpsUrlCopyInput').value = fullUrl;
+                    document.getElementById('openGpsBtn').href = res.data.active_gps_link.url;
+                } else {
+                    bar.style.display = 'none';
+                }
+
+                if (res.data.charts) {
+                    renderCharts(res.data.charts);
+                }
+            }
+        }
+
+        function renderCharts(c) {
+            // Trend Line Chart
+            const ctxTrend = document.getElementById('attendanceTrendChart').getContext('2d');
+            if (trendChartInstance) trendChartInstance.destroy();
+
+            trendChartInstance = new Chart(ctxTrend, {
+                type: 'line',
+                data: {
+                    labels: c.labels,
+                    datasets: [
+                        {
+                            label: 'Present On Time',
+                            data: c.present,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            fill: true,
+                            tension: 0.35,
+                            borderWidth: 2.5,
+                        },
+                        {
+                            label: 'Late',
+                            data: c.late,
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                            fill: true,
+                            tension: 0.35,
+                            borderWidth: 2.5,
+                        },
+                        {
+                            label: 'Absent',
+                            data: c.absent,
+                            borderColor: '#ef4444',
+                            backgroundColor: 'transparent',
+                            borderDash: [5, 5],
+                            tension: 0.35,
+                            borderWidth: 2,
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { boxWidth: 12, font: { family: 'Plus Jakarta Sans', weight: '600' } } }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                    }
+                }
+            });
+
+            // Department Donut Chart
+            const ctxDept = document.getElementById('deptChart').getContext('2d');
+            if (deptChartInstance) deptChartInstance.destroy();
+
+            const deptLabels = c.departments && c.departments.length ? c.departments.map(d => d.department || 'General') : ['No Staff Yet'];
+            const deptData = c.departments && c.departments.length ? c.departments.map(d => d.c) : [1];
+            const deptColors = c.departments && c.departments.length ? ['#4f46e5', '#0ea5e9', '#8b5cf6', '#10b981', '#f59e0b', '#ec4899'] : ['#e2e8f0'];
+
+            deptChartInstance = new Chart(ctxDept, {
+                type: 'doughnut',
+                data: {
+                    labels: deptLabels,
+                    datasets: [{
+                        data: deptData,
+                        backgroundColor: deptColors,
+                        borderWidth: 2,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 10, font: { family: 'Plus Jakarta Sans', size: 11 } } }
+                    }
+                }
+            });
+        }
+
+        function copyGpsUrl() {
+            const input = document.getElementById('gpsUrlCopyInput');
+            input.select();
+            navigator.clipboard.writeText(input.value);
+            showToast('GPS Link copied to clipboard!', 'success');
+        }
+
+        async function openQrModal() {
+            openModal('qrModal');
+            if (!currentActiveQrToken) {
+                const res = await apiRequest('attendance.php?action=active_qr');
+                if (res.ok) currentActiveQrToken = res.data.qr.token;
+            }
+            renderQrCode(currentActiveQrToken);
+        }
+
+        function renderQrCode(token) {
+            const container = document.getElementById('qrcodeDisplay');
+            container.innerHTML = '';
+            new QRCode(container, {
+                text: token,
+                width: 200,
+                height: 200,
+                colorDark : "#0f172a",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+            document.getElementById('qrTokenLabel').textContent = token;
+        }
+
+        async function generateNewQr() {
+            const res = await apiRequest('attendance.php?action=generate_qr', 'POST');
+            if (res.ok && res.data.success) {
+                currentActiveQrToken = res.data.qr.token;
+                renderQrCode(currentActiveQrToken);
+                showToast('QR Code rotated successfully!', 'success');
+            }
+        }
+
+        async function handleGenerateGpsLink(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnGenGps');
+            btn.disabled = true;
+
+            const payload = {
+                title: document.getElementById('gpsTitleInput').value,
+                validity_minutes: parseInt(document.getElementById('gpsValidityInput').value),
+                radius_meters: parseInt(document.getElementById('gpsRadiusInput').value) || 500
+            };
+
+            const res = await apiRequest('attendance.php?action=generate_gps_link', 'POST', payload);
+            if (res.ok && res.data.success) {
+                showToast(res.data.message, 'success');
+                closeModal('generateGpsModal');
+                loadDashboardStats();
+            } else {
+                showToast(res.data.message || 'Error generating link', 'error');
+            }
+            btn.disabled = false;
+        }
+
+        async function loadEmployees() {
+            const search = document.getElementById('employeeSearchInput')?.value || '';
+            const res = await apiRequest(`admin.php?action=employees&search=${encodeURIComponent(search)}`);
+            const tbody = document.getElementById('employeesTableBody');
+            
+            if (res.ok && res.data.success) {
+                const emps = res.data.employees;
+                if (emps.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No employees registered yet. Click "+ Add Employee" to onboard staff.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = emps.map(emp => `
+                    <tr>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <div class="avatar-sm">
+                                    ${emp.photo_path ? `<img src="uploads/${emp.photo_path}" style="width:100%;height:100%;object-fit:cover;">` : emp.name.charAt(0)}
+                                </div>
+                                <div>
+                                    <strong>${emp.name}</strong>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted);">${emp.email} • ${emp.phone || '-'}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>${emp.department || '-'}</td>
+                        <td>${emp.job_profile || '-'}</td>
+                        <td>${emp.date_of_joining || '-'}</td>
+                        <td><strong>₹${parseFloat(emp.base_salary).toLocaleString()}</strong></td>
+                        <td>${(emp.casual_leave_total - emp.casual_leave_used)} CL / ${(emp.sick_leave_total - emp.sick_leave_used)} SL</td>
+                        <td><span class="badge badge-${emp.status}">${emp.status}</span></td>
+                        <td>
+                            <div style="display: flex; gap: 0.4rem;">
+                                <button onclick='editEmployee(${JSON.stringify(emp)})' class="btn btn-secondary btn-sm">Edit</button>
+                                <button onclick="deleteEmployee(${emp.id}, '${emp.name.replace(/'/g, "\\'")}')" class="btn btn-danger btn-sm">Delete</button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        function editEmployee(emp) {
+            document.getElementById('editEmpId').value = emp.id;
+            document.getElementById('editEmpName').value = emp.name;
+            document.getElementById('editEmpEmail').value = emp.email;
+            document.getElementById('editEmpDepartment').value = emp.department;
+            document.getElementById('editEmpJob').value = emp.job_profile;
+            document.getElementById('editEmpSalary').value = emp.base_salary;
+            document.getElementById('editEmpStatus').value = emp.status;
+            openModal('editEmployeeModal');
+        }
+
+        async function handleUpdateEmployee(e) {
+            e.preventDefault();
+            const id = document.getElementById('editEmpId').value;
+            const payload = {
+                id: id,
+                name: document.getElementById('editEmpName').value,
+                email: document.getElementById('editEmpEmail').value,
+                department: document.getElementById('editEmpDepartment').value,
+                job_profile: document.getElementById('editEmpJob').value,
+                base_salary: parseFloat(document.getElementById('editEmpSalary').value),
+                status: document.getElementById('editEmpStatus').value,
+            };
+
+            const res = await apiRequest('admin.php?action=update_employee', 'POST', payload);
+            if (res.ok && res.data.success) {
+                showToast('Employee updated successfully', 'success');
+                closeModal('editEmployeeModal');
+                loadEmployees();
+                loadDashboardStats();
+            } else {
+                showToast(res.data.message || 'Error updating', 'error');
+            }
+        }
+
+        async function deleteEmployee(id, name) {
+            if (!confirm(`Are you sure you want to delete employee "${name}"? This action cannot be undone.`)) {
+                return;
+            }
+
+            const res = await apiRequest(`admin.php?action=delete_employee&id=${id}`, 'POST', { id });
+            if (res.ok && res.data.success) {
+                showToast(`Employee "${name}" deleted`, 'success');
+                loadEmployees();
+                loadDashboardStats();
+            } else {
+                showToast(res.data.message || 'Error deleting employee', 'error');
+            }
+        }
+
+        async function loadAttendanceLogs() {
+            const date = document.getElementById('attendanceFilterDate')?.value || '';
+            const res = await apiRequest(`attendance.php?action=history&date=${date}`);
+            const tbody = document.getElementById('adminAttendanceTableBody');
+
+            if (res.ok && res.data.success) {
+                const list = res.data.history;
+                if (list.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No logs recorded on this date.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = list.map(row => `
+                    <tr>
+                        <td><strong>${row.user_name}</strong></td>
+                        <td>${row.date}</td>
+                        <td><span class="badge badge-primary">${row.method.toUpperCase()}</span></td>
+                        <td>${row.check_in_time ? row.check_in_time.substring(0, 5) : '--'}</td>
+                        <td>${row.check_out_time ? row.check_out_time.substring(0, 5) : '--'}</td>
+                        <td><span class="badge badge-${row.status}">${row.status}</span></td>
+                        <td style="font-size: 0.8rem; color: var(--text-muted);">${row.notes || (row.latitude ? `GPS: ${row.latitude}, ${row.longitude}` : '-')}</td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        async function loadAdminLeaves() {
+            const status = document.getElementById('leaveFilterStatus')?.value || 'all';
+            const res = await apiRequest(`leave.php?action=list&status=${status}`);
+            const tbody = document.getElementById('adminLeavesTableBody');
+
+            if (res.ok && res.data.success) {
+                const leaves = res.data.leaves;
+                if (leaves.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No leave requests found.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = leaves.map(l => `
+                    <tr>
+                        <td><strong>${l.user_name}</strong></td>
+                        <td><span class="badge badge-primary">${l.leave_type.toUpperCase()}</span></td>
+                        <td>${l.start_date} to ${l.end_date}</td>
+                        <td><strong>${l.total_days} days</strong></td>
+                        <td style="font-size: 0.85rem;">${l.reason}</td>
+                        <td><span class="badge badge-${l.status}">${l.status}</span></td>
+                        <td>
+                            ${l.status === 'pending' ? `
+                                <div style="display: flex; gap: 0.4rem;">
+                                    <button onclick="reviewLeave(${l.id}, 'approved')" class="btn btn-success btn-sm">Approve</button>
+                                    <button onclick="reviewLeave(${l.id}, 'rejected')" class="btn btn-danger btn-sm">Reject</button>
+                                </div>
+                            ` : `<span style="color: var(--text-muted); font-size: 0.8rem;">Reviewed</span>`}
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        async function reviewLeave(id, status) {
+            const res = await apiRequest('leave.php?action=review', 'POST', { id, status });
+            if (res.ok && res.data.success) {
+                showToast(res.data.message, 'success');
+                loadAdminLeaves();
+                loadDashboardStats();
+                loadEmployees();
+            } else {
+                showToast(res.data.message || 'Error reviewing leave', 'error');
+            }
+        }
+
+        async function handleRunPayroll(e) {
+            e.preventDefault();
+            const month = document.getElementById('runPayrollMonth').value;
+            const year = document.getElementById('runPayrollYear').value;
+            const btn = document.getElementById('btnRunPayrollSubmit');
+            btn.disabled = true;
+            btn.textContent = 'Calculating...';
+
+            const res = await apiRequest('payroll.php?action=generate', 'POST', { month, year });
+            if (res.ok && res.data.success) {
+                showToast(res.data.message, 'success');
+                closeModal('runPayrollModal');
+                document.getElementById('payrollMonthSelect').value = month;
+                document.getElementById('payrollYearSelect').value = year;
+                loadAdminPayroll();
+                loadDashboardStats();
+                showAdminTab('payroll');
+            } else {
+                showToast(res.data.message || 'Calculation failed', 'error');
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Run Calculation';
+        }
+
+        async function loadAdminPayroll() {
+            const month = document.getElementById('payrollMonthSelect').value;
+            const year = document.getElementById('payrollYearSelect').value;
+            const res = await apiRequest(`payroll.php?action=list&month=${month}&year=${year}`);
+            const tbody = document.getElementById('adminPayrollTableBody');
+
+            if (res.ok && res.data.success) {
+                const payrolls = res.data.payrolls;
+                if (payrolls.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No payroll data for this month. Click "Run Auto-Calc" above to compute.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = payrolls.map(p => `
+                    <tr>
+                        <td><strong>${p.user_name}</strong></td>
+                        <td>₹${parseFloat(p.base_salary).toLocaleString()}</td>
+                        <td>${p.total_working_days} days</td>
+                        <td>${p.present_days} Pres / ${p.paid_leaves} Leave</td>
+                        <td style="color: var(--danger); font-weight: 600;">-₹${parseFloat(p.deduction_amount).toLocaleString()} (${p.unpaid_days} days)</td>
+                        <td><strong style="color: var(--success); font-size: 1.05rem;">₹${parseFloat(p.net_salary).toLocaleString()}</strong></td>
+                        <td>
+                            <select onchange="updatePayStatus(${p.id}, this.value)" class="form-control" style="font-size: 0.8rem; padding: 0.2rem 0.5rem; width: 110px;">
+                                <option value="processed" ${p.status === 'processed' ? 'selected' : ''}>Processed</option>
+                                <option value="paid" ${p.status === 'paid' ? 'selected' : ''}>Paid</option>
+                            </select>
+                        </td>
+                        <td>
+                            <button onclick="adminViewSlip(${p.id})" class="btn btn-secondary btn-sm">Payslip</button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        async function updatePayStatus(id, status) {
+            const res = await apiRequest('payroll.php?action=status', 'POST', { id, status });
+            if (res.ok) showToast('Status updated', 'success');
+        }
+
+        async function adminViewSlip(id) {
+            const res = await apiRequest(`payroll.php?action=slip&id=${id}`);
+            if (res.ok && res.data.success) {
+                const p = res.data.payroll;
+                document.getElementById('adminSlipBody').innerHTML = `
+                    <div style="border: 1.5px solid var(--border-color); border-radius: var(--radius-md); padding: 1.75rem; background: #fff;">
+                        <div style="text-align: center; border-bottom: 2.5px solid var(--primary); padding-bottom: 1.25rem; margin-bottom: 1.25rem;">
+                            <div class="brand-badge" style="display: inline-block; margin-bottom: 0.5rem;">TGC CONNECT</div>
+                            <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--text-main); margin-bottom: 0.2rem;">SALARY COMPENSATION VOUCHER</h2>
+                            <p style="font-size: 0.85rem; color: var(--text-muted);">Period: ${p.month}/${p.year} &bull; Generated from Attendance & Leave Logs</p>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; font-size: 0.92rem; background: var(--bg-main); padding: 1rem; border-radius: var(--radius-sm);">
+                            <div><strong>Employee:</strong> ${p.user_name}</div>
+                            <div><strong>Department:</strong> ${p.user_dept || 'General'}</div>
+                            <div><strong>Designation:</strong> ${p.user_job || 'Staff'}</div>
+                            <div><strong>Status:</strong> <span class="badge badge-${p.status === 'paid' ? 'success' : 'warning'}">${p.status.toUpperCase()}</span></div>
+                        </div>
+                        <table style="width: 100%; font-size: 0.92rem; margin-bottom: 1.25rem; border-collapse: collapse;">
+                            <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.5rem 0;">Base Monthly Salary</td><td style="text-align: right; font-weight: 700;">₹${parseFloat(p.base_salary).toLocaleString()}</td></tr>
+                            <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.5rem 0;">Total Month Working Days</td><td style="text-align: right;">${p.total_working_days} days</td></tr>
+                            <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.5rem 0;">Present + Paid Leaves</td><td style="text-align: right;">${p.present_days + p.paid_leaves} days</td></tr>
+                            <tr style="border-bottom: 1px solid var(--border-color); color: var(--danger);"><td style="padding: 0.5rem 0;">Absent/Unpaid Deductions (${p.unpaid_days} days @ ₹${p.daily_rate}/day)</td><td style="text-align: right; font-weight: 700;">-₹${parseFloat(p.deduction_amount).toLocaleString()}</td></tr>
+                            <tr style="font-size: 1.2rem; font-weight: 800; color: var(--success); border-top: 2px solid var(--border-color);"><td style="padding: 0.75rem 0;">NET SALARY PAYABLE</td><td style="text-align: right;">₹${parseFloat(p.net_salary).toLocaleString()}</td></tr>
+                        </table>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center; border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
+                            Official System Voucher &bull; TGC Connect Workforce Management
+                        </div>
+                    </div>
+                `;
+                openModal('adminSlipModal');
+            }
+        }
+
+        async function loadAdminHolidays() {
+            const res = await apiRequest('leave.php?action=holidays');
+            const tbody = document.getElementById('adminHolidaysTableBody');
+            if (res.ok && res.data.success) {
+                const list = res.data.holidays;
+                tbody.innerHTML = list.map(h => `
+                    <tr>
+                        <td><strong>${h.title}</strong></td>
+                        <td>${h.holiday_date}</td>
+                        <td><span class="badge badge-primary">${h.type.toUpperCase()}</span></td>
+                        <td style="color: var(--text-muted); font-size: 0.85rem;">${h.description || '-'}</td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        async function handleAddHoliday(e) {
+            e.preventDefault();
+            const payload = {
+                title: document.getElementById('holidayTitleInput').value,
+                holiday_date: document.getElementById('holidayDateInput').value,
+            };
+            const res = await apiRequest('leave.php?action=add_holiday', 'POST', payload);
+            if (res.ok && res.data.success) {
+                showToast('Holiday added', 'success');
+                closeModal('addHolidayModal');
+                loadAdminHolidays();
+            } else {
+                showToast(res.data.message || 'Error adding holiday', 'error');
+            }
+        }
+    </script>
+</body>
+</html>

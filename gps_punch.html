@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time-Bound GPS Attendance - TGC Connect</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="brand-logo">
+                <span class="brand-badge">TGC</span>
+                <span>Connect</span>
+            </a>
+            <div class="nav-menu" id="navMenu">
+                <a href="portal.html" class="nav-link">Employee Portal</a>
+            </div>
+            <div id="navUserArea"></div>
+        </div>
+    </nav>
+
+    <main class="main-container">
+        <div style="max-width: 620px; margin: 1.5rem auto;">
+            <div class="card" style="padding: 2.5rem; text-align: center;">
+                
+                <div style="margin-bottom: 1.75rem;">
+                    <div style="display: inline-flex; align-items: center; gap: 0.5rem; color: #d97706; font-weight: 800; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.6px; margin-bottom: 0.5rem; background: #fffbeb; padding: 0.35rem 0.85rem; border-radius: 999px; border: 1px solid #fde68a;">
+                        <i data-lucide="map-pin" style="width: 16px;"></i> Time-Bound GPS Verification
+                    </div>
+                    <h2 id="linkTitleHeader" style="font-size: 1.75rem; font-weight: 800; letter-spacing: -0.5px;">Office GPS Attendance Punch</h2>
+                    <p style="color: var(--text-muted); font-size: 0.92rem;">
+                        This temporary verification link was issued by Admin. Enable location permissions to verify attendance within the radius.
+                    </p>
+                </div>
+
+                <!-- Animated Countdown Timer Box -->
+                <div style="background: #fffbeb; border: 1.5px solid #fde68a; border-radius: var(--radius-xl); padding: 1.5rem; margin-bottom: 1.75rem; position: relative;">
+                    <div style="font-size: 0.8rem; font-weight: 700; color: #92400e; text-transform: uppercase; letter-spacing: 0.6px;">TIME REMAINING BEFORE EXPIRATION</div>
+                    
+                    <div id="countdownTimer" style="font-size: 2.75rem; font-weight: 800; color: #b45309; font-family: var(--font-mono); margin: 0.35rem 0; letter-spacing: 1px;">
+                        --:--
+                    </div>
+                    <div id="timerSubtext" style="font-size: 0.88rem; color: #78350f; font-weight: 500;">
+                        Submit your location before the countdown reaches zero.
+                    </div>
+                </div>
+
+                <!-- Detected GPS Status Preview -->
+                <div id="coordsBox" style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.5rem; display: none;">
+                    <div style="font-size: 0.82rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.3rem;">Acquired Device Geolocation:</div>
+                    <div id="coordsText" style="font-weight: 700; font-family: var(--font-mono); font-size: 0.95rem; color: var(--text-main);"></div>
+                </div>
+
+                <!-- Verification Result Banner -->
+                <div id="gpsResultBox" style="display: none; padding: 1.25rem; border-radius: var(--radius-md); margin-bottom: 1.5rem; text-align: left;">
+                    <div style="font-weight: 800; margin-bottom: 0.25rem; font-size: 1.05rem;" id="gpsResultTitle"></div>
+                    <div style="font-size: 0.9rem;" id="gpsResultDetails"></div>
+                </div>
+
+                <!-- Main Action Button -->
+                <div style="display: flex; gap: 0.75rem; flex-direction: column;">
+                    <button type="button" id="markGpsBtn" onclick="requestLocationAndPunch()" class="btn btn-primary" style="padding: 0.9rem; font-size: 1.05rem;">
+                        <i data-lucide="crosshair" style="width: 20px;"></i> Tap to Verify GPS & Mark Attendance
+                    </button>
+                    <a href="portal.html" class="btn btn-secondary">
+                        <i data-lucide="home" style="width: 18px;"></i> Go to Employee Portal
+                    </a>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <div id="toast-container"></div>
+
+    <script src="js/app.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token') || '';
+        let remainingSeconds = 0;
+        let countdownInterval = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuthNav();
+            if (!token) {
+                document.getElementById('countdownTimer').textContent = 'NO TOKEN';
+                document.getElementById('timerSubtext').textContent = 'Please open the full link with a valid token parameter.';
+                document.getElementById('markGpsBtn').disabled = true;
+                return;
+            }
+            loadLinkDetails();
+        });
+
+        async function loadLinkDetails() {
+            const res = await apiRequest(`attendance.php?action=gps_link_details&token=${token}`);
+            if (res.ok && res.data.valid) {
+                remainingSeconds = res.data.seconds_remaining;
+                if (res.data.title) {
+                    document.getElementById('linkTitleHeader').textContent = res.data.title;
+                }
+                startCountdown();
+            } else {
+                document.getElementById('countdownTimer').textContent = 'EXPIRED';
+                document.getElementById('countdownTimer').style.color = 'var(--danger)';
+                document.getElementById('timerSubtext').textContent = 'This attendance link has expired or is invalid.';
+                document.getElementById('markGpsBtn').disabled = true;
+                document.getElementById('markGpsBtn').style.opacity = '0.5';
+            }
+        }
+
+        function startCountdown() {
+            function tick() {
+                if (remainingSeconds <= 0) {
+                    clearInterval(countdownInterval);
+                    document.getElementById('countdownTimer').textContent = '00:00';
+                    document.getElementById('countdownTimer').style.color = 'var(--danger)';
+                    document.getElementById('timerSubtext').textContent = 'Link has expired. Please request a new link from Admin.';
+                    document.getElementById('markGpsBtn').disabled = true;
+                    document.getElementById('markGpsBtn').style.opacity = '0.5';
+                    return;
+                }
+
+                const mins = Math.floor(remainingSeconds / 60);
+                const secs = remainingSeconds % 60;
+                document.getElementById('countdownTimer').textContent = 
+                    `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+                remainingSeconds--;
+            }
+            tick();
+            countdownInterval = setInterval(tick, 1000);
+        }
+
+        function requestLocationAndPunch() {
+            const btn = document.getElementById('markGpsBtn');
+            if (!navigator.geolocation) {
+                showToast('Geolocation is not supported by your browser.', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="loader" style="width: 18px;"></i> Acquiring GPS Satellites...';
+            lucide.createIcons();
+
+            navigator.geolocation.getCurrentPosition(
+                async (pos) => {
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+
+                    document.getElementById('coordsBox').style.display = 'block';
+                    document.getElementById('coordsText').textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)} (Accuracy: ±${Math.round(pos.coords.accuracy)}m)`;
+
+                    const res = await apiRequest('attendance.php?action=gps_punch', 'POST', {
+                        token: token,
+                        latitude: lat,
+                        longitude: lng,
+                        location_name: `Verified GPS Check-In (±${Math.round(pos.coords.accuracy)}m)`
+                    });
+
+                    const resBox = document.getElementById('gpsResultBox');
+                    const resTitle = document.getElementById('gpsResultTitle');
+                    const resDetails = document.getElementById('gpsResultDetails');
+                    resBox.style.display = 'block';
+
+                    if (res.ok && res.data.success) {
+                        showToast(res.data.message, 'success');
+                        resBox.style.background = 'var(--success-bg)';
+                        resBox.style.border = '1.5px solid var(--success-border)';
+                        resTitle.style.color = '#065f46';
+                        resTitle.textContent = '✅ ' + res.data.message;
+                        resDetails.innerHTML = `Date: <strong>${res.data.attendance.date}</strong> &bull; Check-in: <strong>${res.data.attendance.check_in_time}</strong>`;
+                        btn.innerHTML = 'Attendance Verified!';
+                        btn.className = 'btn btn-success';
+
+                        setTimeout(() => {
+                            window.location.href = 'portal.html';
+                        }, 2000);
+                    } else {
+                        showToast(res.data.message || 'GPS Punch failed', 'error');
+                        resBox.style.background = 'var(--danger-bg)';
+                        resBox.style.border = '1.5px solid var(--danger-border)';
+                        resTitle.style.color = '#991b1b';
+                        resTitle.textContent = '❌ Verification Failed';
+                        resDetails.textContent = res.data.message;
+                        btn.disabled = false;
+                        btn.innerHTML = '<i data-lucide="crosshair" style="width: 20px;"></i> Retry GPS Verification';
+                        lucide.createIcons();
+                    }
+                },
+                (err) => {
+                    console.error(err);
+                    btn.disabled = false;
+                    btn.innerHTML = '<i data-lucide="crosshair" style="width: 20px;"></i> Tap to Verify GPS & Mark Attendance';
+                    lucide.createIcons();
+                    showToast('Please enable device location permissions in your browser.', 'error');
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        }
+    </script>
+</body>
+</html>

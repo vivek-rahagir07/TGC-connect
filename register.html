@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Onboarding - TGC Connect</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="brand-logo">
+                <span class="brand-badge">TGC</span>
+                <span>Connect</span>
+            </a>
+            <div id="navUserArea">
+                <a href="login.html" class="btn btn-secondary btn-sm">Sign In</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-container">
+        <div style="max-width: 820px; margin: 1.5rem auto;">
+            <div class="card" style="padding: 2.5rem;">
+                
+                <div style="margin-bottom: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1.25rem;">
+                    <div style="display: inline-flex; align-items: center; gap: 0.4rem; color: var(--primary); font-weight: 800; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 0.4rem;">
+                        <i data-lucide="sparkles" style="width: 15px;"></i> Workforce Self-Registration
+                    </div>
+                    <h1 style="font-size: 1.85rem; font-weight: 800; letter-spacing: -0.5px;">Employee Onboarding & Profile Setup</h1>
+                    <p style="color: var(--text-muted); font-size: 0.95rem;">
+                        Complete your employee profile details and take a live camera verification photo.
+                    </p>
+                </div>
+
+                <form onsubmit="handleRegister(event)">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.75rem;">
+                        
+                        <!-- Left Column: Form Fields -->
+                        <div>
+                            <div class="form-group">
+                                <label class="form-label">Full Name *</label>
+                                <input type="text" id="regName" class="form-control" placeholder="e.g. Vikramaditya Singh" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Official Work Email *</label>
+                                <input type="email" id="regEmail" class="form-control" placeholder="vikram@tgcconnect.com" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Contact Phone Number *</label>
+                                <input type="tel" id="regPhone" class="form-control" placeholder="+91 98765 00000" required>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                <div class="form-group">
+                                    <label class="form-label">Department *</label>
+                                    <select id="regDepartment" class="form-control" required>
+                                        <option value="Engineering">Engineering</option>
+                                        <option value="Design & UI/UX">Design & UI/UX</option>
+                                        <option value="Marketing">Marketing</option>
+                                        <option value="Human Resources">Human Resources</option>
+                                        <option value="Operations">Operations</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Job Profile / Role *</label>
+                                    <input type="text" id="regJob" class="form-control" placeholder="e.g. QA Engineer" required>
+                                </div>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                <div class="form-group">
+                                    <label class="form-label">Date of Joining *</label>
+                                    <input type="date" id="regDoj" class="form-control" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Monthly Base Salary (₹) *</label>
+                                    <input type="number" id="regSalary" class="form-control" value="45000" required min="1000">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Account Password *</label>
+                                <input type="password" id="regPassword" class="form-control" placeholder="Min 6 characters" required minlength="6">
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Live Camera Verification Photo -->
+                        <div>
+                            <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>Verification Photo *</span>
+                                <span id="cameraStatusBadge" style="font-size: 0.75rem; color: var(--primary); font-weight: 700;">LIVE FEED</span>
+                            </label>
+
+                            <div class="camera-box" style="margin-bottom: 1rem;">
+                                <video id="cameraVideo" autoplay playsinline muted></video>
+                                <canvas id="cameraCanvas" style="display: none;"></canvas>
+                                
+                                <div id="cameraPlaceholder" style="display: none; color: #94a3b8; text-align: center; padding: 1rem;">
+                                    <i data-lucide="camera-off" style="width: 36px; margin: 0 auto 0.5rem; display: block;"></i>
+                                    <span>Camera Off / Photo Selected</span>
+                                </div>
+                            </div>
+
+                            <div style="display: flex; gap: 0.75rem; margin-bottom: 0.75rem;">
+                                <button type="button" id="btnCapturePhoto" onclick="captureLivePhoto()" class="btn btn-primary" style="flex: 1;">
+                                    <i data-lucide="camera" style="width: 18px;"></i> Take Snapshot
+                                </button>
+                                <button type="button" id="btnRetakePhoto" onclick="restartLiveCamera()" class="btn btn-secondary" style="display: none;">
+                                    <i data-lucide="refresh-cw" style="width: 18px;"></i> Retake
+                                </button>
+                            </div>
+
+                            <div style="text-align: center; margin-bottom: 1rem;">
+                                <label for="fileUploadInput" class="btn btn-secondary btn-sm" style="width: 100%; cursor: pointer;">
+                                    <i data-lucide="upload" style="width: 16px;"></i> Or Upload Photo From Device
+                                </label>
+                                <input type="file" id="fileUploadInput" accept="image/*" style="display: none;" onchange="handleFileUpload(event)">
+                            </div>
+
+                            <input type="hidden" id="regPhotoBase64">
+
+                            <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem; font-size: 0.85rem; color: var(--text-muted);">
+                                <strong>Security Notice:</strong>
+                                <div>Your photo is used to verify employee identity during attendance punches and payroll statements.</div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div style="margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                        <a href="login.html" style="font-size: 0.92rem; color: var(--text-muted); text-decoration: none;">
+                            Already registered? <strong style="color: var(--primary);">Sign in here</strong>
+                        </a>
+
+                        <button type="submit" id="btnSubmitRegister" class="btn btn-primary btn-lg" style="min-width: 240px;">
+                            Complete Registration & Profile
+                        </button>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </main>
+
+    <div id="toast-container"></div>
+
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('regDoj').value = new Date().toISOString().split('T')[0];
+            initLiveCamera();
+        });
+
+        async function initLiveCamera() {
+            const ok = await initWebcam('cameraVideo');
+            if (!ok) {
+                document.getElementById('cameraVideo').style.display = 'none';
+                document.getElementById('cameraPlaceholder').style.display = 'block';
+                document.getElementById('cameraStatusBadge').textContent = 'CAMERA UNAVAILABLE';
+                document.getElementById('cameraStatusBadge').style.color = 'var(--text-muted)';
+                document.getElementById('btnCapturePhoto').style.display = 'none';
+                lucide.createIcons();
+            }
+        }
+
+        function captureLivePhoto() {
+            const photoData = takeSnapshot('cameraVideo', 'cameraCanvas');
+            if (photoData) {
+                document.getElementById('regPhotoBase64').value = photoData;
+                document.getElementById('cameraVideo').style.display = 'none';
+                document.getElementById('cameraCanvas').style.display = 'block';
+                document.getElementById('btnCapturePhoto').style.display = 'none';
+                document.getElementById('btnRetakePhoto').style.display = 'inline-flex';
+                document.getElementById('cameraStatusBadge').textContent = 'SNAPSHOT LOCKED';
+                document.getElementById('cameraStatusBadge').style.color = 'var(--success)';
+                showToast('Snapshot captured successfully!', 'success');
+                lucide.createIcons();
+            } else {
+                showToast('Could not capture frame from camera.', 'error');
+            }
+        }
+
+        function restartLiveCamera() {
+            document.getElementById('regPhotoBase64').value = '';
+            document.getElementById('cameraCanvas').style.display = 'none';
+            document.getElementById('cameraPlaceholder').style.display = 'none';
+            document.getElementById('cameraVideo').style.display = 'block';
+            document.getElementById('btnCapturePhoto').style.display = 'inline-flex';
+            document.getElementById('btnRetakePhoto').style.display = 'none';
+            document.getElementById('cameraStatusBadge').textContent = 'LIVE FEED';
+            document.getElementById('cameraStatusBadge').style.color = 'var(--primary)';
+            initLiveCamera();
+            lucide.createIcons();
+        }
+
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.getElementById('cameraCanvas');
+                    canvas.width = img.width > 640 ? 640 : img.width;
+                    canvas.height = (canvas.width / img.width) * img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                    document.getElementById('regPhotoBase64').value = dataUrl;
+                    
+                    stopWebcam();
+                    document.getElementById('cameraVideo').style.display = 'none';
+                    document.getElementById('cameraPlaceholder').style.display = 'none';
+                    canvas.style.display = 'block';
+                    document.getElementById('btnCapturePhoto').style.display = 'none';
+                    document.getElementById('btnRetakePhoto').style.display = 'inline-flex';
+                    document.getElementById('cameraStatusBadge').textContent = 'UPLOADED PHOTO';
+                    document.getElementById('cameraStatusBadge').style.color = 'var(--success)';
+                    showToast('Photo loaded successfully!', 'success');
+                    lucide.createIcons();
+                };
+                img.src = evt.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmitRegister');
+            btn.disabled = true;
+            btn.textContent = 'Saving Profile...';
+
+            const payload = {
+                name: document.getElementById('regName').value.trim(),
+                email: document.getElementById('regEmail').value.trim(),
+                phone: document.getElementById('regPhone').value.trim(),
+                department: document.getElementById('regDepartment').value,
+                job_profile: document.getElementById('regJob').value.trim(),
+                date_of_joining: document.getElementById('regDoj').value,
+                base_salary: parseFloat(document.getElementById('regSalary').value) || 35000,
+                password: document.getElementById('regPassword').value,
+                photo_base64: document.getElementById('regPhotoBase64').value,
+            };
+
+            const res = await apiRequest('auth.php?action=register', 'POST', payload);
+            if (res.ok && res.data.success) {
+                showToast('Registration successful! Redirecting to portal...', 'success');
+                setTimeout(() => {
+                    window.location.href = res.data.redirect || 'portal.html';
+                }, 800);
+            } else {
+                showToast(res.data.message || 'Registration failed', 'error');
+                btn.disabled = false;
+                btn.textContent = 'Complete Registration & Profile';
+            }
+        }
+    </script>
+</body>
+</html>
