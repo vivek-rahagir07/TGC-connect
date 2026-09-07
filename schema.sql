@@ -3,11 +3,12 @@
 -- Complete MySQL Schema & Initial Seed Data
 -- ==========================================================
 
-CREATE DATABASE IF NOT EXISTS `tgc_connect` 
-CHARACTER SET utf8mb4 
-COLLATE utf8mb4_unicode_ci;
+-- ==========================================================
+-- NOTE FOR HOSTINGER / PHPMYADMIN / SHARED HOSTING:
+-- Select your database in Hostinger phpMyAdmin, then import this file directly.
+-- (Database creation and selection statements are omitted for shared hosting compatibility)
+-- ==========================================================
 
-USE `tgc_connect`;
 
 -- 1. Users Table (Administrators & Employees)
 CREATE TABLE IF NOT EXISTS `users` (

@@ -245,8 +245,9 @@ switch ($action) {
         $title = trim($input['title'] ?? 'Time-Bound GPS Punch');
         $validity = intval($input['validity_minutes'] ?? 10);
         $radius = intval($input['radius_meters'] ?? 500);
-        $targetLat = !empty($input['target_lat']) ? floatval($input['target_lat']) : 28.6139;
-        $targetLng = !empty($input['target_lng']) ? floatval($input['target_lng']) : 77.2090;
+        $targetLat = (!empty($input['target_lat']) && is_numeric($input['target_lat'])) ? floatval($input['target_lat']) : null;
+        $targetLng = (!empty($input['target_lng']) && is_numeric($input['target_lng'])) ? floatval($input['target_lng']) : null;
+
 
         $token = 'tgc-' . substr(md5(uniqid(mt_rand(), true)), 0, 8);
         $expiresAt = date('Y-m-d H:i:s', time() + ($validity * 60));

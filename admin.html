@@ -1691,7 +1691,7 @@
                         <td><span class="badge badge-${h.status}">${h.status}</span></td>
                         <td style="font-size: 0.82rem; color: var(--text-muted);">
                             ${h.notes || '-'}
-                            ${h.latitude ? `<br><span style="font-family: monospace;">📍 ${h.latitude.toFixed(4)}, ${h.longitude.toFixed(4)} (IP: ${h.ip_address || '-'})</span>` : ''}
+                            ${h.latitude ? `<br><span style="font-family: monospace;">📍 ${parseFloat(h.latitude).toFixed(4)}, ${parseFloat(h.longitude).toFixed(4)} (IP: ${h.ip_address || '-'})</span>` : ''}
                         </td>
                     </tr>
                 `).join('');

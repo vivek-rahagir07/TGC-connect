@@ -1,521 +1,55 @@
 <?php
 /**
- * TGC Connect - Database Connection & Comprehensive Setup (SQLite PDO)
+ * TGC Connect - Database Connection & Core Utilities
+ * Architecture: PHP + MySQL/MariaDB + PDO + Vanilla JavaScript
+ * Standardized exclusively on MySQL/MariaDB with PDO.
  */
 
 if (session_status() === PHP_SESSION_NONE) {
+    ini_set('session.cookie_httponly', 1);
+    ini_set('session.use_only_cookies', 1);
     session_start();
 }
 
 header('Content-Type: application/json; charset=utf-8');
+header('X-Content-Type-Options: nosniff');
 
-$dbDir = __DIR__ . '/data';
-if (!is_dir($dbDir)) {
-    mkdir($dbDir, 0777, true);
-}
-
+// Ensure uploads directory exists
 $uploadsDir = __DIR__ . '/../uploads';
 if (!is_dir($uploadsDir)) {
-    mkdir($uploadsDir, 0777, true);
+    @mkdir($uploadsDir, 0755, true);
 }
 
+// Load MySQL database configuration
 $config = require __DIR__ . '/config.php';
-$pdo = null;
-$dbDriver = 'sqlite';
 
-// Try MySQL connection first if configured
-if (($config['driver'] ?? 'mysql') === 'mysql') {
-    try {
-        $host = $config['host'] ?? '127.0.0.1';
-        $port = $config['port'] ?? 3306;
-        $dbName = $config['database'] ?? 'tgc_connect';
-        $user = $config['username'] ?? 'root';
-        $pass = $config['password'] ?? '';
+$host    = $config['host'] ?? '127.0.0.1';
+$port    = (int) ($config['port'] ?? 3306);
+$dbName  = $config['database'] ?? 'tgc_connect';
+$user    = $config['username'] ?? 'root';
+$pass    = $config['password'] ?? '';
+$charset = $config['charset'] ?? 'utf8mb4';
 
-        // Connect to server (without database first)
-        $pdo = new PDO("mysql:host={$host};port={$port};charset=utf8mb4", $user, $pass, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_TIMEOUT => 3
-        ]);
-
-        // Auto-create database if not exists
-        $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$dbName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
-        $pdo->exec("USE `{$dbName}`;");
-        $dbDriver = 'mysql';
-
-        // Check if users table exists in MySQL
-        $check = $pdo->query("SHOW TABLES LIKE 'users'")->fetch();
-        if (!$check) {
-            initDatabaseMysql($pdo);
-        }
-        migrateDatabase($pdo);
-    } catch (Throwable $e) {
-        // Fallback to SQLite gracefully if MySQL server is not running or refused
-        $pdo = null;
-    }
+try {
+    $dsn = "mysql:host={$host};port={$port};dbname={$dbName};charset={$charset}";
+    $pdo = new PDO($dsn, $user, $pass, [
+        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES   => false,
+        PDO::ATTR_TIMEOUT            => 5,
+    ]);
+} catch (PDOException $e) {
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Database connection failed: ' . $e->getMessage()
+    ]);
+    exit;
 }
 
-// Fallback to SQLite PDO
-if (!$pdo) {
-    $dbPath = $config['sqlite_path'] ?? ($dbDir . '/tgc_connect.db');
-    $isNewDb = !file_exists($dbPath);
-
-    try {
-        $pdo = new PDO('sqlite:' . $dbPath);
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-
-        if ($isNewDb || filesize($dbPath) === 0) {
-            initDatabase($pdo);
-        }
-        migrateDatabase($pdo);
-    } catch (PDOException $e) {
-        echo json_encode(['success' => false, 'message' => 'Database connection failed: ' . $e->getMessage()]);
-        exit;
-    }
-}
-
-function initDatabase($pdo) {
-    // 1. Users
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            email TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            phone TEXT,
-            dob TEXT,
-            address TEXT,
-            department TEXT,
-            job_profile TEXT,
-            date_of_joining TEXT,
-            photo_path TEXT,
-            role TEXT DEFAULT 'employee',
-            status TEXT DEFAULT 'active',
-            first_login_required INTEGER DEFAULT 0,
-            base_salary REAL DEFAULT 30000.00,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-    ");
-
-    // 2. Attendances
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS attendances (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            date TEXT NOT NULL,
-            check_in_time TEXT,
-            check_out_time TEXT,
-            method TEXT DEFAULT 'qr',
-            latitude REAL,
-            longitude REAL,
-            accuracy_meters REAL,
-            location_name TEXT,
-            ip_address TEXT,
-            user_agent TEXT,
-            device_fingerprint TEXT,
-            status TEXT DEFAULT 'present',
-            notes TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-            UNIQUE(user_id, date)
-        );
-    ");
-
-    // 3. QR Codes
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS qr_codes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            token TEXT UNIQUE NOT NULL,
-            title TEXT DEFAULT 'TGC Office Main Reception QR',
-            is_active INTEGER DEFAULT 1,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-    ");
-
-    // 4. GPS Links
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS gps_links (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            token TEXT UNIQUE NOT NULL,
-            title TEXT DEFAULT 'Morning Standup GPS Check-In',
-            target_lat REAL,
-            target_lng REAL,
-            radius_meters INTEGER DEFAULT 500,
-            expires_at TEXT NOT NULL,
-            is_active INTEGER DEFAULT 1,
-            created_by INTEGER,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-    ");
-
-    // 5. Leave Quotas
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS leave_quotas (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            year INTEGER NOT NULL,
-            casual_leave_total REAL DEFAULT 12.0,
-            sick_leave_total REAL DEFAULT 6.0,
-            casual_leave_used REAL DEFAULT 0.0,
-            sick_leave_used REAL DEFAULT 0.0,
-            UNIQUE(user_id, year)
-        );
-    ");
-
-    // 6. Leaves
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS leaves (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            leave_type TEXT NOT NULL,
-            start_date TEXT NOT NULL,
-            end_date TEXT NOT NULL,
-            total_days REAL DEFAULT 1.0,
-            reason TEXT NOT NULL,
-            status TEXT DEFAULT 'pending',
-            rejection_reason TEXT,
-            reviewed_by INTEGER,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-    ");
-
-    // 7. Holidays
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS holidays (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            holiday_date TEXT UNIQUE NOT NULL,
-            type TEXT DEFAULT 'company',
-            description TEXT
-        );
-    ");
-
-    // 8. Payrolls
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS payrolls (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            month INTEGER NOT NULL,
-            year INTEGER NOT NULL,
-            base_salary REAL NOT NULL,
-            total_working_days INTEGER DEFAULT 30,
-            present_days REAL DEFAULT 0,
-            paid_leaves REAL DEFAULT 0,
-            unpaid_days REAL DEFAULT 0,
-            daily_rate REAL DEFAULT 0,
-            deduction_amount REAL DEFAULT 0,
-            bonus_amount REAL DEFAULT 0,
-            net_salary REAL NOT NULL,
-            status TEXT DEFAULT 'processed',
-            payment_date TEXT,
-            remarks TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(user_id, month, year)
-        );
-    ");
-
-    // 9. Profile Change Requests (Employee profile edit oversight)
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS profile_change_requests (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            changes_json TEXT NOT NULL,
-            reason TEXT,
-            status TEXT DEFAULT 'pending',
-            reviewed_by INTEGER,
-            reviewed_at TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-        );
-    ");
-
-    // 10. Admin Logs / Audit Trail
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS admin_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            admin_id INTEGER,
-            action TEXT NOT NULL,
-            target_user_id INTEGER,
-            details TEXT,
-            ip_address TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-    ");
-
-    // 11. Inventories
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS inventories (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            category TEXT DEFAULT 'Stationery & Supplies',
-            unit TEXT DEFAULT 'Pieces',
-            total_quantity INTEGER DEFAULT 0,
-            available_quantity INTEGER DEFAULT 0,
-            min_stock_alert INTEGER DEFAULT 5,
-            location TEXT DEFAULT 'Stationery Cabinet',
-            description TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-    ");
-
-    // 12. Inventory Issuances
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS inventory_issuances (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            inventory_id INTEGER NOT NULL,
-            user_id INTEGER,
-            recipient_name TEXT NOT NULL,
-            recipient_type TEXT DEFAULT 'employee',
-            quantity INTEGER NOT NULL DEFAULT 1,
-            issue_date TEXT NOT NULL,
-            expected_return_date TEXT,
-            is_returnable INTEGER DEFAULT 1,
-            status TEXT DEFAULT 'issued',
-            returned_quantity INTEGER DEFAULT 0,
-            returned_date TEXT,
-            issued_by INTEGER,
-            purpose TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (inventory_id) REFERENCES inventories(id) ON DELETE CASCADE,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
-        );
-    ");
-
-    // Seed Default Admin User
-    $adminPass = password_hash('admin123', PASSWORD_DEFAULT);
-
-    $pdo->exec("
-        INSERT INTO users (name, email, password, phone, department, job_profile, date_of_joining, role, status, base_salary, first_login_required) VALUES
-        ('Administrator', 'admin@tgcconnect.com', '{$adminPass}', '+91 98765 43210', 'Management', 'System Administrator', '2025-01-01', 'admin', 'active', 95000.00, 0);
-    ");
-
-    // Default Office Reception QR Code
-    $pdo->exec("INSERT INTO qr_codes (token, title, is_active) VALUES ('TGC-OFFICE-MAIN-HQ', 'TGC Corporate HQ Reception QR', 1);");
-
-    // Standard Holidays for current year
-    $currentYear = (int) date('Y');
-    $pdo->exec("
-        INSERT INTO holidays (title, holiday_date, type, description) VALUES
-        ('New Year Holiday', '{$currentYear}-01-01', 'national', 'Global celebration'),
-        ('Republic Day', '{$currentYear}-01-26', 'national', 'National Holiday'),
-        ('Independence Day', '{$currentYear}-08-15', 'national', 'National Holiday'),
-        ('TGC Annual Foundation Day', '{$currentYear}-10-12', 'company', 'Company Foundation Day'),
-        ('Diwali Festival', '{$currentYear}-11-01', 'festival', 'Festival of Lights'),
-        ('Christmas Day', '{$currentYear}-12-25', 'festival', 'Christmas holiday');
-    ");
-
-    seedInitialInventories($pdo);
-}
-
-function seedInitialInventories($pdo) {
-    try {
-        $count = (int) $pdo->query("SELECT COUNT(*) FROM inventories")->fetchColumn();
-        if ($count === 0) {
-            $pdo->exec("
-                INSERT INTO inventories (name, category, unit, total_quantity, available_quantity, min_stock_alert, location, description) VALUES
-                ('Heavy Duty Desktop Stapler (No. 10)', 'Stationery & Supplies', 'Pieces', 25, 23, 5, 'Stationery Cabinet Shelf A', 'Kangaro heavy-duty stapler with 50-sheet binding capacity.'),
-                ('Transparent Packing & Desk Tape (2-inch)', 'Stationery & Supplies', 'Rolls', 45, 41, 10, 'Stationery Cabinet Shelf B', 'Cello high-adhesion transparent tape rolls.'),
-                ('Assorted Color Chart Papers', 'Paper & Sheets', 'Sheets', 120, 110, 20, 'Drafting Drawer 2', 'Full-size Bristol chart paper for design diagrams & sprint planning.'),
-                ('Premium A4 Copier Paper (75 GSM)', 'Paper & Sheets', 'Reams', 35, 33, 8, 'Supply Room Rack 1', 'JK Copier 500-sheet reams for official documentation and printouts.'),
-                ('Stainless Steel Precision Ruler / Scale (30cm)', 'Measuring Tools', 'Pieces', 30, 28, 6, 'Stationery Cabinet Shelf A', 'Camlin dual-edge metric & imperial non-slip steel scale.'),
-                ('Chisel & Bullet Tip Permanent Markers (Black/Blue)', 'Stationery & Supplies', 'Pieces', 60, 56, 12, 'Stationery Cabinet Shelf C', 'Camlin water-resistant waterproof permanent markers.'),
-                ('Self-Adhesive Sticky Notes Pad (3x3 Yellow)', 'Stationery & Supplies', 'Pads', 50, 48, 10, 'Stationery Cabinet Shelf B', 'Post-it 100 sheets per pad for quick ideation and task board.');
-            ");
-
-            $today = date('Y-m-d');
-            $pdo->exec("
-                INSERT INTO inventory_issuances (inventory_id, user_id, recipient_name, recipient_type, quantity, issue_date, is_returnable, status, returned_quantity, issued_by, purpose) VALUES
-                (1, 2, 'Rohan Verma', 'employee', 1, '{$today}', 1, 'issued', 0, 1, 'Assigned for engineering workstation paperwork'),
-                (5, 2, 'Rohan Verma', 'employee', 1, '{$today}', 1, 'issued', 0, 1, 'Precision alignment for physical hardware & cables'),
-                (3, 3, 'Priya Sharma', 'employee', 10, '{$today}', 0, 'consumed', 0, 1, 'Product UI wireframing workshop with stakeholders'),
-                (2, 3, 'Priya Sharma', 'employee', 2, '{$today}', 0, 'consumed', 0, 1, 'Affixing design charts on UX collaboration board'),
-                (4, 1, 'Administration Department', 'department', 2, '{$today}', 0, 'consumed', 0, 1, 'Monthly payroll & compliance printouts');
-            ");
-        }
-    } catch (Exception $e) {
-        // Table may not exist yet during migration
-    }
-}
-
-function migrateDatabase($pdo) {
-    $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
-
-    // Auto-create inventories and issuances if missing
-    if ($driver === 'mysql') {
-        $pdo->exec("
-            CREATE TABLE IF NOT EXISTS `inventories` (
-                `id` INT AUTO_INCREMENT PRIMARY KEY,
-                `name` VARCHAR(191) NOT NULL,
-                `category` VARCHAR(100) DEFAULT 'Stationery & Supplies',
-                `unit` VARCHAR(50) DEFAULT 'Pieces',
-                `total_quantity` INT NOT NULL DEFAULT 0,
-                `available_quantity` INT NOT NULL DEFAULT 0,
-                `min_stock_alert` INT DEFAULT 5,
-                `location` VARCHAR(150) DEFAULT 'Stationery Cabinet',
-                `description` TEXT DEFAULT NULL,
-                `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX `idx_inventory_category` (`category`),
-                INDEX `idx_inventory_stock` (`available_quantity`)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-        ");
-
-        $pdo->exec("
-            CREATE TABLE IF NOT EXISTS `inventory_issuances` (
-                `id` INT AUTO_INCREMENT PRIMARY KEY,
-                `inventory_id` INT NOT NULL,
-                `user_id` INT DEFAULT NULL,
-                `recipient_name` VARCHAR(191) NOT NULL,
-                `recipient_type` ENUM('employee', 'department', 'external') DEFAULT 'employee',
-                `quantity` INT NOT NULL DEFAULT 1,
-                `issue_date` DATE NOT NULL,
-                `expected_return_date` DATE DEFAULT NULL,
-                `is_returnable` TINYINT(1) DEFAULT 1,
-                `status` ENUM('issued', 'returned', 'consumed', 'lost') DEFAULT 'issued',
-                `returned_quantity` INT DEFAULT 0,
-                `returned_date` DATETIME DEFAULT NULL,
-                `issued_by` INT DEFAULT NULL,
-                `purpose` TEXT DEFAULT NULL,
-                `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                INDEX `idx_issuance_status` (`status`),
-                INDEX `idx_issuance_date` (`issue_date`),
-                FOREIGN KEY (`inventory_id`) REFERENCES `inventories`(`id`) ON DELETE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-        ");
-
-        seedInitialInventories($pdo);
-        return;
-    }
-
-    // SQLite Migrations
-    // Check and add missing columns to users
-    $userCols = getTableColumns($pdo, 'users');
-    if (!in_array('dob', $userCols)) {
-        $pdo->exec("ALTER TABLE users ADD COLUMN dob TEXT;");
-    }
-    if (!in_array('address', $userCols)) {
-        $pdo->exec("ALTER TABLE users ADD COLUMN address TEXT;");
-    }
-    if (!in_array('first_login_required', $userCols)) {
-        $pdo->exec("ALTER TABLE users ADD COLUMN first_login_required INTEGER DEFAULT 0;");
-    }
-
-    // Check and add missing columns to attendances
-    $attCols = getTableColumns($pdo, 'attendances');
-    if (!in_array('ip_address', $attCols)) {
-        $pdo->exec("ALTER TABLE attendances ADD COLUMN ip_address TEXT;");
-    }
-    if (!in_array('user_agent', $attCols)) {
-        $pdo->exec("ALTER TABLE attendances ADD COLUMN user_agent TEXT;");
-    }
-    if (!in_array('device_fingerprint', $attCols)) {
-        $pdo->exec("ALTER TABLE attendances ADD COLUMN device_fingerprint TEXT;");
-    }
-    if (!in_array('accuracy_meters', $attCols)) {
-        $pdo->exec("ALTER TABLE attendances ADD COLUMN accuracy_meters REAL;");
-    }
-
-    // Ensure profile_change_requests and admin_logs tables exist in SQLite
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS profile_change_requests (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            changes_json TEXT NOT NULL,
-            reason TEXT,
-            status TEXT DEFAULT 'pending',
-            reviewed_by INTEGER,
-            reviewed_at TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-        );
-    ");
-
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS admin_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            admin_id INTEGER,
-            action TEXT NOT NULL,
-            target_user_id INTEGER,
-            details TEXT,
-            ip_address TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-    ");
-
-    // Inventories & Issuances in SQLite
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS inventories (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            category TEXT DEFAULT 'Stationery & Supplies',
-            unit TEXT DEFAULT 'Pieces',
-            total_quantity INTEGER DEFAULT 0,
-            available_quantity INTEGER DEFAULT 0,
-            min_stock_alert INTEGER DEFAULT 5,
-            location TEXT DEFAULT 'Stationery Cabinet',
-            description TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-    ");
-
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS inventory_issuances (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            inventory_id INTEGER NOT NULL,
-            user_id INTEGER,
-            recipient_name TEXT NOT NULL,
-            recipient_type TEXT DEFAULT 'employee',
-            quantity INTEGER NOT NULL DEFAULT 1,
-            issue_date TEXT NOT NULL,
-            expected_return_date TEXT,
-            is_returnable INTEGER DEFAULT 1,
-            status TEXT DEFAULT 'issued',
-            returned_quantity INTEGER DEFAULT 0,
-            returned_date TEXT,
-            issued_by INTEGER,
-            purpose TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (inventory_id) REFERENCES inventories(id) ON DELETE CASCADE,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
-        );
-    ");
-
-    seedInitialInventories($pdo);
-}
-
-function initDatabaseMysql($pdo) {
-    $schemaFile = __DIR__ . '/../schema.sql';
-    if (!file_exists($schemaFile)) {
-        return;
-    }
-    $sql = file_get_contents($schemaFile);
-    try {
-        $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, 1);
-        $pdo->exec($sql);
-    } catch (Exception $e) {
-        // Tables or database might already exist
-    }
-}
-
-function getTableColumns($pdo, $tableName) {
-    try {
-        $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
-        if ($driver === 'mysql') {
-            $stmt = $pdo->query("SHOW COLUMNS FROM `{$tableName}`");
-            return $stmt->fetchAll(PDO::FETCH_COLUMN, 0) ?: [];
-        } else {
-            $stmt = $pdo->query("PRAGMA table_info({$tableName})");
-            return $stmt->fetchAll(PDO::FETCH_COLUMN, 1) ?: [];
-        }
-    } catch (Exception $e) {
-        return [];
-    }
-}
-
+/**
+ * Audit Trail Logging for Administrative Actions
+ */
 function logAdminAction($pdo, $adminId, $action, $targetUserId = null, $details = '') {
     try {
         $ip = getClientIp();
@@ -529,6 +63,9 @@ function logAdminAction($pdo, $adminId, $action, $targetUserId = null, $details 
     }
 }
 
+/**
+ * Retrieve Client IP Address safely behind proxies/CDNs
+ */
 function getClientIp() {
     if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
         return $_SERVER['HTTP_CLIENT_IP'];
@@ -538,17 +75,26 @@ function getClientIp() {
     return $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
 }
 
+/**
+ * Parse JSON Request Body into an associative array
+ */
 function getJsonInput() {
     $input = file_get_contents('php://input');
     return json_decode($input, true) ?: [];
 }
 
+/**
+ * Send JSON Response and Terminate Script Execution
+ */
 function sendResponse($success, $data = [], $statusCode = 200) {
     http_response_code($statusCode);
     echo json_encode(array_merge(['success' => $success], $data));
     exit;
 }
 
+/**
+ * Get Currently Authenticated Session User
+ */
 function getCurrentUser($pdo) {
     if (!isset($_SESSION['user_id'])) {
         return null;
@@ -557,5 +103,3 @@ function getCurrentUser($pdo) {
     $stmt->execute([$_SESSION['user_id']]);
     return $stmt->fetch() ?: null;
 }
-
-

@@ -8,3 +8,4 @@
 api/data/*.db
 uploads/*
 !uploads/.gitkeep
+!uploads/.htaccess

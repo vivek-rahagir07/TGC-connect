@@ -36,18 +36,24 @@ function logMsg(&$report, $msg, $isCli) {
 try {
     logMsg($report, "Connecting to MySQL server at {$host}:{$port}...", $isCli);
     
-    // Connect without database selected first
-    $pdo = new PDO("mysql:host={$host};port={$port};charset=utf8mb4", $user, $pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-    ]);
+    // Try connecting directly with dbName (standard for Hostinger / pre-created databases)
+    try {
+        $pdo = new PDO("mysql:host={$host};port={$port};dbname={$dbName};charset=utf8mb4", $user, $pass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+        ]);
+        logMsg($report, "Connected to MySQL database `{$dbName}` directly.", $isCli);
+    } catch (PDOException $e) {
+        // Fallback: connect to server and create database if not exists (local dev / root)
+        $pdo = new PDO("mysql:host={$host};port={$port};charset=utf8mb4", $user, $pass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+        ]);
+        $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$dbName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
+        $pdo->exec("USE `{$dbName}`;");
+        logMsg($report, "Created and selected database `{$dbName}`.", $isCli);
+    }
 
-    logMsg($report, "Connected to MySQL server successfully.", $isCli);
-
-    // Create database if not exists
-    $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$dbName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
-    $pdo->exec("USE `{$dbName}`;");
-    logMsg($report, "Database `{$dbName}` selected.", $isCli);
 
     // Read and execute schema.sql
     if (!file_exists($schemaFile)) {
