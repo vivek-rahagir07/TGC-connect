@@ -173,6 +173,47 @@ CREATE TABLE IF NOT EXISTS `admin_logs` (
     FOREIGN KEY (`admin_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 11. Inventories & Asset Catalog Table
+CREATE TABLE IF NOT EXISTS `inventories` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `name` VARCHAR(191) NOT NULL,
+    `category` VARCHAR(100) DEFAULT 'Stationery & Supplies',
+    `unit` VARCHAR(50) DEFAULT 'Pieces',
+    `total_quantity` INT NOT NULL DEFAULT 0,
+    `available_quantity` INT NOT NULL DEFAULT 0,
+    `min_stock_alert` INT DEFAULT 5,
+    `location` VARCHAR(150) DEFAULT 'Stationery Cabinet',
+    `description` TEXT DEFAULT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX `idx_inventory_category` (`category`),
+    INDEX `idx_inventory_stock` (`available_quantity`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 12. Inventory Issuances & Allocation History Table
+CREATE TABLE IF NOT EXISTS `inventory_issuances` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `inventory_id` INT NOT NULL,
+    `user_id` INT DEFAULT NULL,
+    `recipient_name` VARCHAR(191) NOT NULL,
+    `recipient_type` ENUM('employee', 'department', 'external') DEFAULT 'employee',
+    `quantity` INT NOT NULL DEFAULT 1,
+    `issue_date` DATE NOT NULL,
+    `expected_return_date` DATE DEFAULT NULL,
+    `is_returnable` TINYINT(1) DEFAULT 1,
+    `status` ENUM('issued', 'returned', 'consumed', 'lost') DEFAULT 'issued',
+    `returned_quantity` INT DEFAULT 0,
+    `returned_date` DATETIME DEFAULT NULL,
+    `issued_by` INT DEFAULT NULL,
+    `purpose` TEXT DEFAULT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_issuance_status` (`status`),
+    INDEX `idx_issuance_date` (`issue_date`),
+    FOREIGN KEY (`inventory_id`) REFERENCES `inventories`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL,
+    FOREIGN KEY (`issued_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ==========================================================
 -- SEED INITIAL SYSTEM DATA
 -- ==========================================================
@@ -227,3 +268,24 @@ INSERT INTO `holidays` (`title`, `holiday_date`, `type`, `description`) VALUES
 ('Diwali Festival', '2026-11-01', 'festival', 'Festival of Lights'),
 ('Christmas Day', '2026-12-25', 'festival', 'Christmas holiday')
 ON DUPLICATE KEY UPDATE `holiday_date` = `holiday_date`;
+
+-- Office Inventory Items (Requested: staplers, tapes, charts, white sheets, scales, etc.)
+INSERT INTO `inventories` (`id`, `name`, `category`, `unit`, `total_quantity`, `available_quantity`, `min_stock_alert`, `location`, `description`) VALUES
+(1, 'Heavy Duty Desktop Stapler (No. 10)', 'Stationery & Supplies', 'Pieces', 25, 23, 5, 'Stationery Cabinet Shelf A', 'Kangaro heavy-duty stapler with 50-sheet binding capacity.'),
+(2, 'Transparent Packing & Desk Tape (2-inch)', 'Stationery & Supplies', 'Rolls', 45, 41, 10, 'Stationery Cabinet Shelf B', 'Cello high-adhesion transparent tape rolls.'),
+(3, 'Assorted Color Chart Papers', 'Paper & Sheets', 'Sheets', 120, 110, 20, 'Drafting Drawer 2', 'Full-size Bristol chart paper for design diagrams & sprint planning.'),
+(4, 'Premium A4 Copier Paper (75 GSM)', 'Paper & Sheets', 'Reams', 35, 33, 8, 'Supply Room Rack 1', 'JK Copier 500-sheet reams for official documentation and printouts.'),
+(5, 'Stainless Steel Precision Ruler / Scale (30cm)', 'Measuring Tools', 'Pieces', 30, 28, 6, 'Stationery Cabinet Shelf A', 'Camlin dual-edge metric & imperial non-slip steel scale.'),
+(6, 'Chisel & Bullet Tip Permanent Markers (Black/Blue)', 'Stationery & Supplies', 'Pieces', 60, 56, 12, 'Stationery Cabinet Shelf C', 'Camlin water-resistant waterproof permanent markers.'),
+(7, 'Self-Adhesive Sticky Notes Pad (3x3 Yellow)', 'Stationery & Supplies', 'Pads', 50, 48, 10, 'Stationery Cabinet Shelf B', 'Post-it 100 sheets per pad for quick ideation and task board.')
+ON DUPLICATE KEY UPDATE `name` = VALUES(`name`);
+
+-- Sample Historical & Active Issuances
+INSERT INTO `inventory_issuances` (`id`, `inventory_id`, `user_id`, `recipient_name`, `recipient_type`, `quantity`, `issue_date`, `expected_return_date`, `is_returnable`, `status`, `returned_quantity`, `issued_by`, `purpose`) VALUES
+(1, 1, 2, 'Rohan Verma', 'employee', 1, CURDATE() - INTERVAL 5 DAY, NULL, 1, 'issued', 0, 1, 'Assigned for engineering workstation paperwork'),
+(2, 5, 2, 'Rohan Verma', 'employee', 1, CURDATE() - INTERVAL 5 DAY, NULL, 1, 'issued', 0, 1, 'Precision alignment for physical hardware & cables'),
+(3, 3, 3, 'Priya Sharma', 'employee', 10, CURDATE() - INTERVAL 2 DAY, NULL, 0, 'consumed', 0, 1, 'Product UI wireframing workshop with stakeholders'),
+(4, 2, 3, 'Priya Sharma', 'employee', 2, CURDATE() - INTERVAL 2 DAY, NULL, 0, 'consumed', 0, 1, 'Affixing design charts on UX collaboration board'),
+(5, 4, 1, 'Administration Department', 'department', 2, CURDATE() - INTERVAL 1 DAY, NULL, 0, 'consumed', 0, 1, 'Monthly payroll & compliance printouts')
+ON DUPLICATE KEY UPDATE `id` = VALUES(`id`);
+

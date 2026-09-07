@@ -244,6 +244,46 @@ function initDatabase($pdo) {
         );
     ");
 
+    // 11. Inventories
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS inventories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            category TEXT DEFAULT 'Stationery & Supplies',
+            unit TEXT DEFAULT 'Pieces',
+            total_quantity INTEGER DEFAULT 0,
+            available_quantity INTEGER DEFAULT 0,
+            min_stock_alert INTEGER DEFAULT 5,
+            location TEXT DEFAULT 'Stationery Cabinet',
+            description TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+    ");
+
+    // 12. Inventory Issuances
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS inventory_issuances (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            inventory_id INTEGER NOT NULL,
+            user_id INTEGER,
+            recipient_name TEXT NOT NULL,
+            recipient_type TEXT DEFAULT 'employee',
+            quantity INTEGER NOT NULL DEFAULT 1,
+            issue_date TEXT NOT NULL,
+            expected_return_date TEXT,
+            is_returnable INTEGER DEFAULT 1,
+            status TEXT DEFAULT 'issued',
+            returned_quantity INTEGER DEFAULT 0,
+            returned_date TEXT,
+            issued_by INTEGER,
+            purpose TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (inventory_id) REFERENCES inventories(id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+        );
+    ");
+
     // Seed Default Admin User
     $adminPass = password_hash('admin123', PASSWORD_DEFAULT);
 
@@ -266,12 +306,87 @@ function initDatabase($pdo) {
         ('Diwali Festival', '{$currentYear}-11-01', 'festival', 'Festival of Lights'),
         ('Christmas Day', '{$currentYear}-12-25', 'festival', 'Christmas holiday');
     ");
+
+    seedInitialInventories($pdo);
+}
+
+function seedInitialInventories($pdo) {
+    try {
+        $count = (int) $pdo->query("SELECT COUNT(*) FROM inventories")->fetchColumn();
+        if ($count === 0) {
+            $pdo->exec("
+                INSERT INTO inventories (name, category, unit, total_quantity, available_quantity, min_stock_alert, location, description) VALUES
+                ('Heavy Duty Desktop Stapler (No. 10)', 'Stationery & Supplies', 'Pieces', 25, 23, 5, 'Stationery Cabinet Shelf A', 'Kangaro heavy-duty stapler with 50-sheet binding capacity.'),
+                ('Transparent Packing & Desk Tape (2-inch)', 'Stationery & Supplies', 'Rolls', 45, 41, 10, 'Stationery Cabinet Shelf B', 'Cello high-adhesion transparent tape rolls.'),
+                ('Assorted Color Chart Papers', 'Paper & Sheets', 'Sheets', 120, 110, 20, 'Drafting Drawer 2', 'Full-size Bristol chart paper for design diagrams & sprint planning.'),
+                ('Premium A4 Copier Paper (75 GSM)', 'Paper & Sheets', 'Reams', 35, 33, 8, 'Supply Room Rack 1', 'JK Copier 500-sheet reams for official documentation and printouts.'),
+                ('Stainless Steel Precision Ruler / Scale (30cm)', 'Measuring Tools', 'Pieces', 30, 28, 6, 'Stationery Cabinet Shelf A', 'Camlin dual-edge metric & imperial non-slip steel scale.'),
+                ('Chisel & Bullet Tip Permanent Markers (Black/Blue)', 'Stationery & Supplies', 'Pieces', 60, 56, 12, 'Stationery Cabinet Shelf C', 'Camlin water-resistant waterproof permanent markers.'),
+                ('Self-Adhesive Sticky Notes Pad (3x3 Yellow)', 'Stationery & Supplies', 'Pads', 50, 48, 10, 'Stationery Cabinet Shelf B', 'Post-it 100 sheets per pad for quick ideation and task board.');
+            ");
+
+            $today = date('Y-m-d');
+            $pdo->exec("
+                INSERT INTO inventory_issuances (inventory_id, user_id, recipient_name, recipient_type, quantity, issue_date, is_returnable, status, returned_quantity, issued_by, purpose) VALUES
+                (1, 2, 'Rohan Verma', 'employee', 1, '{$today}', 1, 'issued', 0, 1, 'Assigned for engineering workstation paperwork'),
+                (5, 2, 'Rohan Verma', 'employee', 1, '{$today}', 1, 'issued', 0, 1, 'Precision alignment for physical hardware & cables'),
+                (3, 3, 'Priya Sharma', 'employee', 10, '{$today}', 0, 'consumed', 0, 1, 'Product UI wireframing workshop with stakeholders'),
+                (2, 3, 'Priya Sharma', 'employee', 2, '{$today}', 0, 'consumed', 0, 1, 'Affixing design charts on UX collaboration board'),
+                (4, 1, 'Administration Department', 'department', 2, '{$today}', 0, 'consumed', 0, 1, 'Monthly payroll & compliance printouts');
+            ");
+        }
+    } catch (Exception $e) {
+        // Table may not exist yet during migration
+    }
 }
 
 function migrateDatabase($pdo) {
     $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+
+    // Auto-create inventories and issuances if missing
     if ($driver === 'mysql') {
-        // Schema.sql handles full schema for MySQL.
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS `inventories` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `name` VARCHAR(191) NOT NULL,
+                `category` VARCHAR(100) DEFAULT 'Stationery & Supplies',
+                `unit` VARCHAR(50) DEFAULT 'Pieces',
+                `total_quantity` INT NOT NULL DEFAULT 0,
+                `available_quantity` INT NOT NULL DEFAULT 0,
+                `min_stock_alert` INT DEFAULT 5,
+                `location` VARCHAR(150) DEFAULT 'Stationery Cabinet',
+                `description` TEXT DEFAULT NULL,
+                `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX `idx_inventory_category` (`category`),
+                INDEX `idx_inventory_stock` (`available_quantity`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ");
+
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS `inventory_issuances` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `inventory_id` INT NOT NULL,
+                `user_id` INT DEFAULT NULL,
+                `recipient_name` VARCHAR(191) NOT NULL,
+                `recipient_type` ENUM('employee', 'department', 'external') DEFAULT 'employee',
+                `quantity` INT NOT NULL DEFAULT 1,
+                `issue_date` DATE NOT NULL,
+                `expected_return_date` DATE DEFAULT NULL,
+                `is_returnable` TINYINT(1) DEFAULT 1,
+                `status` ENUM('issued', 'returned', 'consumed', 'lost') DEFAULT 'issued',
+                `returned_quantity` INT DEFAULT 0,
+                `returned_date` DATETIME DEFAULT NULL,
+                `issued_by` INT DEFAULT NULL,
+                `purpose` TEXT DEFAULT NULL,
+                `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX `idx_issuance_status` (`status`),
+                INDEX `idx_issuance_date` (`issue_date`),
+                FOREIGN KEY (`inventory_id`) REFERENCES `inventories`(`id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ");
+
+        seedInitialInventories($pdo);
         return;
     }
 
@@ -329,6 +444,47 @@ function migrateDatabase($pdo) {
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
     ");
+
+    // Inventories & Issuances in SQLite
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS inventories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            category TEXT DEFAULT 'Stationery & Supplies',
+            unit TEXT DEFAULT 'Pieces',
+            total_quantity INTEGER DEFAULT 0,
+            available_quantity INTEGER DEFAULT 0,
+            min_stock_alert INTEGER DEFAULT 5,
+            location TEXT DEFAULT 'Stationery Cabinet',
+            description TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS inventory_issuances (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            inventory_id INTEGER NOT NULL,
+            user_id INTEGER,
+            recipient_name TEXT NOT NULL,
+            recipient_type TEXT DEFAULT 'employee',
+            quantity INTEGER NOT NULL DEFAULT 1,
+            issue_date TEXT NOT NULL,
+            expected_return_date TEXT,
+            is_returnable INTEGER DEFAULT 1,
+            status TEXT DEFAULT 'issued',
+            returned_quantity INTEGER DEFAULT 0,
+            returned_date TEXT,
+            issued_by INTEGER,
+            purpose TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (inventory_id) REFERENCES inventories(id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+        );
+    ");
+
+    seedInitialInventories($pdo);
 }
 
 function initDatabaseMysql($pdo) {

@@ -186,6 +186,9 @@
                 <button type="button" id="tabPayBtn" onclick="showAdminTab('payroll')" class="btn btn-secondary btn-sm">
                     <i data-lucide="banknote" style="width: 15px;"></i> Salary & Payroll
                 </button>
+                <button type="button" id="tabInvBtn" onclick="showAdminTab('inventory')" class="btn btn-secondary btn-sm">
+                    <i data-lucide="package" style="width: 15px;"></i> Inventory & Assets <span id="navLowStockCountBadge" class="badge badge-warning" style="margin-left: 0.35rem; display: none;">0</span>
+                </button>
                 <button type="button" id="tabHoliBtn" onclick="showAdminTab('holidays')" class="btn btn-secondary btn-sm">
                     <i data-lucide="sparkles" style="width: 15px;"></i> Holidays
                 </button>
@@ -416,6 +419,122 @@
                         </thead>
                         <tbody id="adminHolidaysTableBody">
                             <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Loading holidays...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab 6.5: Office Inventory & Asset Allocation Hub -->
+            <div id="sectionInventory" class="card" style="display: none;">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i data-lucide="package" style="color: var(--primary);"></i> Office Inventory & Asset Management Hub
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button type="button" onclick="openAddInventoryModal()" class="btn btn-primary btn-sm">
+                            <i data-lucide="plus-circle" style="width: 15px;"></i> + Add Item
+                        </button>
+                        <button type="button" onclick="openIssueInventoryModal()" class="btn btn-secondary btn-sm" style="border-color: #0284c7; color: #0284c7; background: #f0f9ff; font-weight: 600;">
+                            <i data-lucide="share-2" style="width: 15px;"></i> Handover / Issue Item
+                        </button>
+                        <button type="button" onclick="loadInventoryData()" class="btn btn-secondary btn-sm" title="Refresh Inventory">
+                            <i data-lucide="refresh-cw" style="width: 14px;"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Inventory KPI Summary Ribbon -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.95rem; margin-bottom: 1.35rem;">
+                    <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.95rem 1.1rem;">
+                        <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase;">Cataloged Items</div>
+                        <div id="invKpiTotalItems" style="font-size: 1.6rem; font-weight: 800; color: var(--text-main); font-family: var(--font-mono); margin-top: 0.25rem;">0</div>
+                    </div>
+                    <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.95rem 1.1rem;">
+                        <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase;">Total Stock Units</div>
+                        <div id="invKpiTotalUnits" style="font-size: 1.6rem; font-weight: 800; color: var(--primary); font-family: var(--font-mono); margin-top: 0.25rem;">0</div>
+                    </div>
+                    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); padding: 0.95rem 1.1rem;">
+                        <div style="font-size: 0.72rem; font-weight: 700; color: #166534; letter-spacing: 0.5px; text-transform: uppercase;">Available on Shelf</div>
+                        <div id="invKpiAvailableUnits" style="font-size: 1.6rem; font-weight: 800; color: #15803d; font-family: var(--font-mono); margin-top: 0.25rem;">0</div>
+                    </div>
+                    <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-sm); padding: 0.95rem 1.1rem;">
+                        <div style="font-size: 0.72rem; font-weight: 700; color: #1e40af; letter-spacing: 0.5px; text-transform: uppercase;">Handed Out / Issued</div>
+                        <div id="invKpiIssuedUnits" style="font-size: 1.6rem; font-weight: 800; color: #2563eb; font-family: var(--font-mono); margin-top: 0.25rem;">0</div>
+                    </div>
+                    <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-sm); padding: 0.95rem 1.1rem;">
+                        <div style="font-size: 0.72rem; font-weight: 700; color: #92400e; letter-spacing: 0.5px; text-transform: uppercase;">Low Stock Warnings</div>
+                        <div id="invKpiLowStock" style="font-size: 1.6rem; font-weight: 800; color: #b45309; font-family: var(--font-mono); margin-top: 0.25rem;">0</div>
+                    </div>
+                </div>
+
+                <!-- Sub-Navigation & Filters -->
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.85rem; margin-bottom: 1.15rem; padding-bottom: 0.85rem; border-bottom: 1px solid var(--border-color);">
+                    <!-- Segmented Sub-Tabs -->
+                    <div class="role-segmented-control" style="max-width: 420px; margin-bottom: 0;">
+                        <button type="button" id="invSubtabCatalogBtn" onclick="switchInventorySubtab('catalog')" class="role-segment-btn active admin-mode">
+                            <i data-lucide="layers" style="width: 15px;"></i>
+                            <span>Stock Catalog</span>
+                        </button>
+                        <button type="button" id="invSubtabIssuancesBtn" onclick="switchInventorySubtab('issuances')" class="role-segment-btn">
+                            <i data-lucide="history" style="width: 15px;"></i>
+                            <span>Handover & Issuance Log</span>
+                        </button>
+                    </div>
+
+                    <!-- Search & Filters -->
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                        <div style="position: relative; width: 220px;">
+                            <input type="text" id="invSearchInput" oninput="filterInventoryCatalog()" class="form-control form-control-sm" placeholder="Search item or recipient..." style="padding-left: 1.95rem; font-size: 0.82rem;">
+                            <i data-lucide="search" style="position: absolute; left: 0.65rem; top: 50%; transform: translateY(-50%); width: 14px; color: var(--text-muted);"></i>
+                        </div>
+                        <select id="invCategoryFilter" onchange="filterInventoryCatalog()" class="form-control form-control-sm" style="width: 175px; font-size: 0.82rem;">
+                            <option value="all">All Categories</option>
+                        </select>
+                        <select id="invStockFilter" onchange="filterInventoryCatalog()" class="form-control form-control-sm" style="width: 140px; font-size: 0.82rem;">
+                            <option value="all">All Stock Levels</option>
+                            <option value="low_stock">⚠️ Low Stock</option>
+                            <option value="out_of_stock">❌ Out of Stock</option>
+                            <option value="in_stock">✅ Well Stocked</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Subview A: Stock Catalog Table -->
+                <div id="invCatalogView" class="table-responsive">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>Item & Location</th>
+                                <th>Category</th>
+                                <th>Stock Ratio</th>
+                                <th>Available / Total</th>
+                                <th>Status</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventoryCatalogTableBody">
+                            <tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Loading inventory items...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Subview B: Issuance & Handover Log Table -->
+                <div id="invIssuancesView" class="table-responsive" style="display: none;">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>Item Details</th>
+                                <th>Given To (Recipient)</th>
+                                <th>Qty Handed</th>
+                                <th>Handover Date</th>
+                                <th>Type</th>
+                                <th>Status</th>
+                                <th>Purpose / Notes</th>
+                                <th style="text-align: right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventoryIssuancesTableBody">
+                            <tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Loading handover history...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -815,6 +934,250 @@
         </div>
     </div>
 
+    <!-- 9. Add Inventory Modal -->
+    <div class="modal-overlay" id="addInventoryModal">
+        <div class="modal-content" style="max-width: 580px;">
+            <div class="modal-header">
+                <h3 style="font-size: 1.25rem; font-weight: 800;">Catalog New Office Inventory / Supply</h3>
+                <button type="button" class="close-btn" onclick="closeModal('addInventoryModal')">&times;</button>
+            </div>
+            <form id="addInventoryForm" onsubmit="handleAddInventory(event)">
+                <div class="modal-body" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Item / Supply Name *</label>
+                        <input type="text" id="addInvName" required class="form-control" placeholder="e.g. Heavy Duty Stapler, Transparent Tape 2-inch, Chart Papers, White A4 Sheets, Steel Scale 30cm">
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label">Category</label>
+                            <select id="addInvCategory" class="form-control">
+                                <option value="Stationery & Supplies">Stationery & Supplies</option>
+                                <option value="Paper & Sheets">Paper & Sheets</option>
+                                <option value="Measuring Tools">Measuring Tools</option>
+                                <option value="IT Equipment & Peripherals">IT Equipment & Peripherals</option>
+                                <option value="Hardware & Office">Hardware & Office</option>
+                                <option value="General Supplies">General Supplies</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label">Unit of Measure</label>
+                            <select id="addInvUnit" class="form-control">
+                                <option value="Pieces">Pieces</option>
+                                <option value="Rolls">Rolls</option>
+                                <option value="Sheets">Sheets</option>
+                                <option value="Reams">Reams</option>
+                                <option value="Pads">Pads</option>
+                                <option value="Packs">Packs</option>
+                                <option value="Boxes">Boxes</option>
+                                <option value="Sets">Sets</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label">Initial Stock Quantity *</label>
+                            <input type="number" id="addInvQuantity" required min="0" value="20" class="form-control">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label">Low Stock Alert Threshold</label>
+                            <input type="number" id="addInvMinStock" required min="0" value="5" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Cabinet / Storage Location</label>
+                        <input type="text" id="addInvLocation" class="form-control" placeholder="e.g. Stationery Cabinet Shelf A, Store Room Rack 2">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Specifications / Notes</label>
+                        <textarea id="addInvDescription" rows="2" class="form-control" placeholder="Brand, capacity, model, or usage guidelines..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('addInventoryModal')">Cancel</button>
+                    <button type="submit" id="btnSubmitAddInv" class="btn btn-primary">Catalog Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 10. Issue / Handover Item Modal -->
+    <div class="modal-overlay" id="issueInventoryModal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3 style="font-size: 1.25rem; font-weight: 800;">Handover / Issue Item to Someone</h3>
+                <button type="button" class="close-btn" onclick="closeModal('issueInventoryModal')">&times;</button>
+            </div>
+            <form id="issueInventoryForm" onsubmit="handleIssueInventory(event)">
+                <div class="modal-body" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Select Inventory Item *</label>
+                        <select id="issueInvItemId" required onchange="handleIssueItemSelectChange()" class="form-control">
+                            <option value="">-- Choose Item --</option>
+                        </select>
+                        <div id="issueItemStockInfo" style="margin-top: 0.35rem; font-size: 0.8rem; color: var(--primary); font-weight: 600; display: none;"></div>
+                    </div>
+
+                    <!-- Recipient Selector: Registered Employee or Custom -->
+                    <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.85rem;">
+                        <label class="form-label" style="margin-bottom: 0.5rem;">Who are you giving this item to? *</label>
+                        <div style="display: flex; gap: 1.25rem; margin-bottom: 0.75rem;">
+                            <label style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.86rem; cursor: pointer;">
+                                <input type="radio" name="recipientMode" value="employee" checked onchange="toggleRecipientMode('employee')">
+                                <span>Registered Staff Member</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.86rem; cursor: pointer;">
+                                <input type="radio" name="recipientMode" value="custom" onchange="toggleRecipientMode('custom')">
+                                <span>Department / External Personnel</span>
+                            </label>
+                        </div>
+
+                        <div id="recipientEmployeeWrap">
+                            <select id="issueInvUserId" class="form-control">
+                                <option value="">-- Select Active Employee --</option>
+                            </select>
+                        </div>
+
+                        <div id="recipientCustomWrap" style="display: none; display: flex; flex-direction: column; gap: 0.65rem;">
+                            <input type="text" id="issueInvCustomName" class="form-control" placeholder="Recipient Full Name (e.g. Ankit Gupta, Design Intern, Reception)">
+                            <select id="issueInvRecipientType" class="form-control">
+                                <option value="department">Department / Team</option>
+                                <option value="external">External Guest / Vendor / Contractor</option>
+                                <option value="employee">Staff (Not in system)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label">Quantity to Give *</label>
+                            <input type="number" id="issueInvQuantity" required min="1" value="1" class="form-control">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label">Handover Date *</label>
+                            <input type="date" id="issueInvDate" required class="form-control">
+                        </div>
+                    </div>
+
+                    <!-- Returnable vs Consumable Toggle -->
+                    <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.85rem;">
+                        <label class="form-label" style="margin-bottom: 0.4rem;">Item Usage Nature</label>
+                        <div style="display: flex; gap: 1.25rem;">
+                            <label style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.86rem; cursor: pointer;">
+                                <input type="radio" name="isReturnableRadio" value="1" checked onchange="toggleReturnableDetails(true)">
+                                <span><strong>Returnable Asset</strong> (Stapler, Scale, Hardware)</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.86rem; cursor: pointer;">
+                                <input type="radio" name="isReturnableRadio" value="0" onchange="toggleReturnableDetails(false)">
+                                <span><strong>Consumable Supply</strong> (Tape, White sheets, Chart papers)</span>
+                            </label>
+                        </div>
+                        <div id="expectedReturnWrap" style="margin-top: 0.75rem;">
+                            <label class="form-label" style="font-size: 0.8rem; margin-bottom: 0.25rem;">Expected Return Date (Optional)</label>
+                            <input type="date" id="issueInvDueDate" class="form-control form-control-sm">
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Purpose / Allocation Notes</label>
+                        <input type="text" id="issueInvPurpose" class="form-control" placeholder="e.g. Design sprint workshop, Assigned to engineering workstation, Office admin use">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('issueInventoryModal')">Cancel</button>
+                    <button type="submit" id="btnSubmitIssueInv" class="btn btn-primary">Confirm Handover</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 11. Return / Restock Modal -->
+    <div class="modal-overlay" id="returnInventoryModal">
+        <div class="modal-content" style="max-width: 520px;">
+            <div class="modal-header">
+                <h3 style="font-size: 1.25rem; font-weight: 800;">Process Item Return / Restock</h3>
+                <button type="button" class="close-btn" onclick="closeModal('returnInventoryModal')">&times;</button>
+            </div>
+            <form id="returnInventoryForm" onsubmit="handleReturnInventory(event)">
+                <input type="hidden" id="returnIssuanceId">
+                <div class="modal-body" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.95rem;">
+                        <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Handover Summary</div>
+                        <div id="returnModalItemTitle" style="font-size: 1.1rem; font-weight: 800; color: var(--text-main); margin-top: 0.25rem;"></div>
+                        <div id="returnModalRecipient" style="font-size: 0.86rem; color: var(--text-muted); margin-top: 0.2rem;"></div>
+                        <div id="returnModalQtyStatus" style="font-size: 0.86rem; color: var(--primary); font-weight: 600; margin-top: 0.4rem;"></div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Quantity Being Returned *</label>
+                        <input type="number" id="returnQtyInput" required min="1" class="form-control">
+                        <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 0.25rem;">This quantity will be automatically added back to available shelf inventory.</div>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <input type="checkbox" id="returnMarkConsumedCheck">
+                        <label for="returnMarkConsumedCheck" style="font-size: 0.86rem; color: var(--text-main); cursor: pointer;">
+                            Mark remaining quantity as <strong>Consumed / Depleted</strong> (do not return to shelf)
+                        </label>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Return Notes / Condition</label>
+                        <input type="text" id="returnNotesInput" class="form-control" placeholder="e.g. Returned in good working condition, workshop completed">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('returnInventoryModal')">Cancel</button>
+                    <button type="submit" id="btnSubmitReturnInv" class="btn btn-primary">Process Return</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 12. Quick Restock Inventory Modal -->
+    <div class="modal-overlay" id="restockInventoryModal">
+        <div class="modal-content" style="max-width: 460px;">
+            <div class="modal-header">
+                <h3 style="font-size: 1.25rem; font-weight: 800;">Add Stock to Inventory</h3>
+                <button type="button" class="close-btn" onclick="closeModal('restockInventoryModal')">&times;</button>
+            </div>
+            <form id="restockInventoryForm" onsubmit="handleRestockInventory(event)">
+                <input type="hidden" id="restockItemId">
+                <div class="modal-body" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.95rem;">
+                        <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Selected Item</div>
+                        <div id="restockItemName" style="font-size: 1.1rem; font-weight: 800; color: var(--text-main); margin-top: 0.25rem;"></div>
+                        <div id="restockCurrentStock" style="font-size: 0.86rem; color: var(--primary); font-weight: 600; margin-top: 0.25rem;"></div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Quantity to Add *</label>
+                        <input type="number" id="restockQuantityInput" required min="1" value="10" class="form-control">
+                        <div style="display: flex; gap: 0.45rem; margin-top: 0.5rem;">
+                            <button type="button" onclick="setRestockAdd(5)" class="btn btn-secondary btn-sm">+5</button>
+                            <button type="button" onclick="setRestockAdd(10)" class="btn btn-secondary btn-sm">+10</button>
+                            <button type="button" onclick="setRestockAdd(25)" class="btn btn-secondary btn-sm">+25</button>
+                            <button type="button" onclick="setRestockAdd(50)" class="btn btn-secondary btn-sm">+50</button>
+                            <button type="button" onclick="setRestockAdd(100)" class="btn btn-secondary btn-sm">+100</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Notes / Supplier Purchase Order</label>
+                        <input type="text" id="restockNotesInput" class="form-control" placeholder="e.g. Monthly office supply restock, PO #4928">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('restockInventoryModal')">Cancel</button>
+                    <button type="submit" id="btnSubmitRestock" class="btn btn-primary">Restock Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div id="toast-container"></div>
 
     <script src="js/app.js"></script>
@@ -840,6 +1203,7 @@
             loadAdminPayroll();
             loadAdminHolidays();
             loadAdminLogs();
+            loadInventoryData();
         });
 
         function initMonthYearSelectors() {
@@ -872,13 +1236,14 @@
 
         function showAdminTab(tab) {
             playSound('click');
-            const tabs = ['approvals', 'employees', 'attendance', 'leaves', 'payroll', 'holidays', 'logs'];
+            const tabs = ['approvals', 'employees', 'attendance', 'leaves', 'payroll', 'inventory', 'holidays', 'logs'];
             tabs.forEach(t => {
                 const sec = document.getElementById(`section${t.charAt(0).toUpperCase() + t.slice(1)}`);
                 const btn = document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1, 3)}Btn`) || document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1)}Btn`);
                 if (sec) sec.style.display = (t === tab) ? 'block' : 'none';
                 if (btn) btn.className = (t === tab) ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
             });
+            if (tab === 'inventory') loadInventoryData();
         }
 
         async function loadStats() {
@@ -1670,6 +2035,460 @@
             navigator.clipboard.writeText(input.value);
             playSound('click');
             showToast('GPS link copied to clipboard!', 'success');
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        //  INVENTORY & ASSET MANAGEMENT — Full Logic
+        // ═══════════════════════════════════════════════════════════
+
+        let inventoryItemsCache = [];
+        let inventoryIssuancesCache = [];
+        let inventoryEmployeesCache = [];
+
+        // Load all inventory data (stats + catalog + issuances)
+        async function loadInventoryData() {
+            await Promise.all([
+                loadInventoryStats(),
+                loadInventoryCatalog(),
+                loadInventoryIssuances(),
+                loadInventoryEmployeeOptions()
+            ]);
+        }
+
+        async function loadInventoryStats() {
+            const res = await apiRequest('inventory.php?action=stats');
+            if (res.ok && res.data.success !== false) {
+                const el = (id) => document.getElementById(id);
+                animateValue(el('invKpiTotalItems'), 0, res.data.total_items || 0);
+                animateValue(el('invKpiTotalUnits'), 0, res.data.total_units || 0);
+                animateValue(el('invKpiAvailableUnits'), 0, res.data.available_units || 0);
+                animateValue(el('invKpiIssuedUnits'), 0, res.data.issued_units || 0);
+                animateValue(el('invKpiLowStock'), 0, res.data.low_stock_count || 0);
+            }
+        }
+
+        async function loadInventoryCatalog() {
+            const search = document.getElementById('invSearchInput')?.value?.trim() || '';
+            const category = document.getElementById('invCategoryFilter')?.value || 'all';
+            const stockFilter = document.getElementById('invStockFilter')?.value || 'all';
+
+            const params = new URLSearchParams({ search, category, stock_filter: stockFilter });
+            const res = await apiRequest(`inventory.php?action=list&${params}`);
+            const tbody = document.getElementById('inventoryCatalogTableBody');
+
+            if (res.ok && res.data.success !== false) {
+                inventoryItemsCache = res.data.items || [];
+                const categories = res.data.categories || [];
+
+                // Populate category filter dropdown (preserve selection)
+                const catSelect = document.getElementById('invCategoryFilter');
+                const currentCat = catSelect.value;
+                catSelect.innerHTML = '<option value="all">All Categories</option>';
+                categories.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c;
+                    opt.textContent = c;
+                    if (c === currentCat) opt.selected = true;
+                    catSelect.appendChild(opt);
+                });
+
+                if (inventoryItemsCache.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">No inventory items found. Click <strong>+ Add Item</strong> to catalog your first supply.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = inventoryItemsCache.map(item => {
+                    const pct = item.total_quantity > 0 ? Math.round((item.available_quantity / item.total_quantity) * 100) : 0;
+                    const barColor = item.is_out_of_stock ? '#ef4444' : item.is_low_stock ? '#f59e0b' : '#10b981';
+                    const statusBadge = item.is_out_of_stock
+                        ? '<span class="badge" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;">Out of Stock</span>'
+                        : item.is_low_stock
+                            ? '<span class="badge" style="background:#fffbeb;color:#b45309;border:1px solid #fde68a;">⚠ Low Stock</span>'
+                            : '<span class="badge" style="background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;">In Stock</span>';
+
+                    return `
+                        <tr>
+                            <td>
+                                <div style="font-weight: 700; color: var(--text-main);">${escapeHtml(item.name)}</div>
+                                <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.15rem;">📍 ${escapeHtml(item.location || 'Not set')}</div>
+                            </td>
+                            <td><span class="badge badge-secondary">${escapeHtml(item.category)}</span></td>
+                            <td>
+                                <div style="width: 80px; height: 6px; background: #f1f5f9; border-radius: 3px; overflow: hidden;">
+                                    <div style="width: ${pct}%; height: 100%; background: ${barColor}; border-radius: 3px; transition: width 0.5s ease;"></div>
+                                </div>
+                                <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.2rem;">${pct}% available</div>
+                            </td>
+                            <td>
+                                <strong style="font-family: var(--font-mono); font-size: 1.05rem;">${item.available_quantity}</strong>
+                                <span style="color: var(--text-muted);"> / ${item.total_quantity} ${escapeHtml(item.unit)}</span>
+                            </td>
+                            <td>${statusBadge}</td>
+                            <td style="text-align: right;">
+                                <div style="display: flex; gap: 0.35rem; justify-content: flex-end; flex-wrap: wrap;">
+                                    <button onclick="openRestockModal(${item.id})" class="btn btn-secondary btn-sm" title="Restock">
+                                        <i data-lucide="plus" style="width: 13px;"></i>
+                                    </button>
+                                    <button onclick="openIssueInventoryModalForItem(${item.id})" class="btn btn-secondary btn-sm" title="Issue / Handover" style="color: #0284c7;">
+                                        <i data-lucide="share-2" style="width: 13px;"></i>
+                                    </button>
+                                    <button onclick="deleteInventoryItem(${item.id}, '${escapeHtml(item.name).replace(/'/g, "\\'")}')"
+                                        class="btn btn-secondary btn-sm" title="Delete" style="color: #dc2626;">
+                                        <i data-lucide="trash-2" style="width: 13px;"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+                lucide.createIcons();
+            } else {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">Failed to load inventory data.</td></tr>';
+            }
+        }
+
+        async function loadInventoryIssuances() {
+            const search = document.getElementById('invSearchInput')?.value?.trim() || '';
+            const params = new URLSearchParams({ search });
+            const res = await apiRequest(`inventory.php?action=issuances&${params}`);
+            const tbody = document.getElementById('inventoryIssuancesTableBody');
+
+            if (res.ok && res.data.success !== false) {
+                inventoryIssuancesCache = res.data.issuances || [];
+
+                if (inventoryIssuancesCache.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">No handovers or issuances recorded yet.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = inventoryIssuancesCache.map(iss => {
+                    const statusMap = {
+                        'issued': '<span class="badge" style="background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;">🔵 Active / Out</span>',
+                        'returned': '<span class="badge" style="background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;">✅ Returned</span>',
+                        'consumed': '<span class="badge" style="background:#f8fafc;color:#64748b;border:1px solid #e2e8f0;">Used Up</span>'
+                    };
+                    const typeLabel = parseInt(iss.is_returnable)
+                        ? '<span class="badge badge-primary">Returnable</span>'
+                        : '<span class="badge badge-secondary">Consumable</span>';
+                    const canReturn = iss.status === 'issued' && parseInt(iss.is_returnable);
+
+                    return `
+                        <tr>
+                            <td>
+                                <strong>${escapeHtml(iss.item_name)}</strong>
+                                <div style="font-size: 0.76rem; color: var(--text-muted);">${escapeHtml(iss.category || '')}</div>
+                            </td>
+                            <td>
+                                <strong>${escapeHtml(iss.recipient_name)}</strong>
+                                <div style="font-size: 0.76rem; color: var(--text-muted);">${escapeHtml(iss.recipient_type || 'employee')}</div>
+                            </td>
+                            <td style="font-family: var(--font-mono); font-weight: 700;">${iss.quantity}</td>
+                            <td style="font-size: 0.86rem; font-family: var(--font-mono);">${iss.issue_date || '-'}</td>
+                            <td>${typeLabel}</td>
+                            <td>${statusMap[iss.status] || iss.status}</td>
+                            <td style="font-size: 0.84rem; color: var(--text-muted); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(iss.purpose || '-')}</td>
+                            <td style="text-align: right;">
+                                ${canReturn
+                                    ? `<button onclick="openReturnModal(${iss.id})" class="btn btn-primary btn-sm" style="font-size: 0.76rem;">Process Return</button>`
+                                    : '<span style="color: var(--text-muted); font-size: 0.8rem;">—</span>'
+                                }
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+                lucide.createIcons();
+            }
+        }
+
+        // Load employees for the issue modal dropdown
+        async function loadInventoryEmployeeOptions() {
+            const res = await apiRequest('admin.php?action=employees');
+            if (res.ok && res.data.success) {
+                inventoryEmployeesCache = res.data.employees || [];
+                const select = document.getElementById('issueInvUserId');
+                if (!select) return;
+                select.innerHTML = '<option value="">-- Select Active Employee --</option>';
+                inventoryEmployeesCache.forEach(emp => {
+                    const opt = document.createElement('option');
+                    opt.value = emp.id;
+                    opt.textContent = `${emp.name} — ${emp.department || 'Staff'} (${emp.email})`;
+                    select.appendChild(opt);
+                });
+            }
+        }
+
+        // Sub-tab switching between Catalog and Issuances
+        function switchInventorySubtab(tab) {
+            playSound('click');
+            const catalogView = document.getElementById('invCatalogView');
+            const issuancesView = document.getElementById('invIssuancesView');
+            const catalogBtn = document.getElementById('invSubtabCatalogBtn');
+            const issuancesBtn = document.getElementById('invSubtabIssuancesBtn');
+
+            if (tab === 'catalog') {
+                catalogView.style.display = 'block';
+                issuancesView.style.display = 'none';
+                catalogBtn.classList.add('active', 'admin-mode');
+                issuancesBtn.classList.remove('active', 'admin-mode');
+            } else {
+                catalogView.style.display = 'none';
+                issuancesView.style.display = 'block';
+                issuancesBtn.classList.add('active', 'admin-mode');
+                catalogBtn.classList.remove('active', 'admin-mode');
+            }
+        }
+
+        // Filter handler (debounce built-in via oninput)
+        function filterInventoryCatalog() {
+            loadInventoryCatalog();
+            loadInventoryIssuances();
+        }
+
+        // ——— MODAL OPENERS ———
+
+        function openAddInventoryModal() {
+            document.getElementById('addInventoryForm').reset();
+            openModal('addInventoryModal');
+        }
+
+        async function openIssueInventoryModal() {
+            document.getElementById('issueInventoryForm').reset();
+            document.getElementById('issueInvDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('issueItemStockInfo').style.display = 'none';
+            document.getElementById('recipientCustomWrap').style.display = 'none';
+            document.getElementById('recipientEmployeeWrap').style.display = 'block';
+            document.getElementById('expectedReturnWrap').style.display = 'block';
+
+            // Populate the item select
+            const select = document.getElementById('issueInvItemId');
+            select.innerHTML = '<option value="">-- Choose Item --</option>';
+            inventoryItemsCache.forEach(item => {
+                if (item.available_quantity > 0) {
+                    const opt = document.createElement('option');
+                    opt.value = item.id;
+                    opt.textContent = `${item.name} (${item.available_quantity} ${item.unit} available)`;
+                    select.appendChild(opt);
+                }
+            });
+
+            await loadInventoryEmployeeOptions();
+            openModal('issueInventoryModal');
+        }
+
+        function openIssueInventoryModalForItem(itemId) {
+            openIssueInventoryModal().then(() => {
+                document.getElementById('issueInvItemId').value = itemId;
+                handleIssueItemSelectChange();
+            });
+        }
+
+        function handleIssueItemSelectChange() {
+            const itemId = parseInt(document.getElementById('issueInvItemId').value);
+            const info = document.getElementById('issueItemStockInfo');
+            if (!itemId) { info.style.display = 'none'; return; }
+            const item = inventoryItemsCache.find(i => i.id === itemId);
+            if (item) {
+                info.textContent = `📦 ${item.available_quantity} ${item.unit} on shelf · Category: ${item.category}`;
+                info.style.display = 'block';
+                document.getElementById('issueInvQuantity').max = item.available_quantity;
+            }
+        }
+
+        function toggleRecipientMode(mode) {
+            document.getElementById('recipientEmployeeWrap').style.display = mode === 'employee' ? 'block' : 'none';
+            document.getElementById('recipientCustomWrap').style.display = mode === 'custom' ? 'flex' : 'none';
+        }
+
+        function toggleReturnableDetails(isReturnable) {
+            document.getElementById('expectedReturnWrap').style.display = isReturnable ? 'block' : 'none';
+        }
+
+        function openReturnModal(issuanceId) {
+            const iss = inventoryIssuancesCache.find(i => i.id === issuanceId);
+            if (!iss) return;
+
+            document.getElementById('returnIssuanceId').value = issuanceId;
+            document.getElementById('returnModalItemTitle').textContent = iss.item_name;
+            document.getElementById('returnModalRecipient').textContent = `Handed to: ${iss.recipient_name} (${iss.recipient_type})`;
+
+            const remaining = parseInt(iss.quantity) - parseInt(iss.returned_quantity || 0);
+            document.getElementById('returnModalQtyStatus').textContent = `${remaining} ${iss.unit || 'units'} still out of ${iss.quantity} issued`;
+            document.getElementById('returnQtyInput').value = remaining;
+            document.getElementById('returnQtyInput').max = remaining;
+            document.getElementById('returnMarkConsumedCheck').checked = false;
+            document.getElementById('returnNotesInput').value = '';
+
+            openModal('returnInventoryModal');
+        }
+
+        function openRestockModal(itemId) {
+            const item = inventoryItemsCache.find(i => i.id === itemId);
+            if (!item) return;
+
+            document.getElementById('restockItemId').value = itemId;
+            document.getElementById('restockItemName').textContent = item.name;
+            document.getElementById('restockCurrentStock').textContent = `Current: ${item.available_quantity} / ${item.total_quantity} ${item.unit}`;
+            document.getElementById('restockQuantityInput').value = 10;
+            document.getElementById('restockNotesInput').value = '';
+
+            openModal('restockInventoryModal');
+        }
+
+        function setRestockAdd(val) {
+            document.getElementById('restockQuantityInput').value = val;
+        }
+
+        // ——— FORM HANDLERS ———
+
+        async function handleAddInventory(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmitAddInv');
+            btn.disabled = true;
+
+            const payload = {
+                name: document.getElementById('addInvName').value.trim(),
+                category: document.getElementById('addInvCategory').value,
+                unit: document.getElementById('addInvUnit').value,
+                quantity: parseInt(document.getElementById('addInvQuantity').value),
+                min_stock_alert: parseInt(document.getElementById('addInvMinStock').value),
+                location: document.getElementById('addInvLocation').value.trim(),
+                description: document.getElementById('addInvDescription').value.trim()
+            };
+
+            const res = await apiRequest('inventory.php?action=add_item', 'POST', payload);
+            if (res.ok && res.data.success !== false) {
+                playSound('success');
+                showToast(res.data.message || 'Item cataloged successfully!', 'success');
+                closeModal('addInventoryModal');
+                loadInventoryData();
+            } else {
+                playSound('error');
+                showToast(res.data.message || 'Error adding item.', 'error');
+            }
+            btn.disabled = false;
+        }
+
+        async function handleIssueInventory(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmitIssueInv');
+            btn.disabled = true;
+
+            const recipientMode = document.querySelector('input[name="recipientMode"]:checked')?.value || 'employee';
+            const isReturnable = parseInt(document.querySelector('input[name="isReturnableRadio"]:checked')?.value || '1');
+
+            const payload = {
+                inventory_id: parseInt(document.getElementById('issueInvItemId').value),
+                quantity: parseInt(document.getElementById('issueInvQuantity').value),
+                issue_date: document.getElementById('issueInvDate').value,
+                is_returnable: isReturnable,
+                expected_return_date: document.getElementById('issueInvDueDate')?.value || null,
+                purpose: document.getElementById('issueInvPurpose').value.trim()
+            };
+
+            if (recipientMode === 'employee') {
+                payload.user_id = parseInt(document.getElementById('issueInvUserId').value) || null;
+                // Get employee name from the selected option
+                const empSelect = document.getElementById('issueInvUserId');
+                const empName = empSelect.options[empSelect.selectedIndex]?.textContent?.split(' — ')[0] || '';
+                payload.recipient_name = empName;
+                payload.recipient_type = 'employee';
+            } else {
+                payload.recipient_name = document.getElementById('issueInvCustomName').value.trim();
+                payload.recipient_type = document.getElementById('issueInvRecipientType').value;
+            }
+
+            if (!payload.inventory_id) {
+                showToast('Please select an inventory item.', 'error');
+                btn.disabled = false;
+                return;
+            }
+            if (!payload.recipient_name) {
+                showToast('Please specify who this item is being given to.', 'error');
+                btn.disabled = false;
+                return;
+            }
+
+            const res = await apiRequest('inventory.php?action=issue', 'POST', payload);
+            if (res.ok && res.data.success !== false) {
+                playSound('success');
+                showToast(res.data.message || 'Item issued successfully!', 'success');
+                closeModal('issueInventoryModal');
+                loadInventoryData();
+            } else {
+                playSound('error');
+                showToast(res.data.message || 'Error issuing item.', 'error');
+            }
+            btn.disabled = false;
+        }
+
+        async function handleReturnInventory(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmitReturnInv');
+            btn.disabled = true;
+
+            const payload = {
+                issuance_id: parseInt(document.getElementById('returnIssuanceId').value),
+                quantity: parseInt(document.getElementById('returnQtyInput').value),
+                mark_consumed: document.getElementById('returnMarkConsumedCheck').checked ? 1 : 0,
+                notes: document.getElementById('returnNotesInput').value.trim()
+            };
+
+            const res = await apiRequest('inventory.php?action=return', 'POST', payload);
+            if (res.ok && res.data.success !== false) {
+                playSound('success');
+                showToast(res.data.message || 'Return processed!', 'success');
+                closeModal('returnInventoryModal');
+                loadInventoryData();
+            } else {
+                playSound('error');
+                showToast(res.data.message || 'Error processing return.', 'error');
+            }
+            btn.disabled = false;
+        }
+
+        async function handleRestockInventory(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmitRestock');
+            btn.disabled = true;
+
+            const payload = {
+                id: parseInt(document.getElementById('restockItemId').value),
+                quantity: parseInt(document.getElementById('restockQuantityInput').value),
+                notes: document.getElementById('restockNotesInput').value.trim()
+            };
+
+            const res = await apiRequest('inventory.php?action=restock', 'POST', payload);
+            if (res.ok && res.data.success !== false) {
+                playSound('success');
+                showToast(res.data.message || 'Restocked successfully!', 'success');
+                closeModal('restockInventoryModal');
+                loadInventoryData();
+            } else {
+                playSound('error');
+                showToast(res.data.message || 'Error restocking.', 'error');
+            }
+            btn.disabled = false;
+        }
+
+        async function deleteInventoryItem(id, name) {
+            if (!confirm(`Delete "${name}" from inventory catalog?\n\nThis cannot be undone. Items with active issuances cannot be deleted.`)) return;
+            const res = await apiRequest('inventory.php?action=delete_item', 'POST', { id });
+            if (res.ok && res.data.success !== false) {
+                playSound('success');
+                showToast(res.data.message || 'Item deleted.', 'success');
+                loadInventoryData();
+            } else {
+                playSound('error');
+                showToast(res.data.message || 'Cannot delete item.', 'error');
+            }
+        }
+
+        // Escape HTML helper (prevent XSS in table rendering)
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
     </script>
 </body>

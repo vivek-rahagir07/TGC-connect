@@ -47,17 +47,17 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 3.5rem;
-            min-height: calc(100vh - 90px);
-            max-width: 1240px;
+            gap: 3rem;
+            min-height: calc(100vh - 80px);
+            max-width: 1260px;
             margin: 0 auto;
-            padding: 1.5rem 1.25rem;
+            padding: 0.85rem 1.25rem;
             position: relative;
             z-index: 1;
         }
 
         .login-showcase-column {
-            flex: 1.15;
+            flex: 1.2;
             max-width: 560px;
             display: flex;
             flex-direction: column;
@@ -76,313 +76,126 @@
         }
 
         /* ==========================================================================
-           Interactive Circular Ecosystem Wheel - Premium Precision Dial
+           Global Connect Ecosystem Showcase (Big, Upright & Good Looking)
            ========================================================================== */
-        .wheel-stage-wrapper {
+        .ecosystem-showcase-wrapper {
             position: relative;
             width: 100%;
-            max-width: 380px;
-            margin: 0.85rem auto 0.75rem auto;
+            max-width: 460px;
+            margin: 0.65rem 0 0.5rem 0;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
 
-        .wheel-outer-frame {
+        .ecosystem-wheel-frame {
             position: relative;
-            width: 326px;
-            height: 326px;
+            width: 100%;
+            max-width: 450px;
+            aspect-ratio: 1 / 1;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        /* Ambient Aura Glow behind dial */
-        .wheel-ambient-glow {
+        /* Ambient Aura Glow behind graphic */
+        .ecosystem-ambient-glow {
             position: absolute;
-            inset: -16px;
+            inset: -22px;
             border-radius: 50%;
-            background: radial-gradient(circle, rgba(56, 189, 248, 0.28) 0%, rgba(99, 102, 241, 0.16) 55%, transparent 72%);
-            filter: blur(16px);
-            opacity: 0.75;
-            animation: pulseGlow 5s ease-in-out infinite alternate;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.3) 0%, rgba(99, 102, 241, 0.18) 55%, transparent 74%);
+            filter: blur(28px);
+            opacity: 0.85;
+            animation: auraPulse 6s ease-in-out infinite alternate;
             z-index: 0;
             pointer-events: none;
         }
 
-        @keyframes pulseGlow {
-            0% { opacity: 0.55; transform: scale(0.97); }
-            100% { opacity: 0.85; transform: scale(1.03); }
+        @keyframes auraPulse {
+            0% { opacity: 0.65; transform: scale(0.97); }
+            100% { opacity: 0.95; transform: scale(1.03); }
         }
 
-        /* Delicate Outer Dashed Orbit Track */
-        .wheel-orbit-ring {
+        /* Orbit Ring - Static, Sleek Dual Accent Halo (No Spinning) */
+        .ecosystem-orbit-ring {
             position: absolute;
-            inset: -9px;
+            inset: -14px;
             border-radius: 50%;
-            border: 1.5px dashed rgba(56, 189, 248, 0.45);
-            animation: ringRotate 48s linear infinite;
+            border: 1.5px solid rgba(56, 189, 248, 0.35);
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.04) 0%, transparent 72%);
+            box-shadow: 0 0 25px rgba(56, 189, 248, 0.16), inset 0 0 15px rgba(99, 102, 241, 0.08);
             z-index: 1;
             pointer-events: none;
         }
 
-        @keyframes ringRotate {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        /* Precision Top Focus Marker */
-        .wheel-pointer-indicator {
-            position: absolute;
-            top: -12px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 10;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            pointer-events: none;
-        }
-
-        .wheel-pointer-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.32rem;
-            padding: 0.2rem 0.55rem;
-            background: #0284c7;
-            color: #ffffff;
-            font-size: 0.65rem;
-            font-weight: 700;
-            letter-spacing: 0.6px;
-            text-transform: uppercase;
-            border-radius: 9999px;
-            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
-            border: 1.5px solid rgba(255, 255, 255, 0.9);
-        }
-
-        .wheel-pointer-arrow {
-            width: 0;
-            height: 0;
-            border-left: 6px solid transparent;
-            border-right: 6px solid transparent;
-            border-top: 7px solid #0284c7;
-            margin-top: -1px;
-        }
-
-        /* Circular Frame Viewport - Crisp White Dial Face with Precision Bezel */
-        .wheel-circular-viewport {
+        /* Circular Viewport - Crisp White Dial Face with Precision Glass Border */
+        .ecosystem-circular-stage {
             position: relative;
-            width: 320px;
-            height: 320px;
+            width: 100%;
+            height: 100%;
             border-radius: 50%;
             overflow: hidden;
             background: #ffffff;
-            border: 2px solid rgba(226, 232, 240, 0.95);
+            border: 2.5px solid rgba(226, 232, 240, 0.95);
             box-shadow: 
-                0 16px 36px -10px rgba(2, 132, 199, 0.16),
-                0 0 0 1px rgba(2, 132, 199, 0.08),
-                0 0 24px rgba(56, 189, 248, 0.12),
-                inset 0 0 16px rgba(240, 249, 255, 0.7);
+                0 25px 60px -15px rgba(2, 132, 199, 0.2),
+                0 0 0 1px rgba(2, 132, 199, 0.1),
+                0 0 40px rgba(56, 189, 248, 0.16),
+                inset 0 0 22px rgba(240, 249, 255, 0.85);
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 2;
-            transition: box-shadow 0.3s ease;
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        .wheel-circular-viewport:hover {
+        .ecosystem-circular-stage:hover {
+            transform: translateY(-3px) scale(1.015);
+            border-color: rgba(56, 189, 248, 0.75);
             box-shadow: 
-                0 20px 45px -10px rgba(2, 132, 199, 0.22),
-                0 0 0 1.5px rgba(56, 189, 248, 0.45),
-                0 0 35px rgba(56, 189, 248, 0.22);
+                0 32px 75px -15px rgba(2, 132, 199, 0.3),
+                0 0 0 2px rgba(56, 189, 248, 0.55),
+                0 0 50px rgba(56, 189, 248, 0.25);
         }
 
-        /* Actual Circular Image with smooth rotational transition */
-        .spinning-wheel-img {
+        /* The Big High-Res Circular Graphic */
+        .ecosystem-wheel-img {
             width: 100%;
             height: 100%;
             object-fit: cover;
             border-radius: 50%;
             display: block;
-            transform-origin: center center;
-            transition: transform 3.6s cubic-bezier(0.15, 0.88, 0.22, 1);
             user-select: none;
             -webkit-user-drag: none;
+            transition: filter 0.3s ease;
         }
 
-        /* When Auto-Orbit is active */
-        .spinning-wheel-img.auto-orbit-active {
-            transition: none !important;
-            animation: continuousOrbit 28s linear infinite;
-        }
-
-        @keyframes continuousOrbit {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        /* Wheel Interactive Toolbar */
-        .wheel-controls-row {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-top: 1rem;
-            width: 100%;
-            justify-content: center;
-            z-index: 5;
-        }
-
-        .wheel-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            padding: 0.5rem 1rem;
-            font-size: 0.82rem;
-            font-weight: 600;
-            border-radius: 9999px;
-            cursor: pointer;
-            transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .wheel-btn-primary {
-            background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
-            color: #ffffff;
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
-        }
-
-        .wheel-btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(2, 132, 199, 0.45);
-        }
-
-        .wheel-btn-primary:active {
-            transform: translateY(1px);
-        }
-
-        .wheel-btn-secondary {
-            background: rgba(255, 255, 255, 0.9);
-            color: #334155;
-            border: 1px solid rgba(203, 213, 225, 0.9);
-            backdrop-filter: blur(8px);
-        }
-
-        .wheel-btn-secondary:hover {
-            background: #f8fafc;
-            border-color: #38bdf8;
-            color: #0284c7;
-            transform: translateY(-1px);
-        }
-
-        .wheel-btn-secondary.active {
-            background: #eff6ff;
-            border-color: #0284c7;
-            color: #0284c7;
-            box-shadow: 0 0 10px rgba(2, 132, 199, 0.2);
-        }
-
-        .wheel-btn-ghost {
-            background: transparent;
-            color: #64748b;
-            border: 1px solid transparent;
-            padding: 0.5rem 0.75rem;
-        }
-
-        .wheel-btn-ghost:hover {
-            background: rgba(241, 245, 249, 0.8);
-            color: #1e293b;
-            border-color: rgba(226, 232, 240, 0.8);
-        }
-
-        /* Active Feature Showcase Card */
-        .wheel-feature-card {
-            margin-top: 0.75rem;
-            width: 100%;
-            max-width: 360px;
-            padding: 0.65rem 0.85rem;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(226, 232, 240, 0.9);
-            border-radius: var(--radius-md);
-            box-shadow: 0 4px 16px -3px rgba(2, 132, 199, 0.08);
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .feature-card-icon-box {
-            width: 38px;
-            height: 38px;
-            border-radius: var(--radius-sm);
-            background: #f0f9ff;
-            border: 1px solid #bae6fd;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            transition: all 0.3s ease;
-        }
-
-        .feature-card-info {
-            display: flex;
-            flex-direction: column;
-            text-align: left;
-            overflow: hidden;
-        }
-
-        .feature-card-tag {
-            font-size: 0.65rem;
-            font-weight: 700;
-            letter-spacing: 0.6px;
-            color: #0284c7;
-            text-transform: uppercase;
-        }
-
-        .feature-card-title {
-            font-size: 0.88rem;
-            font-weight: 700;
-            color: #0f172a;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            line-height: 1.25;
-        }
-
-        .feature-card-desc {
-            font-size: 0.74rem;
-            color: #64748b;
-            line-height: 1.35;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        /* 8 Modules Chip Grid */
+        /* 8 Modules Chip Grid - Sleek 4-Column Layout */
         .showcase-pill-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.4rem;
-            margin-top: 0.75rem;
-            justify-content: center;
-            max-width: 440px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.38rem;
+            margin-top: 0.55rem;
+            width: 100%;
+            max-width: 460px;
         }
 
         .showcase-chip {
             display: inline-flex;
             align-items: center;
-            gap: 0.35rem;
-            padding: 0.28rem 0.65rem;
-            background: rgba(255, 255, 255, 0.9);
+            justify-content: center;
+            gap: 0.32rem;
+            padding: 0.32rem 0.5rem;
+            background: rgba(255, 255, 255, 0.94);
             backdrop-filter: blur(8px);
-            border: 1px solid rgba(226, 232, 240, 0.9);
+            border: 1px solid rgba(226, 232, 240, 0.95);
             border-radius: 9999px;
-            font-size: 0.72rem;
+            font-size: 0.71rem;
             font-weight: 600;
             color: #334155;
+            white-space: nowrap;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-            cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
             user-select: none;
         }
 
@@ -391,29 +204,15 @@
             border-color: #38bdf8;
             color: #0284c7;
             background: #f0f9ff;
-            box-shadow: 0 4px 10px rgba(56, 189, 248, 0.16);
-        }
-
-        .showcase-chip.active-chip {
-            background: #0284c7;
-            color: #ffffff;
-            border-color: #0284c7;
-            box-shadow: 0 3px 10px rgba(2, 132, 199, 0.3);
-        }
-
-        .showcase-chip.active-chip i,
-        .showcase-chip.active-chip span {
-            color: #ffffff !important;
+            box-shadow: 0 4px 12px rgba(56, 189, 248, 0.18);
         }
 
         @media (max-width: 480px) {
-            .wheel-outer-frame {
-                width: 275px;
-                height: 275px;
+            .ecosystem-wheel-frame {
+                max-width: 320px;
             }
-            .wheel-circular-viewport {
-                width: 265px;
-                height: 265px;
+            .showcase-pill-grid {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
 
@@ -479,88 +278,49 @@
                 People &bull; Management &bull; A Stronger Tomorrow
             </p>
 
-            <!-- Interactive Circular Wheel Showcase -->
-            <div class="wheel-stage-wrapper">
-                <!-- Precision Top Focus Marker -->
-                <div class="wheel-pointer-indicator" title="Current Active Module">
-                    <div class="wheel-pointer-pill">
-                        <span class="radar-dot" style="background: #38bdf8; width: 6px; height: 6px;"></span>
-                        <span>Active Focus</span>
-                    </div>
-                    <div class="wheel-pointer-arrow"></div>
-                </div>
-
-                <!-- Circular Wheel Frame -->
-                <div class="wheel-outer-frame">
-                    <div class="wheel-ambient-glow"></div>
-                    <div class="wheel-orbit-ring"></div>
-                    
-                    <div class="wheel-circular-viewport" id="wheelViewport">
-                        <img id="spinningWheel" src="assets/global_connect_wheel_circle.png" alt="Global Connect by TGC - 8 Pillars Ecosystem" class="spinning-wheel-img">
-                    </div>
-                </div>
-
-                <!-- Interactive Toolbar -->
-                <div class="wheel-controls-row">
-                    <button type="button" class="wheel-btn wheel-btn-primary" id="spinWheelBtn" onclick="spinWheel()">
-                        <i data-lucide="rotate-cw" style="width: 15px;"></i>
-                        <span>Spin Wheel</span>
-                    </button>
-                    <button type="button" class="wheel-btn wheel-btn-secondary" id="autoOrbitBtn" onclick="toggleAutoOrbit()">
-                        <i data-lucide="orbit" style="width: 15px;"></i>
-                        <span id="autoOrbitText">Auto Orbit</span>
-                    </button>
-                    <button type="button" class="wheel-btn wheel-btn-ghost" id="resetWheelBtn" onclick="resetWheel()" title="Reset to default upright orientation">
-                        <i data-lucide="rotate-ccw" style="width: 14px;"></i>
-                        <span>Reset</span>
-                    </button>
-                </div>
-
-                <!-- Active Module Showcase Card -->
-                <div class="wheel-feature-card" id="wheelFeatureCard">
-                    <div class="feature-card-icon-box" id="featureCardIconBox">
-                        <i data-lucide="user-check" id="featureCardIcon" style="width: 18px; color: #0284c7;"></i>
-                    </div>
-                    <div class="feature-card-info">
-                        <span class="feature-card-tag" id="featureCardTag">PILLAR 01 &bull; IDENTITY</span>
-                        <span class="feature-card-title" id="featureCardTitle">Employee Identification</span>
-                        <span class="feature-card-desc" id="featureCardDesc">Verified digital profiles, corporate roles & authentication core.</span>
+            <!-- Big & Good Looking Circular Ecosystem Showcase -->
+            <div class="ecosystem-showcase-wrapper">
+                <div class="ecosystem-wheel-frame">
+                    <div class="ecosystem-ambient-glow"></div>
+                    <div class="ecosystem-orbit-ring"></div>
+                    <div class="ecosystem-circular-stage">
+                        <img src="assets/global_connect_wheel_circle.png" alt="Global Connect by TGC - 8 Pillars Ecosystem" class="ecosystem-wheel-img">
                     </div>
                 </div>
             </div>
 
-            <!-- The 8 Interactive Modules Chips from Infographic -->
+            <!-- The 8 Modules Chips from Infographic -->
             <div class="showcase-pill-grid">
-                <div class="showcase-chip active-chip" id="chip-0" onclick="selectModule(0)">
-                    <i data-lucide="user-check" style="width: 13px; color: #0284c7;"></i>
+                <div class="showcase-chip">
+                    <i data-lucide="user-check" style="width: 14px; color: #0284c7;"></i>
                     <span>Employee ID</span>
                 </div>
-                <div class="showcase-chip" id="chip-1" onclick="selectModule(1)">
-                    <i data-lucide="calendar" style="width: 13px; color: #8b5cf6;"></i>
+                <div class="showcase-chip">
+                    <i data-lucide="calendar" style="width: 14px; color: #8b5cf6;"></i>
                     <span>Attendance & Leave</span>
                 </div>
-                <div class="showcase-chip" id="chip-2" onclick="selectModule(2)">
-                    <i data-lucide="banknote" style="width: 13px; color: #ef4444;"></i>
+                <div class="showcase-chip">
+                    <i data-lucide="banknote" style="width: 14px; color: #ef4444;"></i>
                     <span>Payroll Management</span>
                 </div>
-                <div class="showcase-chip" id="chip-3" onclick="selectModule(3)">
-                    <i data-lucide="bar-chart-3" style="width: 13px; color: #f59e0b;"></i>
+                <div class="showcase-chip">
+                    <i data-lucide="bar-chart-3" style="width: 14px; color: #f59e0b;"></i>
                     <span>Reports & Analytics</span>
                 </div>
-                <div class="showcase-chip" id="chip-4" onclick="selectModule(4)">
-                    <i data-lucide="shield-check" style="width: 13px; color: #06b6d4;"></i>
+                <div class="showcase-chip">
+                    <i data-lucide="shield-check" style="width: 14px; color: #06b6d4;"></i>
                     <span>Data Security</span>
                 </div>
-                <div class="showcase-chip" id="chip-5" onclick="selectModule(5)">
-                    <i data-lucide="bell" style="width: 13px; color: #ec4899;"></i>
+                <div class="showcase-chip">
+                    <i data-lucide="bell" style="width: 14px; color: #ec4899;"></i>
                     <span>Announcements</span>
                 </div>
-                <div class="showcase-chip" id="chip-6" onclick="selectModule(6)">
-                    <i data-lucide="headphones" style="width: 13px; color: #14b8a6;"></i>
+                <div class="showcase-chip">
+                    <i data-lucide="headphones" style="width: 14px; color: #14b8a6;"></i>
                     <span>HR Helpdesk</span>
                 </div>
-                <div class="showcase-chip" id="chip-7" onclick="selectModule(7)">
-                    <i data-lucide="qr-code" style="width: 13px; color: #10b981;"></i>
+                <div class="showcase-chip">
+                    <i data-lucide="qr-code" style="width: 14px; color: #10b981;"></i>
                     <span>QR Attendance</span>
                 </div>
             </div>
@@ -568,17 +328,17 @@
 
         <!-- Right Column: Authentication Card -->
         <div class="login-form-column animate-fade-in stagger-1">
-            <div class="card" style="padding: 1.85rem 1.75rem; box-shadow: var(--shadow-lg); border-radius: var(--radius-lg); border: 1px solid rgba(226, 232, 240, 0.85); background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(20px);">
+            <div class="card" style="padding: 1.55rem 1.75rem; box-shadow: var(--shadow-lg); border-radius: var(--radius-lg); border: 1px solid rgba(226, 232, 240, 0.85); background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(20px);">
                 
                 <!-- Brand Header -->
-                <div style="text-align: center; margin-bottom: 1.25rem;">
-                    <div id="portalBadge" class="brand-badge" style="display: inline-block; margin-bottom: 0.55rem; font-size: 0.72rem; letter-spacing: 0.7px; padding: 0.22rem 0.7rem; border-radius: var(--radius-xs);">
+                <div style="text-align: center; margin-bottom: 1rem;">
+                    <div id="portalBadge" class="brand-badge" style="display: inline-block; margin-bottom: 0.45rem; font-size: 0.72rem; letter-spacing: 0.7px; padding: 0.2rem 0.7rem; border-radius: var(--radius-xs);">
                         ADMINISTRATIVE ACCESS
                     </div>
-                    <h2 id="portalTitle" style="font-size: 1.5rem; font-weight: 700; letter-spacing: -0.4px; margin: 0;">
+                    <h2 id="portalTitle" style="font-size: 1.45rem; font-weight: 700; letter-spacing: -0.4px; margin: 0;">
                         Management Sign In
                     </h2>
-                    <p id="portalSubtitle" style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem; line-height: 1.4;">
+                    <p id="portalSubtitle" style="color: var(--text-muted); font-size: 0.84rem; margin-top: 0.2rem; line-height: 1.35;">
                         Executive control center & workforce management.
                     </p>
                 </div>
@@ -836,239 +596,15 @@
             }
         }
 
-        // ==========================================================================
-        // Interactive Circular Ecosystem Wheel Logic (8 Canonical Pillars)
-        // ==========================================================================
-        let currentWheelRotation = 0;
-        let isWheelSpinning = false;
-        let isAutoOrbiting = false;
-        let activeModuleIndex = 0;
-
-        // Exactly matches the clockwise sequence of the wheel infographic:
-        // 0° (top) = Employee Identification
-        // 45° = Attendance & Leave Management
-        // 90° = Payroll Management
-        // 135° = Reports & Analytics
-        // 180° = Data Security & Maintenance
-        // 225° = Announcements & Notifications
-        // 270° = HR Helpdesk
-        // 315° = QR / Camera Attendance
-        const wheelModules = [
-            { 
-                tag: "PILLAR 01 • IDENTITY", 
-                name: "Employee Identification", 
-                icon: "user-check", 
-                color: "#0284c7", 
-                bg: "#f0f9ff", 
-                border: "#bae6fd", 
-                desc: "Verified corporate identity, verified profiles & credentialing." 
-            },
-            { 
-                tag: "PILLAR 02 • WORKFORCE", 
-                name: "Attendance & Leave Management", 
-                icon: "calendar", 
-                color: "#8b5cf6", 
-                bg: "#f5f3ff", 
-                border: "#ddd6fe", 
-                desc: "Shift rosters, leave quotas & automated approval workflows." 
-            },
-            { 
-                tag: "PILLAR 03 • COMPENSATION", 
-                name: "Payroll Management", 
-                icon: "banknote", 
-                color: "#ef4444", 
-                bg: "#fef2f2", 
-                border: "#fecaca", 
-                desc: "Accurate & transparent salary processing, allowances & payslips." 
-            },
-            { 
-                tag: "PILLAR 04 • INTELLIGENCE", 
-                name: "Reports & Analytics", 
-                icon: "bar-chart-3", 
-                color: "#f59e0b", 
-                bg: "#fffbeb", 
-                border: "#fde68a", 
-                desc: "Insights for better decisions, attendance audit logs & exportable sheets." 
-            },
-            { 
-                tag: "PILLAR 05 • COMPLIANCE", 
-                name: "Data Security & Maintenance", 
-                icon: "shield-check", 
-                color: "#06b6d4", 
-                bg: "#ecfeff", 
-                border: "#a5f3fc", 
-                desc: "Safe, secure, role-based controls & enterprise cloud resilience." 
-            },
-            { 
-                tag: "PILLAR 06 • BROADCASTS", 
-                name: "Announcements & Notifications", 
-                icon: "bell", 
-                color: "#ec4899", 
-                bg: "#fdf2f8", 
-                border: "#fbcfe8", 
-                desc: "Stay informed always with org-wide notices & real-time alerts." 
-            },
-            { 
-                tag: "PILLAR 07 • SUPPORT", 
-                name: "HR Helpdesk", 
-                icon: "headphones", 
-                color: "#14b8a6", 
-                bg: "#f0fdfa", 
-                border: "#99f6e4", 
-                desc: "Quick support for employees, query ticketing & rapid resolution." 
-            },
-            { 
-                tag: "PILLAR 08 • VERIFICATION", 
-                name: "QR / Camera Attendance", 
-                icon: "qr-code", 
-                color: "#10b981", 
-                bg: "#ecfdf5", 
-                border: "#a7f3d0", 
-                desc: "Proxy-proof facial photo verification & GPS geofenced timestamps." 
-            }
-        ];
-
-        function updateCardDisplay(idx) {
-            activeModuleIndex = idx;
-            const mod = wheelModules[idx];
-            const iconBox = document.getElementById('featureCardIconBox');
-            const tag = document.getElementById('featureCardTag');
-            const title = document.getElementById('featureCardTitle');
-            const desc = document.getElementById('featureCardDesc');
-
-            if (!mod || !iconBox) return;
-
-            iconBox.style.background = mod.bg;
-            iconBox.style.borderColor = mod.border;
-            iconBox.innerHTML = `<i data-lucide="${mod.icon}" style="width: 18px; color: ${mod.color};"></i>`;
-            
-            tag.textContent = mod.tag;
-            tag.style.color = mod.color;
-            title.textContent = mod.name;
-            desc.textContent = mod.desc;
-
-            // Highlight corresponding chip
-            document.querySelectorAll('.showcase-chip').forEach((c, i) => {
-                c.classList.toggle('active-chip', i === idx);
-            });
-
-            if (window.lucide) lucide.createIcons();
-        }
-
-        function selectModule(idx) {
-            if (isWheelSpinning) return;
-            if (isAutoOrbiting) toggleAutoOrbit(false);
-
-            const wheel = document.getElementById('spinningWheel');
-            // To bring module at (idx * 45) deg to top (0 deg):
-            // The wheel must rotate clockwise by (360 - idx * 45) % 360
-            const targetModAngle = (360 - (idx * 45)) % 360;
-            const currentModAngle = ((currentWheelRotation % 360) + 360) % 360;
-            
-            let diff = targetModAngle - currentModAngle;
-            if (diff > 180) diff -= 360;
-            if (diff < -180) diff += 360;
-
-            currentWheelRotation += diff;
-            wheel.classList.remove('auto-orbit-active');
-            wheel.style.transition = 'transform 0.85s cubic-bezier(0.16, 1, 0.3, 1)';
-            wheel.style.transform = `rotate(${currentWheelRotation}deg)`;
-
-            playSound('click');
-            updateCardDisplay(idx);
-        }
-
-        function spinWheel() {
-            if (isWheelSpinning) return;
-            const wheel = document.getElementById('spinningWheel');
-            const spinBtn = document.getElementById('spinWheelBtn');
-
-            if (isAutoOrbiting) {
-                toggleAutoOrbit(false);
-            }
-
-            isWheelSpinning = true;
-            spinBtn.disabled = true;
-            spinBtn.style.opacity = '0.7';
-            playSound('click');
-
-            // Pick a random destination module (0 to 7)
-            const randomSector = Math.floor(Math.random() * 8);
-            // Add 3 complete spins (1080 deg) + angle alignment
-            const fullSpins = 1080;
-            const targetAngle = (360 - (randomSector * 45)) % 360;
-            const currentModAngle = ((currentWheelRotation % 360) + 360) % 360;
-            let diff = targetAngle - currentModAngle;
-            if (diff <= 0) diff += 360;
-
-            currentWheelRotation += (fullSpins + diff);
-
-            wheel.classList.remove('auto-orbit-active');
-            wheel.style.transition = 'transform 3.4s cubic-bezier(0.15, 0.88, 0.22, 1)';
-            wheel.style.transform = `rotate(${currentWheelRotation}deg)`;
-
-            // Temporary exploring feedback
-            const tag = document.getElementById('featureCardTag');
-            const title = document.getElementById('featureCardTitle');
-            const desc = document.getElementById('featureCardDesc');
-            if (tag) {
-                tag.textContent = 'EXPLORING WORKFORCE CORE...';
-                tag.style.color = '#0284c7';
-                title.textContent = 'Aligning Next-Gen Module';
-                desc.textContent = 'Revolving through verified identity, security, attendance & payroll...';
-            }
-
-            setTimeout(() => {
-                isWheelSpinning = false;
-                spinBtn.disabled = false;
-                spinBtn.style.opacity = '1';
-                playSound('success');
-                if (typeof fireConfetti === 'function') fireConfetti();
-                updateCardDisplay(randomSector);
-            }, 3500);
-        }
-
-        function resetWheel() {
-            if (isWheelSpinning) return;
-            if (isAutoOrbiting) toggleAutoOrbit(false);
-            selectModule(0);
-        }
-
-        function toggleAutoOrbit(forceState) {
-            const wheel = document.getElementById('spinningWheel');
-            const orbitBtn = document.getElementById('autoOrbitBtn');
-            const orbitText = document.getElementById('autoOrbitText');
-
-            isAutoOrbiting = typeof forceState === 'boolean' ? forceState : !isAutoOrbiting;
-
-            if (isAutoOrbiting) {
-                wheel.classList.add('auto-orbit-active');
-                orbitBtn.classList.add('active');
-                orbitText.textContent = 'Orbiting (ON)';
-                
-                const tag = document.getElementById('featureCardTag');
-                const title = document.getElementById('featureCardTitle');
-                const desc = document.getElementById('featureCardDesc');
-                if (tag) {
-                    tag.textContent = 'ORBIT MODE ACTIVE';
-                    tag.style.color = '#0284c7';
-                    title.textContent = 'Global Connect Ecosystem';
-                    desc.textContent = 'Continuously touring through 8 interconnected HRMS infrastructure modules.';
-                }
-            } else {
-                wheel.classList.remove('auto-orbit-active');
-                orbitBtn.classList.remove('active');
-                orbitText.textContent = 'Auto Orbit';
-                updateCardDisplay(activeModuleIndex);
-            }
-        }
-
         // Check if role is pre-selected via query string (e.g. login.html?role=employee)
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
             const role = urlParams.get('role');
             if (role === 'employee') {
                 switchRole('employee');
+            }
+            if (window.lucide) {
+                lucide.createIcons();
             }
         });
     </script>
