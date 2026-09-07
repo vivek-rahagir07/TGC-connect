@@ -27,44 +27,44 @@
         <div style="display: flex; flex-direction: column; gap: 2rem;">
             
             <!-- Employee Profile Banner -->
-            <div class="card" style="background: linear-gradient(135deg, #1e1b4b, #312e81, #1e1b4b); color: #fff; border: none; padding: 2.25rem; box-shadow: 0 12px 30px -5px rgba(49, 46, 129, 0.45); position: relative; overflow: hidden;">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem; position: relative; z-index: 2;">
-                    <div style="display: flex; align-items: center; gap: 1.5rem;">
-                        <div id="userAvatarBox" style="width: 78px; height: 78px; border-radius: 50%; border: 3.5px solid rgba(255,255,255,0.3); overflow: hidden; background: #4338ca; display: flex; align-items: center; justify-content: center; font-size: 1.85rem; font-weight: 800; box-shadow: 0 6px 16px rgba(0,0,0,0.35);">
+            <div class="card animate-fade-in" style="background: linear-gradient(135deg, #1e1b4b, #312e81, #1e1b4b); color: #fff; border: none; padding: 1.5rem 1.85rem; border-radius: var(--radius-md); box-shadow: 0 8px 24px -4px rgba(49, 46, 129, 0.35); position: relative; overflow: hidden;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.25rem; position: relative; z-index: 2;">
+                    <div style="display: flex; align-items: center; gap: 1.2rem;">
+                        <div id="userAvatarBox" style="width: 62px; height: 62px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,0.3); overflow: hidden; background: #4338ca; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 700; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
                             --
                         </div>
                         <div>
-                            <div style="display: flex; align-items: center; gap: 0.65rem; margin-bottom: 0.25rem;">
-                                <div id="userDeptProfile" style="font-size: 0.88rem; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 700;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.15rem;">
+                                <div id="userDeptProfile" style="font-size: 0.82rem; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600;">
                                     Loading Profile...
                                 </div>
                                 <span id="pendingChangeNoticeBadge" style="display: none;" class="badge badge-warning">
                                     Profile Update Pending Approval
                                 </span>
                             </div>
-                            <h1 id="userNameHeading" style="font-size: 2.2rem; font-weight: 800; margin: 0.15rem 0; letter-spacing: -0.6px;">Welcome Employee</h1>
-                            <div id="userSubInfo" style="font-size: 0.95rem; color: #c7d2fe;"></div>
+                            <h1 id="userNameHeading" style="font-size: 1.65rem; font-weight: 700; margin: 0.1rem 0; letter-spacing: -0.4px;">Welcome Employee</h1>
+                            <div id="userSubInfo" style="font-size: 0.88rem; color: #c7d2fe;"></div>
                         </div>
                     </div>
 
-                    <div style="display: flex; gap: 0.75rem; align-items: center;">
+                    <div style="display: flex; gap: 0.65rem; align-items: center;">
                         <button type="button" onclick="openProfileEditModal()" class="btn btn-secondary btn-sm" style="background: rgba(255,255,255,0.15); color: #fff; border-color: rgba(255,255,255,0.25);">
-                            <i data-lucide="edit-3" style="width: 16px;"></i> Request Profile Edit
+                            <i data-lucide="edit-3" style="width: 15px;"></i> Request Edit
                         </button>
 
-                        <div style="background: rgba(255, 255, 255, 0.12); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 0.85rem 1.45rem; border-radius: var(--radius-md); border: 1px solid rgba(255,255,255,0.22); text-align: right;">
-                            <div style="font-size: 0.75rem; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.7px; font-weight: 700;">Workplace Clock</div>
-                            <div id="liveClock" style="font-size: 1.25rem; font-weight: 800; color: #fff; font-family: var(--font-mono); margin-top: 0.15rem;">--:--:--</div>
+                        <div style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 0.65rem 1.15rem; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.18); text-align: right;">
+                            <div style="font-size: 0.72rem; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600;">Workplace Clock</div>
+                            <div id="liveClock" style="font-size: 1.15rem; font-weight: 700; color: #fff; font-family: var(--font-mono); margin-top: 0.1rem;">--:--:--</div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Today's Attendance & Leave Quota Grid -->
-            <div style="display: grid; grid-template-columns: 1fr 1.35fr; gap: 1.65rem;">
+            <div style="display: grid; grid-template-columns: 1fr 1.35fr; gap: 1.25rem;">
                 
                 <!-- Today Attendance Card -->
-                <div class="card">
+                <div class="card animate-fade-in delay-1">
                     <div class="card-header">
                         <div class="card-title">
                             <i data-lucide="clock" style="color: var(--primary);"></i> Today's Attendance Punch
@@ -72,62 +72,62 @@
                         <span id="todayDateBadge" class="badge badge-primary">Today</span>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
-                        <div style="background: var(--bg-main); border: 1.5px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem; text-align: center;">
-                            <div style="font-size: 0.78rem; font-weight: 800; color: var(--text-muted); letter-spacing: 0.6px; margin-bottom: 0.35rem;">CHECK-IN TIME</div>
-                            <div id="checkInTimeDisplay" style="font-size: 1.5rem; font-weight: 800; color: var(--text-main); font-family: var(--font-mono);">--:--</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; margin-bottom: 1.25rem;">
+                        <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.95rem 1rem; text-align: center;">
+                            <div style="font-size: 0.74rem; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 0.25rem;">CHECK-IN TIME</div>
+                            <div id="checkInTimeDisplay" style="font-size: 1.35rem; font-weight: 700; color: var(--text-main); font-family: var(--font-mono);">--:--</div>
                         </div>
 
-                        <div style="background: var(--bg-main); border: 1.5px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem; text-align: center;">
-                            <div style="font-size: 0.78rem; font-weight: 800; color: var(--text-muted); letter-spacing: 0.6px; margin-bottom: 0.35rem;">CHECK-OUT TIME</div>
-                            <div id="checkOutTimeDisplay" style="font-size: 1.5rem; font-weight: 800; color: var(--text-main); font-family: var(--font-mono);">--:--</div>
+                        <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.95rem 1rem; text-align: center;">
+                            <div style="font-size: 0.74rem; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 0.25rem;">CHECK-OUT TIME</div>
+                            <div id="checkOutTimeDisplay" style="font-size: 1.35rem; font-weight: 700; color: var(--text-main); font-family: var(--font-mono);">--:--</div>
                         </div>
                     </div>
 
-                    <div id="attendanceStatusBanner" style="padding: 1rem; border-radius: var(--radius-md); background: var(--bg-main); border: 1.5px solid var(--border-color); text-align: center; margin-bottom: 1.5rem; font-weight: 700; font-size: 0.95rem;">
+                    <div id="attendanceStatusBanner" style="padding: 0.85rem; border-radius: var(--radius-sm); background: var(--bg-main); border: 1px solid var(--border-color); text-align: center; margin-bottom: 1.25rem; font-weight: 600; font-size: 0.9rem;">
                         Checking attendance status...
                     </div>
 
-                    <div style="display: flex; gap: 0.75rem; flex-direction: column;">
-                        <a href="qr_scanner.html" class="btn btn-primary" style="width: 100%; padding: 0.85rem;" onclick="playSound('click')">
+                    <div style="display: flex; gap: 0.65rem; flex-direction: column;">
+                        <a href="qr_scanner.html" class="btn btn-primary" style="width: 100%; padding: 0.75rem;" onclick="playSound('click')">
                             <i data-lucide="qr-code" style="width: 18px;"></i> Scan Office QR Code (In / Out)
                         </a>
-                        <button type="button" id="punchOutBtn" onclick="handlePunchOut()" class="btn btn-danger" style="display: none; width: 100%; padding: 0.85rem;">
+                        <button type="button" id="punchOutBtn" onclick="handlePunchOut()" class="btn btn-danger" style="display: none; width: 100%; padding: 0.75rem;">
                             <i data-lucide="log-out" style="width: 18px;"></i> Mark Check-Out for Today
                         </button>
                     </div>
                 </div>
 
                 <!-- Leave Quota & Application Quick Action -->
-                <div class="card">
+                <div class="card animate-fade-in delay-2">
                     <div class="card-header">
                         <div class="card-title">
                             <i data-lucide="calendar" style="color: var(--primary);"></i> Leave Quota & Balances
                         </div>
                         <button type="button" onclick="openModal('applyLeaveModal')" class="btn btn-primary btn-sm">
-                            <i data-lucide="plus-circle" style="width: 16px;"></i> Apply for Leave
+                            <i data-lucide="plus-circle" style="width: 15px;"></i> Apply for Leave
                         </button>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1.15rem; margin-bottom: 1.5rem;">
-                        <div style="background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: var(--radius-md); padding: 1.25rem;">
-                            <div style="font-size: 0.8rem; font-weight: 800; color: #1e40af; text-transform: uppercase; letter-spacing: 0.6px;">Casual Leave (CL)</div>
-                            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 0.65rem;">
-                                <span id="clRemaining" style="font-size: 2rem; font-weight: 800; color: #1e3a8a; font-family: var(--font-mono);">--</span>
-                                <span id="clTotal" style="font-size: 0.85rem; color: #3b82f6; font-weight: 700;">/ 12 days left</span>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+                        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-sm); padding: 1.1rem;">
+                            <div style="font-size: 0.74rem; font-weight: 700; color: #1e40af; text-transform: uppercase; letter-spacing: 0.5px;">Casual Leave (CL)</div>
+                            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 0.5rem;">
+                                <span id="clRemaining" style="font-size: 1.75rem; font-weight: 700; color: #1e3a8a; font-family: var(--font-mono);">--</span>
+                                <span id="clTotal" style="font-size: 0.82rem; color: #3b82f6; font-weight: 600;">/ 12 days left</span>
                             </div>
                         </div>
 
-                        <div style="background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: var(--radius-md); padding: 1.25rem;">
-                            <div style="font-size: 0.8rem; font-weight: 800; color: #166534; text-transform: uppercase; letter-spacing: 0.6px;">Sick Leave (SL)</div>
-                            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 0.65rem;">
-                                <span id="slRemaining" style="font-size: 2rem; font-weight: 800; color: #14532d; font-family: var(--font-mono);">--</span>
-                                <span id="slTotal" style="font-size: 0.85rem; color: #22c55e; font-weight: 700;">/ 6 days left</span>
+                        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); padding: 1.1rem;">
+                            <div style="font-size: 0.74rem; font-weight: 700; color: #166534; text-transform: uppercase; letter-spacing: 0.5px;">Sick Leave (SL)</div>
+                            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 0.5rem;">
+                                <span id="slRemaining" style="font-size: 1.75rem; font-weight: 700; color: #14532d; font-family: var(--font-mono);">--</span>
+                                <span id="slTotal" style="font-size: 0.82rem; color: #22c55e; font-weight: 600;">/ 6 days left</span>
                             </div>
                         </div>
                     </div>
 
-                    <div style="font-size: 0.95rem; font-weight: 800; color: var(--text-main); margin-bottom: 0.75rem;">
+                    <div style="font-size: 0.88rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.65rem;">
                         Recent Leave Applications
                     </div>
                     <div id="recentLeavesList" style="max-height: 175px; overflow-y: auto;">

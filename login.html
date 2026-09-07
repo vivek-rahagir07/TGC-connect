@@ -10,19 +10,179 @@
     <style>
         .login-hero-glow {
             position: absolute;
-            width: 520px;
-            height: 520px;
+            width: 580px;
+            height: 580px;
             border-radius: 50%;
-            background: radial-gradient(circle, rgba(79, 70, 229, 0.15) 0%, rgba(14, 165, 233, 0.08) 50%, transparent 70%);
-            filter: blur(45px);
-            z-index: -1;
+            background: radial-gradient(circle, rgba(6, 182, 212, 0.14) 0%, rgba(79, 70, 229, 0.12) 40%, transparent 70%);
+            filter: blur(55px);
+            z-index: 0;
             pointer-events: none;
-            animation: pulseGlow 8s ease-in-out infinite alternate;
+            top: 10%;
+            left: 5%;
+            animation: pulseGlow 10s ease-in-out infinite alternate;
+        }
+
+        .login-hero-glow-right {
+            position: absolute;
+            width: 480px;
+            height: 480px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.12) 0%, rgba(59, 130, 246, 0.08) 50%, transparent 70%);
+            filter: blur(50px);
+            z-index: 0;
+            pointer-events: none;
+            bottom: 5%;
+            right: 5%;
+            animation: pulseGlow 12s ease-in-out infinite alternate-reverse;
         }
 
         @keyframes pulseGlow {
-            0% { transform: scale(0.9) translate(-10%, -10%); opacity: 0.6; }
-            100% { transform: scale(1.1) translate(10%, 10%); opacity: 0.9; }
+            0% { transform: scale(0.92) translate(-5%, -5%); opacity: 0.6; }
+            100% { transform: scale(1.08) translate(5%, 5%); opacity: 0.95; }
+        }
+
+        /* Split Screen Container */
+        .login-split-layout {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3.5rem;
+            min-height: calc(100vh - 90px);
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 1.5rem 1.25rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .login-showcase-column {
+            flex: 1.15;
+            max-width: 560px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            text-align: left;
+            position: relative;
+            z-index: 2;
+        }
+
+        .login-form-column {
+            flex: 0.95;
+            max-width: 440px;
+            width: 100%;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Holographic Visual Card */
+        .showcase-visual-wrapper {
+            position: relative;
+            width: 100%;
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            background: #090e1a;
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            box-shadow: 0 24px 50px -12px rgba(6, 182, 212, 0.28), 0 0 35px rgba(56, 189, 248, 0.15);
+            margin: 1.25rem 0 1rem 0;
+            transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.32s ease, border-color 0.3s ease;
+        }
+
+        .showcase-visual-wrapper:hover {
+            transform: translateY(-4px) scale(1.01);
+            box-shadow: 0 32px 65px -15px rgba(6, 182, 212, 0.38), 0 0 50px rgba(56, 189, 248, 0.25);
+            border-color: rgba(56, 189, 248, 0.65);
+        }
+
+        .showcase-img {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: cover;
+        }
+
+        .showcase-scanline {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.9), transparent);
+            box-shadow: 0 0 14px rgba(56, 189, 248, 0.85);
+            opacity: 0.75;
+            animation: scanMove 4.5s ease-in-out infinite alternate;
+            pointer-events: none;
+        }
+
+        @keyframes scanMove {
+            0% { top: 0%; opacity: 0.3; }
+            50% { opacity: 0.9; }
+            100% { top: 98%; opacity: 0.3; }
+        }
+
+        .showcase-overlay-badge {
+            position: absolute;
+            bottom: 12px;
+            left: 12px;
+            right: 12px;
+            padding: 0.55rem 0.9rem;
+            background: rgba(10, 15, 29, 0.82);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .showcase-pill-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+            margin-top: 0.5rem;
+        }
+
+        .showcase-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.32rem 0.7rem;
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(226, 232, 240, 0.9);
+            border-radius: 9999px;
+            font-size: 0.74rem;
+            font-weight: 600;
+            color: #334155;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .showcase-chip:hover {
+            transform: translateY(-2px);
+            border-color: #38bdf8;
+            color: #0284c7;
+            background: #f0f9ff;
+            box-shadow: 0 4px 12px rgba(56, 189, 248, 0.16);
+        }
+
+        @media (max-width: 1024px) {
+            .login-split-layout {
+                flex-direction: column;
+                gap: 2.25rem;
+                padding: 1.5rem 1rem;
+            }
+            .login-showcase-column {
+                max-width: 480px;
+                align-items: center;
+                text-align: center;
+            }
+            .showcase-pill-grid {
+                justify-content: center;
+            }
+            .login-form-column {
+                max-width: 440px;
+            }
         }
     </style>
 </head>
@@ -46,21 +206,84 @@
         </div>
     </nav>
 
-    <main class="main-container" style="display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 120px); position: relative;">
+    <main class="login-split-layout">
         <div class="login-hero-glow"></div>
+        <div class="login-hero-glow-right"></div>
 
-        <div style="max-width: 480px; width: 100%; margin: 1.5rem 0;">
-            <div class="card" style="padding: 2.5rem 2.25rem; box-shadow: var(--shadow-lg); border-radius: var(--radius-xl); border: 1px solid rgba(226, 232, 240, 0.9); background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(16px);">
+        <!-- Left Column: Global Connect by TGC Holographic Showcase -->
+        <div class="login-showcase-column animate-fade-in">
+            <div class="hero-radar-pill" style="margin-bottom: 0.85rem; background: rgba(236, 254, 255, 0.85); border-color: rgba(165, 243, 252, 0.9); color: #0284c7;">
+                <span class="radar-dot" style="background: #0284c7;"></span>
+                <span>INTELLIGENT WORKFORCE ECOSYSTEM</span>
+            </div>
+
+            <h1 style="font-size: 2.35rem; font-weight: 700; letter-spacing: -0.8px; line-height: 1.15; margin: 0 0 0.35rem 0;">
+                Global <span style="background: linear-gradient(135deg, #0284c7, #4f46e5, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Connect</span>
+                <span style="font-size: 1.1rem; font-weight: 600; color: var(--text-muted); display: inline-block; margin-left: 0.4rem;">by TGC</span>
+            </h1>
+            <p style="font-size: 0.82rem; font-weight: 700; color: #0284c7; letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 0.5rem;">
+                People &bull; Management &bull; A Stronger Tomorrow
+            </p>
+
+            <!-- Holographic Showcase Graphic Box -->
+            <div class="showcase-visual-wrapper">
+                <div class="showcase-scanline"></div>
+                <img src="assets/global_connect_hero.jpg" alt="Global Connect by TGC - Unified Workforce Infrastructure" class="showcase-img">
+                <div class="showcase-overlay-badge">
+                    <div style="display: flex; align-items: center; gap: 0.45rem;">
+                        <span class="radar-dot" style="background: #38bdf8; width: 7px; height: 7px;"></span>
+                        <span style="font-size: 0.74rem; font-weight: 700; color: #f0f9ff; letter-spacing: 0.5px;">PROXY-PROOF VERIFICATION CORE</span>
+                    </div>
+                    <span style="font-size: 0.7rem; color: #38bdf8; font-weight: 600; background: rgba(56, 189, 248, 0.15); padding: 0.15rem 0.55rem; border-radius: 9999px;">Cloud Live</span>
+                </div>
+            </div>
+
+            <!-- The 7 Modules Chips from Graphic -->
+            <div class="showcase-pill-grid">
+                <div class="showcase-chip">
+                    <i data-lucide="qr-code" style="width: 13px; color: #10b981;"></i>
+                    <span>QR Attendance</span>
+                </div>
+                <div class="showcase-chip">
+                    <i data-lucide="map-pin" style="width: 13px; color: #f59e0b;"></i>
+                    <span>GPS Tracking</span>
+                </div>
+                <div class="showcase-chip">
+                    <i data-lucide="camera" style="width: 13px; color: #06b6d4;"></i>
+                    <span>Photo Verification</span>
+                </div>
+                <div class="showcase-chip">
+                    <i data-lucide="users" style="width: 13px; color: #4f46e5;"></i>
+                    <span>Employee Management</span>
+                </div>
+                <div class="showcase-chip">
+                    <i data-lucide="calendar" style="width: 13px; color: #8b5cf6;"></i>
+                    <span>Leave Management</span>
+                </div>
+                <div class="showcase-chip">
+                    <i data-lucide="banknote" style="width: 13px; color: #ef4444;"></i>
+                    <span>Payroll Management</span>
+                </div>
+                <div class="showcase-chip">
+                    <i data-lucide="bar-chart-3" style="width: 13px; color: #0284c7;"></i>
+                    <span>Reports & Analytics</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Authentication Card -->
+        <div class="login-form-column animate-fade-in stagger-1">
+            <div class="card" style="padding: 1.85rem 1.75rem; box-shadow: var(--shadow-lg); border-radius: var(--radius-lg); border: 1px solid rgba(226, 232, 240, 0.85); background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(20px);">
                 
                 <!-- Brand Header -->
-                <div style="text-align: center; margin-bottom: 1.5rem;">
-                    <div id="portalBadge" class="brand-badge" style="display: inline-block; margin-bottom: 0.75rem; font-size: 0.75rem; letter-spacing: 0.8px; padding: 0.3rem 0.85rem;">
+                <div style="text-align: center; margin-bottom: 1.25rem;">
+                    <div id="portalBadge" class="brand-badge" style="display: inline-block; margin-bottom: 0.55rem; font-size: 0.72rem; letter-spacing: 0.7px; padding: 0.22rem 0.7rem; border-radius: var(--radius-xs);">
                         ADMINISTRATIVE ACCESS
                     </div>
-                    <h1 id="portalTitle" style="font-size: 1.85rem; font-weight: 800; letter-spacing: -0.6px; margin: 0;">
+                    <h2 id="portalTitle" style="font-size: 1.5rem; font-weight: 700; letter-spacing: -0.4px; margin: 0;">
                         Management Sign In
-                    </h1>
-                    <p id="portalSubtitle" style="color: var(--text-muted); font-size: 0.92rem; margin-top: 0.4rem; line-height: 1.5;">
+                    </h2>
+                    <p id="portalSubtitle" style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem; line-height: 1.4;">
                         Executive control center & workforce management.
                     </p>
                 </div>
@@ -68,17 +291,17 @@
                 <!-- Dedicated Role Switcher (Admin vs Employee) -->
                 <div class="role-segmented-control" role="tablist">
                     <button type="button" id="roleAdminBtn" onclick="switchRole('admin')" class="role-segment-btn active admin-mode" role="tab" aria-selected="true">
-                        <i data-lucide="shield" style="width: 18px;"></i>
+                        <i data-lucide="shield" style="width: 15px;"></i>
                         <span>Admin Login</span>
                     </button>
                     <button type="button" id="roleEmployeeBtn" onclick="switchRole('employee')" class="role-segment-btn" role="tab" aria-selected="false">
-                        <i data-lucide="user" style="width: 18px;"></i>
+                        <i data-lucide="user" style="width: 15px;"></i>
                         <span>Employee Login</span>
                     </button>
                 </div>
 
                 <!-- Status Alert Box (for Pending Approval or Rejected accounts) -->
-                <div id="loginStatusAlert" style="display: none; padding: 1.15rem; border-radius: var(--radius-md); margin-bottom: 1.5rem; font-size: 0.92rem; line-height: 1.5;"></div>
+                <div id="loginStatusAlert" style="display: none; padding: 0.85rem 1rem; border-radius: var(--radius-sm); margin-bottom: 1.15rem; font-size: 0.85rem; line-height: 1.45;"></div>
 
                 <!-- Login Form -->
                 <form id="loginForm" onsubmit="handleLogin(event)">
@@ -90,73 +313,73 @@
                     </div>
 
                     <div class="form-group">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
                             <label class="form-label" style="margin-bottom: 0;">Password</label>
-                            <span id="roleNotice" style="font-size: 0.78rem; color: var(--primary); font-weight: 700;">256-Bit Encrypted</span>
+                            <span id="roleNotice" style="font-size: 0.74rem; color: var(--primary); font-weight: 600;">Encrypted</span>
                         </div>
                         <div class="password-input-group">
                             <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" value="admin123" required autocomplete="current-password">
                             <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('loginPassword', this)" title="Toggle password visibility">
-                                <i data-lucide="eye" style="width: 18px;"></i>
+                                <i data-lucide="eye" style="width: 15px;"></i>
                             </button>
                         </div>
                     </div>
 
-                    <button type="submit" id="loginSubmitBtn" class="btn btn-primary" style="width: 100%; padding: 0.9rem; font-size: 1.02rem; margin-top: 0.75rem; border-radius: var(--radius-md); font-weight: 800; letter-spacing: -0.2px;">
-                        <i data-lucide="log-in" style="width: 18px;"></i>
+                    <button type="submit" id="loginSubmitBtn" class="btn btn-primary" style="width: 100%; padding: 0.62rem 1rem; font-size: 0.9rem; margin-top: 0.35rem; font-weight: 600;">
+                        <i data-lucide="log-in" style="width: 16px;"></i>
                         <span id="loginBtnText">Sign In as Administrator</span>
                     </button>
                 </form>
 
                 <!-- Quick Access Credentials Drawer -->
-                <div style="margin-top: 1.75rem; padding: 1.15rem; background: var(--bg-main); border: 1px dashed var(--border-color); border-radius: var(--radius-md);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                        <span style="font-size: 0.76rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
-                            Quick Demo Credentials
+                <div style="margin-top: 1.15rem; padding: 0.85rem 0.95rem; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.55rem;">
+                        <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+                            Quick Credentials
                         </span>
-                        <span style="font-size: 0.75rem; color: var(--primary); font-weight: 700;">Click to autofill</span>
+                        <span style="font-size: 0.7rem; color: var(--primary); font-weight: 600;">Tap to fill</span>
                     </div>
 
                     <!-- Admin Chips -->
-                    <div id="adminChips" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <div id="adminChips" style="display: flex; gap: 0.45rem; flex-wrap: wrap;">
                         <button type="button" onclick="fillCreds('admin@tgcconnect.com', 'admin123', 'admin')" class="quick-cred-chip" style="width: 100%; justify-content: space-between;">
-                            <span style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="display: flex; align-items: center; gap: 0.45rem;">
                                 <span>🛡️</span>
                                 <span>Master Administrator</span>
                             </span>
-                            <code style="font-size: 0.76rem; color: var(--text-muted);">admin123</code>
+                            <code style="font-size: 0.74rem; color: var(--text-muted);">admin123</code>
                         </button>
                     </div>
 
                     <!-- Employee Chips -->
-                    <div id="employeeChips" style="display: none; flex-direction: column; gap: 0.5rem;">
+                    <div id="employeeChips" style="display: none; flex-direction: column; gap: 0.45rem;">
                         <button type="button" onclick="fillCreds('rohan.verma@tgcconnect.com', 'employee123', 'employee')" class="quick-cred-chip" style="width: 100%; justify-content: space-between;">
-                            <span style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="display: flex; align-items: center; gap: 0.45rem;">
                                 <span>💻</span>
                                 <span>Rohan Verma (Engineering)</span>
                             </span>
-                            <code style="font-size: 0.76rem; color: var(--text-muted);">employee123</code>
+                            <code style="font-size: 0.74rem; color: var(--text-muted);">employee123</code>
                         </button>
                         <button type="button" onclick="fillCreds('priya.sharma@tgcconnect.com', 'employee123', 'employee')" class="quick-cred-chip" style="width: 100%; justify-content: space-between;">
-                            <span style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="display: flex; align-items: center; gap: 0.45rem;">
                                 <span>🎨</span>
                                 <span>Priya Sharma (Product Design)</span>
                             </span>
-                            <code style="font-size: 0.76rem; color: var(--text-muted);">employee123</code>
+                            <code style="font-size: 0.74rem; color: var(--text-muted);">employee123</code>
                         </button>
                     </div>
                 </div>
 
                 <!-- Footer Links -->
-                <div style="text-align: center; margin-top: 1.75rem; padding-top: 1.25rem; border-top: 1px solid var(--border-color); font-size: 0.9rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.6rem;">
+                <div style="text-align: center; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border-color); font-size: 0.86rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.45rem;">
                     <div>
                         New team member? 
-                        <a href="register.html" style="color: var(--primary); font-weight: 800; text-decoration: none;">
+                        <a href="register.html" style="color: var(--primary); font-weight: 700; text-decoration: none;">
                             Submit onboarding application &rarr;
                         </a>
                     </div>
-                    <div style="font-size: 0.8rem; color: var(--text-muted);">
-                        Office QR Attendance station? <a href="qr_scanner.html" style="color: var(--text-main); font-weight: 700;">Open QR Terminal</a>
+                    <div style="font-size: 0.78rem; color: var(--text-muted);">
+                        Office QR Attendance station? <a href="qr_scanner.html" style="color: var(--text-main); font-weight: 600;">Open QR Terminal</a>
                     </div>
                 </div>
 

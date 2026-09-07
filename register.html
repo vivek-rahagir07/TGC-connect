@@ -25,20 +25,20 @@
         <div style="max-width: 900px; margin: 1.5rem auto;">
             
             <!-- Registration Form Card -->
-            <div class="card" id="registrationFormCard" style="padding: 2.75rem; box-shadow: var(--shadow-lg);">
+            <div class="card animate-fade-in" id="registrationFormCard" style="padding: 2rem 2.25rem; box-shadow: var(--shadow-md); border-radius: var(--radius-lg);">
                 
-                <div style="margin-bottom: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1.5rem;">
-                    <div style="display: inline-flex; align-items: center; gap: 0.5rem; color: var(--primary); font-weight: 800; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 0.4rem; background: var(--primary-light); padding: 0.3rem 0.8rem; border-radius: 9999px;">
-                        <i data-lucide="shield-check" style="width: 15px;"></i> Verified Self-Onboarding
+                <div style="margin-bottom: 1.75rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1.25rem;">
+                    <div style="display: inline-flex; align-items: center; gap: 0.45rem; color: var(--primary); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.35rem; background: var(--primary-light); padding: 0.25rem 0.75rem; border-radius: 9999px;">
+                        <i data-lucide="shield-check" style="width: 14px;"></i> Verified Self-Onboarding
                     </div>
-                    <h1 style="font-size: 2rem; font-weight: 800; letter-spacing: -0.6px; margin-top: 0.35rem;">Employee Registration & Profile Setup</h1>
-                    <p style="color: var(--text-muted); font-size: 0.95rem;">
+                    <h1 style="font-size: 1.8rem; font-weight: 700; letter-spacing: -0.5px; margin-top: 0.35rem;">Employee Registration & Profile Setup</h1>
+                    <p style="color: var(--text-muted); font-size: 0.92rem; margin-top: 0.2rem;">
                         Provide your verified employee details and lock in a live device camera snapshot for proxy-proof identity records.
                     </p>
                 </div>
 
                 <form onsubmit="handleRegister(event)">
-                    <div style="display: grid; grid-template-columns: 1.15fr 1fr; gap: 2rem;">
+                    <div style="display: grid; grid-template-columns: 1.15fr 1fr; gap: 1.75rem;">
                         
                         <!-- Left Column: Form Fields -->
                         <div>
@@ -52,7 +52,7 @@
                                 <input type="email" id="regEmail" class="form-control" placeholder="vikram@tgcconnect.com" required>
                             </div>
 
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem;">
                                 <div class="form-group">
                                     <label class="form-label">Contact Phone *</label>
                                     <input type="tel" id="regPhone" class="form-control" placeholder="+91 98765 43210" required>
@@ -68,7 +68,7 @@
                                 <input type="text" id="regAddress" class="form-control" placeholder="Flat / Street, City, State">
                             </div>
 
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem;">
                                 <div class="form-group">
                                     <label class="form-label">Department *</label>
                                     <select id="regDepartment" class="form-control" required>
@@ -87,7 +87,7 @@
                                 </div>
                             </div>
 
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem;">
                                 <div class="form-group">
                                     <label class="form-label">Date of Joining *</label>
                                     <input type="date" id="regDoj" class="form-control" required>
@@ -115,7 +115,7 @@
                             </div>
 
                             <!-- Camera Box with Cyberpunk Viewfinder HUD & Flash -->
-                            <div class="camera-box" id="cameraBoxWrapper" style="margin-bottom: 1rem;">
+                            <div class="camera-box" id="cameraBoxWrapper" style="margin-bottom: 0.85rem; border-radius: var(--radius-md); border: 1px solid rgba(79, 70, 229, 0.35);">
                                 <div class="shutter-flash" id="shutterFlash"></div>
                                 <div class="viewfinder-hud">
                                     <div class="viewfinder-corner-tr"></div>
@@ -126,33 +126,33 @@
                                 <canvas id="cameraCanvas" style="display: none;"></canvas>
                                 
                                 <div id="cameraPlaceholder" style="display: none; color: #94a3b8; text-align: center; padding: 1.5rem; z-index: 10;">
-                                    <i data-lucide="camera" style="width: 44px; margin: 0 auto 0.75rem; display: block; color: var(--secondary);"></i>
+                                    <i data-lucide="camera" style="width: 40px; margin: 0 auto 0.75rem; display: block; color: var(--secondary);"></i>
                                     <strong style="color: #fff; display: block; margin-bottom: 0.25rem;">Camera Sensor Standby</strong>
-                                    <span style="font-size: 0.85rem;">Click Start Camera or use the simulator fallback below.</span>
+                                    <span style="font-size: 0.82rem;">Click Start Camera or use the simulator fallback below.</span>
                                 </div>
                             </div>
 
-                            <div style="display: flex; gap: 0.75rem; margin-bottom: 0.85rem;">
-                                <button type="button" id="btnCapturePhoto" onclick="captureLivePhoto()" class="btn btn-primary" style="flex: 1;">
-                                    <i data-lucide="camera" style="width: 18px;"></i> Take Snapshot
+                            <div style="display: flex; gap: 0.65rem; margin-bottom: 0.75rem;">
+                                <button type="button" id="btnCapturePhoto" onclick="captureLivePhoto()" class="btn btn-primary btn-sm" style="flex: 1; padding: 0.55rem 0.85rem;">
+                                    <i data-lucide="camera" style="width: 16px;"></i> Take Snapshot
                                 </button>
-                                <button type="button" id="btnRetakePhoto" onclick="restartLiveCamera()" class="btn btn-secondary" style="display: none;">
-                                    <i data-lucide="refresh-cw" style="width: 18px;"></i> Retake
+                                <button type="button" id="btnRetakePhoto" onclick="restartLiveCamera()" class="btn btn-secondary btn-sm" style="display: none; padding: 0.55rem 0.85rem;">
+                                    <i data-lucide="refresh-cw" style="width: 16px;"></i> Retake
                                 </button>
                             </div>
 
                             <!-- Camera Fallback / Test Simulator for Environment Flexibility -->
-                            <div style="text-align: center; margin-bottom: 1.25rem;">
-                                <button type="button" onclick="generateSimulatedAvatar()" class="btn btn-secondary btn-sm" style="width: 100%; font-size: 0.82rem; font-weight: 600;">
-                                    <i data-lucide="sparkles" style="width: 15px; color: var(--secondary);"></i> Or Generate Verified Snapshot Simulation
+                            <div style="text-align: center; margin-bottom: 1rem;">
+                                <button type="button" onclick="generateSimulatedAvatar()" class="btn btn-secondary btn-sm" style="width: 100%; font-size: 0.8rem; font-weight: 500;">
+                                    <i data-lucide="sparkles" style="width: 14px; color: var(--secondary);"></i> Or Generate Verified Snapshot Simulation
                                 </button>
                             </div>
 
                             <input type="hidden" id="regPhotoBase64" required>
 
-                            <div style="background: var(--bg-main); border: 1.5px solid var(--border-color); border-radius: var(--radius-md); padding: 1.15rem; font-size: 0.86rem; color: var(--text-muted); line-height: 1.55;">
-                                <strong style="color: var(--text-main); display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.35rem;">
-                                    <i data-lucide="shield-alert" style="width: 16px; color: var(--primary);"></i> Anti-Proxy Policy:
+                            <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.95rem; font-size: 0.82rem; color: var(--text-muted); line-height: 1.5;">
+                                <strong style="color: var(--text-main); display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.25rem;">
+                                    <i data-lucide="shield-alert" style="width: 15px; color: var(--primary);"></i> Anti-Proxy Policy:
                                 </strong>
                                 Per corporate guidelines, attendance and onboarding require live photo verification rather than arbitrary image uploads. Your registration will enter the Admin verification queue.
                             </div>
@@ -160,13 +160,13 @@
 
                     </div>
 
-                    <div style="margin-top: 2.25rem; border-top: 1px solid var(--border-color); padding-top: 1.75rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-                        <a href="login.html" style="font-size: 0.92rem; color: var(--text-muted); text-decoration: none;">
+                    <div style="margin-top: 1.85rem; border-top: 1px solid var(--border-color); padding-top: 1.35rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                        <a href="login.html" style="font-size: 0.88rem; color: var(--text-muted); text-decoration: none;">
                             Already registered? <strong style="color: var(--primary);">Sign in here</strong>
                         </a>
 
-                        <button type="submit" id="btnSubmitRegister" class="btn btn-primary btn-lg" style="min-width: 260px;">
-                            <i data-lucide="send" style="width: 18px;"></i> Submit for Admin Approval
+                        <button type="submit" id="btnSubmitRegister" class="btn btn-primary" style="padding: 0.65rem 1.6rem; font-size: 0.92rem;">
+                            <i data-lucide="send" style="width: 16px;"></i> Submit for Admin Approval
                         </button>
                     </div>
                 </form>

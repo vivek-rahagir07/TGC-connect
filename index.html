@@ -21,125 +21,125 @@
     </nav>
 
     <main class="main-container">
-        <div style="max-width: 1200px; margin: 0 auto; text-align: center; padding: 1.5rem 0 3.5rem 0;">
+        <div style="max-width: 1200px; margin: 0 auto; text-align: center; padding: 2rem 0 4rem 0;">
             <!-- Top Announcement Radar Pill -->
-            <div style="display: inline-flex; align-items: center; gap: 0.65rem; padding: 0.5rem 1.35rem; background: rgba(238, 242, 255, 0.9); color: var(--primary); border-radius: 9999px; font-weight: 800; font-size: 0.88rem; margin-bottom: 1.75rem; border: 1.5px solid #c7d2fe; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.12); backdrop-filter: blur(8px);">
+            <div class="hero-radar-pill animate-fade-in">
                 <span class="radar-dot"></span>
                 <span>Next-Gen Enterprise Workforce Suite &bull; Proxy-Proof Attendance</span>
             </div>
 
             <!-- Hero Headline -->
-            <h1 style="font-size: 3.4rem; font-weight: 800; color: var(--text-main); margin-bottom: 1.25rem; line-height: 1.15; letter-spacing: -1.2px;">
+            <h1 class="animate-fade-in stagger-1" style="font-size: 3.15rem; font-weight: 700; color: var(--text-main); margin-bottom: 1.15rem; line-height: 1.15; letter-spacing: -1px;">
                 Verified Identity, GPS Geofence & <br>
                 <span style="background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Automated Payroll Engine</span>
             </h1>
-            <p style="font-size: 1.22rem; color: var(--text-muted); max-width: 820px; margin: 0 auto 2.75rem; line-height: 1.6;">
+            <p class="animate-fade-in stagger-2" style="font-size: 1.12rem; color: var(--text-muted); max-width: 760px; margin: 0 auto 2.5rem; line-height: 1.6;">
                 Eliminate proxy attendance structurally with webcam photo snapshots, dynamic rotating office QR standees, time-bound GPS links, leave tracking balances, and auto-deducted salary slips.
             </p>
 
             <!-- Quick Action Hub -->
-            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 4rem;">
-                <a href="login.html" class="btn btn-primary btn-lg" style="min-width: 210px;" onclick="playSound('click')">
-                    <i data-lucide="log-in" style="width: 20px;"></i> Sign In to Portal
+            <div class="animate-fade-in stagger-3" style="display: flex; gap: 0.85rem; justify-content: center; flex-wrap: wrap; margin-bottom: 3.5rem;">
+                <a href="login.html" class="btn btn-primary btn-lg" onclick="playSound('click')">
+                    <i data-lucide="log-in" style="width: 18px;"></i> Sign In to Portal
                 </a>
-                <a href="register.html" class="btn btn-secondary btn-lg" style="min-width: 210px;" onclick="playSound('click')">
-                    <i data-lucide="user-plus" style="width: 20px; color: var(--primary);"></i> Onboard Employee
+                <a href="register.html" class="btn btn-secondary btn-lg" onclick="playSound('click')">
+                    <i data-lucide="user-plus" style="width: 18px; color: var(--primary);"></i> Onboard Employee
                 </a>
-                <a href="qr_scanner.html" class="btn btn-secondary btn-lg" style="min-width: 210px;" onclick="playSound('click')">
-                    <i data-lucide="qr-code" style="width: 20px; color: var(--secondary);"></i> Office QR Punch
+                <a href="qr_scanner.html" class="btn btn-secondary btn-lg" onclick="playSound('click')">
+                    <i data-lucide="qr-code" style="width: 18px; color: var(--secondary);"></i> Office QR Punch
                 </a>
             </div>
 
-            <!-- 6 Key Modules Grid with 3D Tilt Hover -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.65rem; text-align: left;">
+            <!-- 6 Key Modules Grid with Modern Accent Cards -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.4rem; text-align: left;">
                 
                 <!-- 1. Employee Onboarding -->
-                <div class="card interactive" style="border-top: 4.5px solid var(--primary);">
-                    <div style="width: 52px; height: 52px; border-radius: var(--radius-md); background: #eff6ff; color: var(--primary); display: flex; align-items: center; justify-content: center; margin-bottom: 1.25rem;">
-                        <i data-lucide="user-check" style="width: 26px;"></i>
+                <div class="feature-card module-onboarding animate-fade-in stagger-1">
+                    <div class="feature-icon-wrapper" style="background: #eff6ff; color: var(--primary);">
+                        <i data-lucide="user-check" style="width: 22px;"></i>
                     </div>
-                    <div style="font-size: 0.78rem; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 0.3rem;">MODULE 01</div>
-                    <h3 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 0.5rem; letter-spacing: -0.3px;">Employee Onboarding & Verification</h3>
-                    <p style="color: var(--text-muted); font-size: 0.93rem; margin-bottom: 1.5rem; line-height: 1.55;">
+                    <div style="font-size: 0.72rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.25rem;">MODULE 01</div>
+                    <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.45rem; letter-spacing: -0.2px;">Employee Onboarding & Verification</h3>
+                    <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 1.35rem; line-height: 1.5; flex: 1;">
                         Self-registration with DOB, address & mandatory device camera snapshot. Admin approval queue prevents fake profiles.
                     </p>
                     <a href="register.html" class="btn btn-secondary btn-sm" style="width: 100%; justify-content: space-between;">
-                        <span>Start Onboarding</span> <i data-lucide="arrow-right" style="width: 16px;"></i>
+                        <span>Start Onboarding</span> <i data-lucide="arrow-right" style="width: 15px;"></i>
                     </a>
                 </div>
 
                 <!-- 2. QR Attendance -->
-                <div class="card interactive" style="border-top: 4.5px solid var(--success);">
-                    <div style="width: 52px; height: 52px; border-radius: var(--radius-md); background: #ecfdf5; color: var(--success); display: flex; align-items: center; justify-content: center; margin-bottom: 1.25rem;">
-                        <i data-lucide="qr-code" style="width: 26px;"></i>
+                <div class="feature-card module-qr animate-fade-in stagger-2">
+                    <div class="feature-icon-wrapper" style="background: #ecfdf5; color: var(--success);">
+                        <i data-lucide="qr-code" style="width: 22px;"></i>
                     </div>
-                    <div style="font-size: 0.78rem; font-weight: 800; color: var(--success); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 0.3rem;">MODULE 02</div>
-                    <h3 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 0.5rem; letter-spacing: -0.3px;">In-Office QR Attendance Punch</h3>
-                    <p style="color: var(--text-muted); font-size: 0.93rem; margin-bottom: 1.5rem; line-height: 1.55;">
+                    <div style="font-size: 0.72rem; font-weight: 700; color: var(--success); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.25rem;">MODULE 02</div>
+                    <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.45rem; letter-spacing: -0.2px;">In-Office QR Attendance Punch</h3>
+                    <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 1.35rem; line-height: 1.5; flex: 1;">
                         Dynamic rotating office QR standee with audio feedback, laser reticle, and instant check-in/out timestamp matching.
                     </p>
                     <a href="qr_scanner.html" class="btn btn-secondary btn-sm" style="width: 100%; justify-content: space-between;">
-                        <span>Launch QR Scanner</span> <i data-lucide="arrow-right" style="width: 16px;"></i>
+                        <span>Launch QR Scanner</span> <i data-lucide="arrow-right" style="width: 15px;"></i>
                     </a>
                 </div>
 
                 <!-- 3. GPS Link Attendance -->
-                <div class="card interactive" style="border-top: 4.5px solid var(--warning);">
-                    <div style="width: 52px; height: 52px; border-radius: var(--radius-md); background: #fef3c7; color: var(--warning); display: flex; align-items: center; justify-content: center; margin-bottom: 1.25rem;">
-                        <i data-lucide="map-pin" style="width: 26px;"></i>
+                <div class="feature-card module-gps animate-fade-in stagger-3">
+                    <div class="feature-icon-wrapper" style="background: #fef3c7; color: var(--warning);">
+                        <i data-lucide="map-pin" style="width: 22px;"></i>
                     </div>
-                    <div style="font-size: 0.78rem; font-weight: 800; color: var(--warning); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 0.3rem;">MODULE 03</div>
-                    <h3 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 0.5rem; letter-spacing: -0.3px;">GPS Link Attendance (Field/Remote)</h3>
-                    <p style="color: var(--text-muted); font-size: 0.93rem; margin-bottom: 1.5rem; line-height: 1.55;">
+                    <div style="font-size: 0.72rem; font-weight: 700; color: var(--warning); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.25rem;">MODULE 03</div>
+                    <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.45rem; letter-spacing: -0.2px;">GPS Link Attendance (Field/Remote)</h3>
+                    <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 1.35rem; line-height: 1.5; flex: 1;">
                         Time-bound 5–30 min links with live circular countdown, geofence radius check, device fingerprinting, and zero manual fallback.
                     </p>
                     <a href="login.html" class="btn btn-secondary btn-sm" style="width: 100%; justify-content: space-between;">
-                        <span>Access GPS Punch</span> <i data-lucide="arrow-right" style="width: 16px;"></i>
+                        <span>Access GPS Punch</span> <i data-lucide="arrow-right" style="width: 15px;"></i>
                     </a>
                 </div>
 
                 <!-- 4. Leave Management -->
-                <div class="card interactive" style="border-top: 4.5px solid var(--accent);">
-                    <div style="width: 52px; height: 52px; border-radius: var(--radius-md); background: #f3e8ff; color: var(--accent); display: flex; align-items: center; justify-content: center; margin-bottom: 1.25rem;">
-                        <i data-lucide="calendar" style="width: 26px;"></i>
+                <div class="feature-card module-leave animate-fade-in stagger-4">
+                    <div class="feature-icon-wrapper" style="background: #f3e8ff; color: var(--accent);">
+                        <i data-lucide="calendar" style="width: 22px;"></i>
                     </div>
-                    <div style="font-size: 0.78rem; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 0.3rem;">MODULE 04</div>
-                    <h3 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 0.5rem; letter-spacing: -0.3px;">Leave Balances & Holiday Calendar</h3>
-                    <p style="color: var(--text-muted); font-size: 0.93rem; margin-bottom: 1.5rem; line-height: 1.55;">
+                    <div style="font-size: 0.72rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.25rem;">MODULE 04</div>
+                    <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.45rem; letter-spacing: -0.2px;">Leave Balances & Holiday Calendar</h3>
+                    <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 1.35rem; line-height: 1.5; flex: 1;">
                         Automated Casual & Sick leave quotas, real-time balance deductions, holiday/Sunday exclusions, and fast admin approvals.
                     </p>
                     <a href="portal.html" class="btn btn-secondary btn-sm" style="width: 100%; justify-content: space-between;">
-                        <span>Open Leave Portal</span> <i data-lucide="arrow-right" style="width: 16px;"></i>
+                        <span>Open Leave Portal</span> <i data-lucide="arrow-right" style="width: 15px;"></i>
                     </a>
                 </div>
 
                 <!-- 5. Salary Calculation -->
-                <div class="card interactive" style="border-top: 4.5px solid var(--danger);">
-                    <div style="width: 52px; height: 52px; border-radius: var(--radius-md); background: #fef2f2; color: var(--danger); display: flex; align-items: center; justify-content: center; margin-bottom: 1.25rem;">
-                        <i data-lucide="banknote" style="width: 26px;"></i>
+                <div class="feature-card module-payroll animate-fade-in stagger-5">
+                    <div class="feature-icon-wrapper" style="background: #fef2f2; color: var(--danger);">
+                        <i data-lucide="banknote" style="width: 22px;"></i>
                     </div>
-                    <div style="font-size: 0.78rem; font-weight: 800; color: var(--danger); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 0.3rem;">MODULE 05</div>
-                    <h3 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 0.5rem; letter-spacing: -0.3px;">Automated Payroll Engine & Payslips</h3>
-                    <p style="color: var(--text-muted); font-size: 0.93rem; margin-bottom: 1.5rem; line-height: 1.55;">
+                    <div style="font-size: 0.72rem; font-weight: 700; color: var(--danger); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.25rem;">MODULE 05</div>
+                    <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.45rem; letter-spacing: -0.2px;">Automated Payroll Engine & Payslips</h3>
+                    <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 1.35rem; line-height: 1.5; flex: 1;">
                         Auto-calculates daily rate deductions for unpaid absences and renders official printable payslips with CSV export.
                     </p>
                     <a href="portal.html" class="btn btn-secondary btn-sm" style="width: 100%; justify-content: space-between;">
-                        <span>View Salary Statements</span> <i data-lucide="arrow-right" style="width: 16px;"></i>
+                        <span>View Salary Statements</span> <i data-lucide="arrow-right" style="width: 15px;"></i>
                     </a>
                 </div>
 
                 <!-- 6. Admin Command Center -->
-                <div class="card interactive" style="border-top: 4.5px solid var(--secondary);">
-                    <div style="width: 52px; height: 52px; border-radius: var(--radius-md); background: #ecfeff; color: var(--secondary); display: flex; align-items: center; justify-content: center; margin-bottom: 1.25rem;">
-                        <i data-lucide="layout-dashboard" style="width: 26px;"></i>
+                <div class="feature-card module-admin animate-fade-in stagger-6">
+                    <div class="feature-icon-wrapper" style="background: #ecfeff; color: var(--secondary);">
+                        <i data-lucide="layout-dashboard" style="width: 22px;"></i>
                     </div>
-                    <div style="font-size: 0.78rem; font-weight: 800; color: var(--secondary); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 0.3rem;">MODULE 06</div>
-                    <h3 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 0.5rem; letter-spacing: -0.3px;">Interactive Map & Command Center</h3>
-                    <p style="color: var(--text-muted); font-size: 0.93rem; margin-bottom: 1.5rem; line-height: 1.55;">
+                    <div style="font-size: 0.72rem; font-weight: 700; color: var(--secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.25rem;">MODULE 06</div>
+                    <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.45rem; letter-spacing: -0.2px;">Interactive Map & Command Center</h3>
+                    <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 1.35rem; line-height: 1.5; flex: 1;">
                         Live Leaflet map view of GPS check-ins, onboarding approval queue, profile change diff reviews, and audit logs.
                     </p>
                     <a href="admin.html" class="btn btn-secondary btn-sm" style="width: 100%; justify-content: space-between;">
-                        <span>Open Admin Console</span> <i data-lucide="arrow-right" style="width: 16px;"></i>
+                        <span>Open Admin Console</span> <i data-lucide="arrow-right" style="width: 15px;"></i>
                     </a>
                 </div>
 

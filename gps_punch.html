@@ -26,39 +26,39 @@
     </nav>
 
     <main class="main-container">
-        <div style="max-width: 660px; margin: 1.5rem auto;">
-            <div class="card" style="padding: 2.75rem 2.25rem; text-align: center; box-shadow: var(--shadow-lg);">
+        <div style="max-width: 620px; margin: 1.25rem auto;">
+            <div class="card animate-fade-in" style="padding: 1.85rem 2rem; text-align: center; box-shadow: var(--shadow-md); border-radius: var(--radius-lg);">
                 
-                <div style="margin-bottom: 1.75rem;">
-                    <div style="display: inline-flex; align-items: center; gap: 0.5rem; color: var(--warning); font-weight: 800; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.6px; margin-bottom: 0.5rem; background: var(--warning-bg); padding: 0.35rem 0.95rem; border-radius: 9999px; border: 1px solid var(--warning-border);">
+                <div style="margin-bottom: 1.5rem;">
+                    <div style="display: inline-flex; align-items: center; gap: 0.45rem; color: var(--warning-text); font-weight: 600; text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.5px; margin-bottom: 0.4rem; background: var(--warning-bg); padding: 0.25rem 0.8rem; border-radius: 9999px; border: 1px solid var(--warning-border);">
                         <span class="radar-dot" style="background: var(--warning);"></span> Time-Bound Geofence Verification
                     </div>
-                    <h1 id="linkTitleHeader" style="font-size: 1.85rem; font-weight: 800; letter-spacing: -0.5px; margin: 0.2rem 0;">Remote GPS Attendance Punch</h1>
-                    <p style="color: var(--text-muted); font-size: 0.92rem;">
+                    <h1 id="linkTitleHeader" style="font-size: 1.65rem; font-weight: 700; letter-spacing: -0.4px; margin: 0.15rem 0;">Remote GPS Attendance Punch</h1>
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">
                         This temporary verification session was issued by Administration. Geolocation permission is mandatory.
                     </p>
                 </div>
 
                 <!-- Animated Circular Progress Countdown Timer Box -->
-                <div style="background: #fffbeb; border: 1.5px solid #fde68a; border-radius: var(--radius-xl); padding: 1.75rem 1.25rem; margin-bottom: 1.75rem; position: relative;">
-                    <div style="font-size: 0.78rem; font-weight: 800; color: #92400e; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 0.75rem;">
+                <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.35rem; position: relative;">
+                    <div style="font-size: 0.74rem; font-weight: 700; color: #92400e; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 0.65rem;">
                         SESSION REMAINING DURATION
                     </div>
 
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 1.5rem; flex-wrap: wrap;">
-                        <div class="svg-countdown-container" style="width: 90px; height: 90px;">
-                            <svg width="90" height="90">
-                                <circle cx="45" cy="45" r="38" stroke="#fde68a" stroke-width="6" fill="transparent" />
-                                <circle id="countdownSvgCircle" class="svg-countdown-circle" cx="45" cy="45" r="38" stroke="#d97706" stroke-width="6" fill="transparent" stroke-dasharray="238.76" stroke-dashoffset="0" stroke-linecap="round" />
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 1.25rem; flex-wrap: wrap;">
+                        <div class="svg-countdown-container" style="width: 80px; height: 80px;">
+                            <svg width="80" height="80">
+                                <circle cx="40" cy="40" r="34" stroke="#fde68a" stroke-width="5" fill="transparent" />
+                                <circle id="countdownSvgCircle" class="svg-countdown-circle" cx="40" cy="40" r="34" stroke="#d97706" stroke-width="5" fill="transparent" stroke-dasharray="213.63" stroke-dashoffset="0" stroke-linecap="round" />
                             </svg>
-                            <div style="position: absolute; font-size: 1.1rem; font-weight: 800; font-family: var(--font-mono); color: #92400e;" id="countdownPercent">100%</div>
+                            <div style="position: absolute; font-size: 0.95rem; font-weight: 700; font-family: var(--font-mono); color: #92400e;" id="countdownPercent">100%</div>
                         </div>
 
                         <div>
-                            <div id="countdownTimer" style="font-size: 3rem; font-weight: 800; color: #b45309; font-family: var(--font-mono); line-height: 1; letter-spacing: 1px;">
+                            <div id="countdownTimer" style="font-size: 2.35rem; font-weight: 700; color: #b45309; font-family: var(--font-mono); line-height: 1; letter-spacing: 0.5px;">
                                 --:--
                             </div>
-                            <div id="timerSubtext" style="font-size: 0.85rem; color: #78350f; font-weight: 600; margin-top: 0.35rem;">
+                            <div id="timerSubtext" style="font-size: 0.82rem; color: #78350f; font-weight: 500; margin-top: 0.25rem;">
                                 Submit coordinates before expiration.
                             </div>
                         </div>
@@ -66,31 +66,31 @@
                 </div>
 
                 <!-- Interactive Mini-Map Preview (Leaflet) -->
-                <div id="gpsPunchMiniMap" style="height: 220px; width: 100%; margin-bottom: 1.5rem; display: none;"></div>
+                <div id="gpsPunchMiniMap" style="height: 200px; width: 100%; margin-bottom: 1.35rem; display: none; border-radius: var(--radius-sm); border: 1px solid var(--border-color);"></div>
 
                 <!-- Detected GPS Status Preview -->
-                <div id="coordsBox" style="background: var(--bg-main); border: 1.5px solid var(--border-color); border-radius: var(--radius-md); padding: 1.15rem; margin-bottom: 1.5rem; display: none; text-align: left;">
-                    <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.25rem;">Captured Device Coordinates:</div>
-                    <div id="coordsText" style="font-weight: 800; font-family: var(--font-mono); font-size: 0.95rem; color: var(--primary);"></div>
+                <div id="coordsBox" style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.95rem; margin-bottom: 1.35rem; display: none; text-align: left;">
+                    <div style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.2rem;">Captured Device Coordinates:</div>
+                    <div id="coordsText" style="font-weight: 700; font-family: var(--font-mono); font-size: 0.92rem; color: var(--primary);"></div>
                 </div>
 
                 <!-- Verification Result Banner -->
-                <div id="gpsResultBox" style="display: none; padding: 1.25rem; border-radius: var(--radius-md); margin-bottom: 1.5rem; text-align: left;">
-                    <div style="font-weight: 800; margin-bottom: 0.25rem; font-size: 1.1rem;" id="gpsResultTitle"></div>
-                    <div style="font-size: 0.92rem;" id="gpsResultDetails"></div>
+                <div id="gpsResultBox" style="display: none; padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.35rem; text-align: left;">
+                    <div style="font-weight: 700; margin-bottom: 0.2rem; font-size: 1.05rem;" id="gpsResultTitle"></div>
+                    <div style="font-size: 0.88rem;" id="gpsResultDetails"></div>
                 </div>
 
                 <!-- Main Action Buttons -->
-                <div style="display: flex; gap: 0.75rem; flex-direction: column;">
-                    <button type="button" id="markGpsBtn" onclick="requestLocationAndPunch()" class="btn btn-primary btn-lg" style="padding: 1rem; font-size: 1.05rem;">
-                        <i data-lucide="crosshair" style="width: 20px;"></i> Tap to Verify GPS & Mark Attendance
+                <div style="display: flex; gap: 0.65rem; flex-direction: column;">
+                    <button type="button" id="markGpsBtn" onclick="requestLocationAndPunch()" class="btn btn-primary" style="padding: 0.75rem 1.25rem; font-size: 0.95rem;">
+                        <i data-lucide="crosshair" style="width: 18px;"></i> Tap to Verify GPS & Mark Attendance
                     </button>
-                    <a href="portal.html" class="btn btn-secondary">
-                        <i data-lucide="home" style="width: 18px;"></i> Return to Employee Portal
+                    <a href="portal.html" class="btn btn-secondary btn-sm" style="padding: 0.55rem 1rem;">
+                        <i data-lucide="home" style="width: 16px;"></i> Return to Employee Portal
                     </a>
                 </div>
 
-                <div style="margin-top: 1.75rem; font-size: 0.82rem; color: var(--text-muted); line-height: 1.5;">
+                <div style="margin-top: 1.5rem; font-size: 0.8rem; color: var(--text-muted); line-height: 1.45;">
                     🔒 <strong>Anti-Proxy Safeguard:</strong> This single-use link requires strict device GPS permission. Manual override is not permitted.
                 </div>
 
