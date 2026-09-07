@@ -12,7 +12,11 @@ Open [http://127.0.0.1:8001/index.html](http://127.0.0.1:8001/index.html) in you
 
 ## Database & Authentication
 
-- Database is SQLite at `api/data/tgc_connect.db`.
-- Database schema auto-initializes upon first request to `api/db.php`.
+- Primary Database is MySQL (`tgc_connect`) on `127.0.0.1:3306`, configured via `api/config.php`.
+- Schema is defined in `schema.sql` and can be initialized with:
+  ```bash
+  php api/setup_mysql.php
+  ```
+- Graceful SQLite fallback is supported at `api/data/tgc_connect.db`.
 - Default Admin Account: `admin@tgcconnect.com` / `admin123`.
-- Employees can self-onboard at `register.html`.
+- Employees can self-onboard at `register.html` (pending admin approval) or be directly created by Admin with first-login password & webcam setup.

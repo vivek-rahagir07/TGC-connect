@@ -4,10 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Command Center - TGC Connect</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Leaflet.js for Interactive Attendance GPS Mapping -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -29,26 +32,31 @@
         <div style="display: flex; flex-direction: column; gap: 2rem;">
             
             <!-- Executive Action Bar -->
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; background: #ffffff; padding: 1.5rem 1.75rem; border-radius: var(--radius-lg); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.25rem; background: #ffffff; padding: 1.6rem 2rem; border-radius: var(--radius-lg); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
                 <div>
-                    <div style="font-size: 0.8rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px;">Executive Dashboard</div>
-                    <h1 style="font-size: 1.75rem; font-weight: 800; letter-spacing: -0.5px; margin-top: 0.15rem;">Workforce & Operations Center</h1>
+                    <div style="display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 0.2rem;">
+                        <span class="radar-dot"></span> Executive Command Center
+                    </div>
+                    <h1 style="font-size: 1.9rem; font-weight: 800; letter-spacing: -0.6px; margin: 0;">Workforce & Operations Center</h1>
                 </div>
 
                 <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
                     <button type="button" onclick="openModal('generateGpsModal')" class="btn btn-secondary">
-                        <i data-lucide="map-pin" style="width: 18px; color: #d97706;"></i> Generate GPS Link
+                        <i data-lucide="map-pin" style="width: 18px; color: var(--warning);"></i> Time-Bound GPS Link
                     </button>
                     <button type="button" onclick="openQrModal()" class="btn btn-secondary">
                         <i data-lucide="qr-code" style="width: 18px; color: var(--primary);"></i> Office QR Standee
                     </button>
+                    <button type="button" onclick="openModal('adminOnboardModal')" class="btn btn-secondary">
+                        <i data-lucide="user-plus" style="width: 18px; color: var(--success);"></i> + Direct Onboard
+                    </button>
                     <button type="button" onclick="openModal('runPayrollModal')" class="btn btn-primary">
-                        <i data-lucide="calculator" style="width: 18px;"></i> Calculate Monthly Payroll
+                        <i data-lucide="calculator" style="width: 18px;"></i> Run Payroll Engine
                     </button>
                 </div>
             </div>
 
-            <!-- Real-Time Metrics Cards -->
+            <!-- Real-Time Metrics Cards with Animated Numbers -->
             <div class="metrics-grid">
                 <div class="metric-card">
                     <div class="metric-icon" style="background: #eff6ff; color: #2563eb;">
@@ -90,13 +98,13 @@
                     </div>
                 </div>
 
-                <div class="metric-card" style="border-left: 4px solid #8b5cf6;">
-                    <div class="metric-icon" style="background: #f3e8ff; color: #8b5cf6;">
-                        <i data-lucide="calendar-clock" style="width: 26px;"></i>
+                <div class="metric-card" style="border-left: 4px solid var(--accent); cursor: pointer;" onclick="showAdminTab('approvals')">
+                    <div class="metric-icon" style="background: #f3e8ff; color: var(--accent);">
+                        <i data-lucide="check-circle" style="width: 26px;"></i>
                     </div>
                     <div>
-                        <div class="metric-value" id="statPendingLeaves">0</div>
-                        <div class="metric-label">Pending Leaves</div>
+                        <div class="metric-value" id="statPendingApprovals" style="color: var(--accent);">0</div>
+                        <div class="metric-label">Pending Approvals</div>
                     </div>
                 </div>
             </div>
@@ -104,16 +112,19 @@
             <!-- Active GPS Link Alert Bar -->
             <div id="activeGpsLinkAlert" style="display: none; background: #fffbeb; border: 1.5px solid #fde68a; border-radius: var(--radius-lg); padding: 1.15rem 1.5rem; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; box-shadow: var(--shadow-sm);">
                 <div style="display: flex; align-items: center; gap: 1rem;">
-                    <div style="width: 44px; height: 44px; border-radius: 50%; background: #fef3c7; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">
+                    <div style="width: 44px; height: 44px; border-radius: 50%; background: #fef3c7; display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">
                         📍
                     </div>
                     <div>
-                        <strong style="color: #92400e; font-size: 1.05rem;" id="gpsAlertTitle">Active GPS Link</strong>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <strong style="color: #92400e; font-size: 1.05rem;" id="gpsAlertTitle">Active GPS Link</strong>
+                            <span class="badge badge-warning">TIME-BOUND</span>
+                        </div>
                         <div style="font-size: 0.88rem; color: #78350f;" id="gpsAlertTimer">Expires soon</div>
                     </div>
                 </div>
                 <div style="display: flex; gap: 0.6rem; align-items: center;">
-                    <input type="text" id="gpsUrlCopyInput" readonly class="form-control" style="width: 320px; font-size: 0.88rem; padding: 0.5rem 0.8rem; background: #fff;">
+                    <input type="text" id="gpsUrlCopyInput" readonly class="form-control" style="width: 320px; font-size: 0.88rem; padding: 0.5rem 0.8rem; background: #fff; font-family: var(--font-mono);">
                     <button type="button" onclick="copyGpsUrl()" class="btn btn-secondary btn-sm" style="font-weight: 700;">
                         <i data-lucide="copy" style="width: 16px;"></i> Copy Link
                     </button>
@@ -121,75 +132,149 @@
                 </div>
             </div>
 
-            <!-- Visual Analytics Charts Row -->
-            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
+            <!-- Interactive Leaflet Map & Analytics Charts Row -->
+            <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 1.65rem;">
+                
+                <!-- Interactive Leaflet GPS Attendance Map -->
                 <div class="card">
                     <div class="card-header">
                         <div class="card-title">
-                            <i data-lucide="trending-up" style="color: var(--primary);"></i> 7-Day Attendance Trend Analytics
+                            <i data-lucide="map" style="color: var(--primary);"></i> Live GPS Check-Ins Map
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <span id="mapPointCountBadge" class="badge badge-primary">0 GPS Check-ins Today</span>
+                            <button type="button" onclick="loadAttendanceMap()" class="btn btn-secondary btn-sm" title="Refresh Map">
+                                <i data-lucide="refresh-cw" style="width: 14px;"></i>
+                            </button>
                         </div>
                     </div>
-                    <div style="height: 240px; position: relative;">
-                        <canvas id="attendanceTrendChart"></canvas>
-                    </div>
+                    <div id="adminAttendanceMap" style="height: 290px; width: 100%;"></div>
                 </div>
 
+                <!-- 7-Day Attendance Trend Analytics -->
                 <div class="card">
                     <div class="card-header">
                         <div class="card-title">
-                            <i data-lucide="pie-chart" style="color: var(--primary);"></i> Department Distribution
+                            <i data-lucide="trending-up" style="color: var(--primary);"></i> 7-Day Attendance Trend
                         </div>
                     </div>
-                    <div style="height: 240px; position: relative; display: flex; align-items: center; justify-content: center;">
-                        <canvas id="deptChart"></canvas>
+                    <div style="height: 290px; position: relative;">
+                        <canvas id="attendanceTrendChart"></canvas>
                     </div>
                 </div>
             </div>
 
             <!-- Navigation Tabs -->
-            <div style="display: flex; gap: 0.75rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem; flex-wrap: wrap;">
-                <button type="button" id="tabEmpBtn" onclick="showAdminTab('employees')" class="btn btn-primary btn-sm">
+            <div style="display: flex; gap: 0.65rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.6rem; flex-wrap: wrap;">
+                <button type="button" id="tabApprovalsBtn" onclick="showAdminTab('approvals')" class="btn btn-primary btn-sm">
+                    <i data-lucide="check-circle" style="width: 16px;"></i> Approvals Hub <span id="navApprovalsCountBadge" class="badge badge-warning" style="margin-left: 0.35rem; display: none;">0</span>
+                </button>
+                <button type="button" id="tabEmpBtn" onclick="showAdminTab('employees')" class="btn btn-secondary btn-sm">
                     <i data-lucide="users" style="width: 16px;"></i> Employee Directory
                 </button>
                 <button type="button" id="tabAttBtn" onclick="showAdminTab('attendance')" class="btn btn-secondary btn-sm">
-                    <i data-lucide="calendar-check" style="width: 16px;"></i> Daily Attendance
+                    <i data-lucide="calendar-check" style="width: 16px;"></i> Attendance Logs
                 </button>
                 <button type="button" id="tabLeaveBtn" onclick="showAdminTab('leaves')" class="btn btn-secondary btn-sm">
-                    <i data-lucide="calendar" style="width: 16px;"></i> Leave Approvals
+                    <i data-lucide="calendar" style="width: 16px;"></i> Leave Reviews
                 </button>
                 <button type="button" id="tabPayBtn" onclick="showAdminTab('payroll')" class="btn btn-secondary btn-sm">
                     <i data-lucide="banknote" style="width: 16px;"></i> Salary & Payroll
                 </button>
                 <button type="button" id="tabHoliBtn" onclick="showAdminTab('holidays')" class="btn btn-secondary btn-sm">
-                    <i data-lucide="sparkles" style="width: 16px;"></i> Company Holidays
+                    <i data-lucide="sparkles" style="width: 16px;"></i> Holidays
+                </button>
+                <button type="button" id="tabLogsBtn" onclick="showAdminTab('logs')" class="btn btn-secondary btn-sm">
+                    <i data-lucide="shield" style="width: 16px;"></i> Audit Trail
                 </button>
             </div>
 
-            <!-- Tab 1: Employee Directory -->
-            <div id="sectionEmployees" class="card">
+            <!-- Tab 1: Approvals Hub (Registrations & Profile Change Requests) -->
+            <div id="sectionApprovals" class="card">
                 <div class="card-header">
                     <div class="card-title">
-                        <i data-lucide="user-check" style="color: var(--primary);"></i> Employee Directory & Admin Oversight
+                        <i data-lucide="check-square" style="color: var(--primary);"></i> Management Approvals Queue
                     </div>
-                    <div style="display: flex; gap: 0.75rem; align-items: center;">
-                        <input type="text" id="employeeSearchInput" oninput="loadEmployees()" placeholder="Search staff by name, role, dept..." class="form-control" style="width: 260px; font-size: 0.88rem; padding: 0.45rem 0.85rem;">
-                        <a href="register.html" class="btn btn-primary btn-sm">
-                            <i data-lucide="user-plus" style="width: 16px;"></i> Add Employee
-                        </a>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 2rem;">
+                    <!-- Pending Onboarding Registrations -->
+                    <div>
+                        <h3 style="font-size: 1.15rem; font-weight: 800; margin-bottom: 0.85rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <span>Pending Employee Onboarding Approvals</span>
+                            <span id="countPendingReg" class="badge badge-warning">0 Pending</span>
+                        </h3>
+                        <div class="table-responsive">
+                            <table class="custom-table">
+                                <thead>
+                                    <tr>
+                                        <th>Photo</th>
+                                        <th>Employee Name</th>
+                                        <th>Email</th>
+                                        <th>Dept / Profile</th>
+                                        <th>DOB & Joining</th>
+                                        <th>Base Salary</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pendingRegistrationsTableBody">
+                                    <tr><td colspan="7" style="text-align: center; color: var(--text-muted);">No pending onboarding applications.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Pending Profile Change Requests -->
+                    <div>
+                        <h3 style="font-size: 1.15rem; font-weight: 800; margin-bottom: 0.85rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <span>Pending Profile Information Updates</span>
+                            <span id="countPendingProfile" class="badge badge-warning">0 Requests</span>
+                        </h3>
+                        <div class="table-responsive">
+                            <table class="custom-table">
+                                <thead>
+                                    <tr>
+                                        <th>Employee</th>
+                                        <th>Requested Changes (Old vs New)</th>
+                                        <th>Reason</th>
+                                        <th>Requested At</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pendingProfileTableBody">
+                                    <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No pending profile update requests.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Employee Directory -->
+            <div id="sectionEmployees" class="card" style="display: none;">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i data-lucide="users" style="color: var(--primary);"></i> Employee Directory & Personnel Management
+                    </div>
+                    <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+                        <input type="text" id="employeeSearchInput" oninput="loadEmployees()" placeholder="Search by name, role, dept..." class="form-control" style="width: 250px; font-size: 0.88rem; padding: 0.45rem 0.85rem;">
+                        <button type="button" onclick="openModal('adminOnboardModal')" class="btn btn-primary btn-sm">
+                            <i data-lucide="user-plus" style="width: 16px;"></i> + Add Employee
+                        </button>
                     </div>
                 </div>
                 <div class="table-responsive">
                     <table class="custom-table">
                         <thead>
                             <tr>
+                                <th>Photo</th>
                                 <th>Employee</th>
-                                <th>Department</th>
-                                <th>Job Profile</th>
-                                <th>Joining Date</th>
+                                <th>Department & Role</th>
+                                <th>DOJ / Contact</th>
                                 <th>Base Salary</th>
-                                <th>Leave Balances</th>
+                                <th>Leave Quotas (CL / SL)</th>
                                 <th>Status</th>
-                                <th>Action</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="employeesTableBody">
@@ -199,15 +284,18 @@
                 </div>
             </div>
 
-            <!-- Tab 2: Real-time Attendance Logs -->
+            <!-- Tab 3: Daily Attendance Logs -->
             <div id="sectionAttendance" class="card" style="display: none;">
                 <div class="card-header">
                     <div class="card-title">
-                        <i data-lucide="calendar-check" style="color: var(--primary);"></i> Real-Time Attendance Overview
+                        <i data-lucide="calendar-check" style="color: var(--primary);"></i> Verified Attendance Records
                     </div>
-                    <div style="display: flex; gap: 0.5rem; align-items: center;">
-                        <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Filter Date:</label>
-                        <input type="date" id="attendanceFilterDate" onchange="loadAttendanceLogs()" class="form-control" style="font-size: 0.88rem; padding: 0.45rem; width: 170px;">
+                    <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+                        <label style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted);">Date Filter:</label>
+                        <input type="date" id="attendanceFilterDate" onchange="loadAttendanceLogs()" class="form-control" style="font-size: 0.88rem; padding: 0.45rem; width: 160px;">
+                        <button type="button" onclick="exportAttendanceCsv()" class="btn btn-secondary btn-sm">
+                            <i data-lucide="download" style="width: 16px;"></i> Export CSV
+                        </button>
                     </div>
                 </div>
                 <div class="table-responsive">
@@ -220,7 +308,7 @@
                                 <th>Check-In</th>
                                 <th>Check-Out</th>
                                 <th>Status</th>
-                                <th>Notes / GPS Location</th>
+                                <th>Notes / Coordinates / IP</th>
                             </tr>
                         </thead>
                         <tbody id="adminAttendanceTableBody">
@@ -230,14 +318,14 @@
                 </div>
             </div>
 
-            <!-- Tab 3: Leave Approvals Board -->
+            <!-- Tab 4: Leave Reviews Board -->
             <div id="sectionLeaves" class="card" style="display: none;">
                 <div class="card-header">
                     <div class="card-title">
                         <i data-lucide="calendar" style="color: var(--primary);"></i> Leave Applications & Review Board
                     </div>
                     <select id="leaveFilterStatus" onchange="loadAdminLeaves()" class="form-control" style="width: 160px; font-size: 0.88rem; padding: 0.45rem;">
-                        <option value="all">All Statuses</option>
+                        <option value="all">All Applications</option>
                         <option value="pending" selected>Pending Only</option>
                         <option value="approved">Approved</option>
                         <option value="rejected">Rejected</option>
@@ -263,17 +351,20 @@
                 </div>
             </div>
 
-            <!-- Tab 4: Salary & Payroll Engine -->
+            <!-- Tab 5: Salary & Payroll Engine -->
             <div id="sectionPayroll" class="card" style="display: none;">
                 <div class="card-header">
                     <div class="card-title">
-                        <i data-lucide="banknote" style="color: var(--primary);"></i> Automated Salary Calculation & Monthly Payslips
+                        <i data-lucide="banknote" style="color: var(--primary);"></i> Automated Salary Calculation & Payslips
                     </div>
-                    <div style="display: flex; gap: 0.5rem; align-items: center;">
-                        <select id="payrollMonthSelect" class="form-control" style="font-size: 0.88rem; padding: 0.45rem;"></select>
-                        <select id="payrollYearSelect" class="form-control" style="font-size: 0.88rem; padding: 0.45rem;"></select>
+                    <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
+                        <select id="payrollMonthSelect" class="form-control" style="font-size: 0.88rem; padding: 0.45rem; width: 130px;"></select>
+                        <select id="payrollYearSelect" class="form-control" style="font-size: 0.88rem; padding: 0.45rem; width: 100px;"></select>
                         <button type="button" onclick="loadAdminPayroll()" class="btn btn-secondary btn-sm">Filter</button>
                         <button type="button" onclick="openModal('runPayrollModal')" class="btn btn-primary btn-sm">Run Auto-Calc</button>
+                        <button type="button" onclick="exportPayrollCsv()" class="btn btn-secondary btn-sm">
+                            <i data-lucide="download" style="width: 16px;"></i> Export CSV
+                        </button>
                     </div>
                 </div>
                 <div class="table-responsive">
@@ -284,7 +375,7 @@
                                 <th>Base Salary</th>
                                 <th>Working Days</th>
                                 <th>Present / Paid</th>
-                                <th>Unpaid Deductions</th>
+                                <th>Unpaid Absent Deductions</th>
                                 <th>Net Payable</th>
                                 <th>Status</th>
                                 <th>Action</th>
@@ -297,11 +388,11 @@
                 </div>
             </div>
 
-            <!-- Tab 5: Company Holidays -->
+            <!-- Tab 6: Company Holidays -->
             <div id="sectionHolidays" class="card" style="display: none;">
                 <div class="card-header">
                     <div class="card-title">
-                        <i data-lucide="sparkles" style="color: var(--primary);"></i> Configured Company & National Holidays
+                        <i data-lucide="sparkles" style="color: var(--primary);"></i> Company & National Holiday Calendar
                     </div>
                     <button type="button" onclick="openModal('addHolidayModal')" class="btn btn-primary btn-sm">
                         <i data-lucide="plus-circle" style="width: 16px;"></i> Add Holiday
@@ -315,10 +406,40 @@
                                 <th>Date</th>
                                 <th>Type</th>
                                 <th>Description</th>
+                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody id="adminHolidaysTableBody">
-                            <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Loading holidays...</td></tr>
+                            <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Loading holidays...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab 7: Audit Trail / System Logs -->
+            <div id="sectionLogs" class="card" style="display: none;">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i data-lucide="shield" style="color: var(--primary);"></i> System Oversight & Security Audit Trail
+                    </div>
+                    <button type="button" onclick="loadAdminLogs()" class="btn btn-secondary btn-sm">
+                        <i data-lucide="refresh-cw" style="width: 14px;"></i> Refresh Logs
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Action</th>
+                                <th>Actor / Admin</th>
+                                <th>Target Personnel</th>
+                                <th>Audit Details</th>
+                                <th>IP Address</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminLogsTableBody">
+                            <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Loading audit trail...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -329,20 +450,20 @@
 
     <!-- Modals -->
 
-    <!-- 1. QR Standee Modal -->
+    <!-- 1. QR Standee Modal with Dynamic Rotating Ring -->
     <div class="modal-overlay" id="qrModal">
         <div class="modal-content" style="max-width: 480px; text-align: center;">
             <div class="modal-header">
-                <h3 style="font-size: 1.2rem; font-weight: 800;">TGC Office Entrance QR Standee</h3>
+                <h3 style="font-size: 1.25rem; font-weight: 800;">Office Entrance QR Standee</h3>
                 <button class="close-btn" onclick="closeModal('qrModal')">&times;</button>
             </div>
             <div class="modal-body">
                 <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 1.5rem;">
-                    Place this QR Code at the office entrance reception for employee badge scanning.
+                    Place this high-resolution QR standee at the reception entrance for staff badge scanning.
                 </p>
                 <div class="qr-preview-box" style="margin-bottom: 1.5rem;">
-                    <div id="qrcodeDisplay" style="padding: 12px; background: #fff; border-radius: var(--radius-sm);"></div>
-                    <div id="qrTokenLabel" style="margin-top: 0.85rem; font-weight: 800; font-family: var(--font-mono); font-size: 1.05rem; color: var(--primary);"></div>
+                    <div id="qrcodeDisplay" style="padding: 14px; background: #fff; border-radius: var(--radius-sm); box-shadow: var(--shadow-sm);"></div>
+                    <div id="qrTokenLabel" style="margin-top: 1rem; font-weight: 800; font-family: var(--font-mono); font-size: 1.15rem; color: var(--primary); letter-spacing: 1px;"></div>
                 </div>
                 <div style="display: flex; gap: 0.75rem; justify-content: center;">
                     <button type="button" onclick="generateNewQr()" class="btn btn-secondary btn-sm">
@@ -360,49 +481,258 @@
     <div class="modal-overlay" id="generateGpsModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 style="font-size: 1.2rem; font-weight: 800;">Generate Time-Bound GPS Attendance Link</h3>
+                <h3 style="font-size: 1.25rem; font-weight: 800;">Generate Time-Bound GPS Punch Link</h3>
                 <button class="close-btn" onclick="closeModal('generateGpsModal')">&times;</button>
             </div>
             <form onsubmit="handleGenerateGpsLink(event)">
                 <div class="modal-body">
                     <div class="form-group">
-                        <label class="form-label">Link Title / Purpose</label>
-                        <input type="text" id="gpsTitleInput" class="form-control" value="Morning Attendance Verification" required>
+                        <label class="form-label">Link Purpose / Shift Name</label>
+                        <input type="text" id="gpsTitleInput" class="form-control" value="Morning Standup Check-In" required>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Validity Duration (Minutes) *</label>
                         <select id="gpsValidityInput" class="form-control" required>
-                            <option value="5">5 Minutes</option>
-                            <option value="10" selected>10 Minutes</option>
+                            <option value="5">5 Minutes (Strict)</option>
+                            <option value="10" selected>10 Minutes (Recommended)</option>
                             <option value="15">15 Minutes</option>
                             <option value="30">30 Minutes</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Geofence Radius (Meters)</label>
+                        <label class="form-label">Geofence Radius Threshold (Meters)</label>
                         <input type="number" id="gpsRadiusInput" class="form-control" value="500">
-                        <small style="color: var(--text-muted); font-size: 0.8rem;">Allowed distance threshold from office location.</small>
+                        <small style="color: var(--text-muted); font-size: 0.8rem;">Maximum distance allowed from office center. Rejects if outside.</small>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('generateGpsModal')">Cancel</button>
-                    <button type="submit" id="btnGenGps" class="btn btn-primary">Generate & Copy Link</button>
+                    <button type="submit" id="btnGenGps" class="btn btn-primary">Generate Link</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- 3. Automated Payroll Modal -->
+    <!-- 3. Direct Admin Onboarding Modal -->
+    <div class="modal-overlay" id="adminOnboardModal">
+        <div class="modal-content" style="max-width: 620px;">
+            <div class="modal-header">
+                <h3 style="font-size: 1.25rem; font-weight: 800;">Direct Employee Onboarding (Admin)</h3>
+                <button class="close-btn" onclick="closeModal('adminOnboardModal')">&times;</button>
+            </div>
+            <form id="adminOnboardForm" onsubmit="handleAdminOnboardSubmit(event)">
+                <div class="modal-body">
+                    <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+                        Directly registers staff. The system auto-generates credentials and requires the employee to set their permanent password & webcam snapshot upon first login.
+                    </p>
+                    <div class="form-group">
+                        <label class="form-label">Full Name *</label>
+                        <input type="text" id="adminOnboardName" class="form-control" required placeholder="e.g. Priya Sharma">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Official Work Email *</label>
+                        <input type="email" id="adminOnboardEmail" class="form-control" required placeholder="priya@tgcconnect.com">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Contact Phone</label>
+                            <input type="tel" id="adminOnboardPhone" class="form-control" placeholder="+91 98765 00000">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Date of Birth</label>
+                            <input type="date" id="adminOnboardDob" class="form-control" value="1999-01-01">
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Department *</label>
+                            <select id="adminOnboardDept" class="form-control">
+                                <option value="Engineering">Engineering</option>
+                                <option value="Design & UI/UX">Design & UI/UX</option>
+                                <option value="Operations">Operations</option>
+                                <option value="Marketing">Marketing</option>
+                                <option value="Human Resources">Human Resources</option>
+                                <option value="Finance & Accounts">Finance & Accounts</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Job Profile *</label>
+                            <input type="text" id="adminOnboardJob" class="form-control" value="Operations Specialist" required>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Date of Joining</label>
+                            <input type="date" id="adminOnboardDoj" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Monthly Base Salary (₹) *</label>
+                            <input type="number" id="adminOnboardSalary" class="form-control" value="40000" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Residential Address</label>
+                        <input type="text" id="adminOnboardAddress" class="form-control" placeholder="City, State, Country">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 1rem; align-items: center; background: #f8fafc; padding: 0.85rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label" style="margin-bottom: 0.2rem;">Initial Password (Optional)</label>
+                            <input type="text" id="adminOnboardCustomPass" class="form-control" placeholder="Leave empty for auto-generated">
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1.2rem;">
+                            <input type="checkbox" id="adminOnboardFirstLoginCheck" checked style="width: 17px; height: 17px; accent-color: var(--primary);">
+                            <label for="adminOnboardFirstLoginCheck" style="font-size: 0.82rem; font-weight: 700; color: var(--text-main); margin-bottom: 0; cursor: pointer;">Require 1st-login setup</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('adminOnboardModal')">Cancel</button>
+                    <button type="submit" id="btnAdminOnboardSubmit" class="btn btn-primary">Create Employee Profile</button>
+                </div>
+            </form>
+
+            <!-- Generated Credentials Card Result -->
+            <div id="adminOnboardResultBox" style="display: none; padding: 2rem; text-align: center;">
+                <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--success-bg); color: var(--success); display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.75rem;">
+                    ✓
+                </div>
+                <h3 style="font-size: 1.4rem; font-weight: 800; margin-bottom: 0.5rem;">Employee Record Created!</h3>
+                <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 1.5rem;">
+                    Share these temporary login credentials with the employee. They will be prompted to set their permanent password and webcam snapshot upon first login.
+                </p>
+                <div style="background: var(--bg-main); border: 1.5px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem; text-align: left; margin-bottom: 1.5rem; font-family: var(--font-mono); font-size: 0.92rem;">
+                    <div><strong>Email:</strong> <span id="resCredEmail"></span></div>
+                    <div style="margin-top: 0.4rem;"><strong>Temporary Password:</strong> <span id="resCredPass" style="color: var(--primary); font-weight: 800;"></span></div>
+                    <div style="margin-top: 0.4rem; color: var(--text-muted); font-size: 0.82rem;">Sign-in Portal: login.html</div>
+                </div>
+                <button type="button" onclick="closeModal('adminOnboardModal'); loadEmployees();" class="btn btn-primary" style="width: 100%;">
+                    Done & Return to Directory
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Edit Employee Modal -->
+    <div class="modal-overlay" id="editEmployeeModal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3 style="font-size: 1.25rem; font-weight: 800;">Edit Employee Profile & Permissions</h3>
+                <button class="close-btn" onclick="closeModal('editEmployeeModal')">&times;</button>
+            </div>
+            <form onsubmit="handleUpdateEmployee(event)">
+                <input type="hidden" id="editEmpId">
+                <div class="modal-body">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Full Name *</label>
+                            <input type="text" id="editEmpName" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Work Email *</label>
+                            <input type="email" id="editEmpEmail" class="form-control" required>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Contact Phone</label>
+                            <input type="tel" id="editEmpPhone" class="form-control" placeholder="+91 98765 43210">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Date of Birth</label>
+                            <input type="date" id="editEmpDob" class="form-control">
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Department *</label>
+                            <input type="text" id="editEmpDepartment" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Job Profile *</label>
+                            <input type="text" id="editEmpJob" class="form-control" required>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Date of Joining</label>
+                            <input type="date" id="editEmpDoj" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Monthly Base Salary (₹) *</label>
+                            <input type="number" id="editEmpSalary" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Residential Address</label>
+                        <input type="text" id="editEmpAddress" class="form-control">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Account Status</label>
+                            <select id="editEmpStatus" class="form-control">
+                                <option value="active">Active</option>
+                                <option value="pending_approval">Pending Approval</option>
+                                <option value="inactive">Inactive / Suspended</option>
+                                <option value="rejected">Rejected</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Reset Password (Optional)</label>
+                            <input type="password" id="editEmpNewPassword" class="form-control" placeholder="Enter to change password">
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; background: #fffbeb; padding: 0.75rem 1rem; border-radius: var(--radius-md); border: 1px solid #fde68a;">
+                        <input type="checkbox" id="editEmpFirstLogin" style="width: 17px; height: 17px; accent-color: var(--primary);">
+                        <label for="editEmpFirstLogin" style="font-size: 0.85rem; font-weight: 700; color: #92400e; margin-bottom: 0; cursor: pointer;">Force Password Reset & Photo Verification on Next Login</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('editEmployeeModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Profile Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 5. Edit Leave Quotas Modal -->
+    <div class="modal-overlay" id="editQuotaModal">
+        <div class="modal-content" style="max-width: 480px;">
+            <div class="modal-header">
+                <h3 style="font-size: 1.25rem; font-weight: 800;">Configure Leave Quotas</h3>
+                <button class="close-btn" onclick="closeModal('editQuotaModal')">&times;</button>
+            </div>
+            <form onsubmit="handleUpdateQuota(event)">
+                <input type="hidden" id="quotaUserId">
+                <div class="modal-body">
+                    <div style="font-weight: 700; margin-bottom: 1rem;" id="quotaEmpLabel"></div>
+                    <div class="form-group">
+                        <label class="form-label">Casual Leave (CL) Allotted Days *</label>
+                        <input type="number" step="0.5" id="quotaClInput" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Sick Leave (SL) Allotted Days *</label>
+                        <input type="number" step="0.5" id="quotaSlInput" class="form-control" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('editQuotaModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Quota</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 6. Automated Payroll Engine Modal -->
     <div class="modal-overlay" id="runPayrollModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 style="font-size: 1.2rem; font-weight: 800;">Automated Salary Calculation Engine</h3>
+                <h3 style="font-size: 1.25rem; font-weight: 800;">Calculate Monthly Payroll</h3>
                 <button class="close-btn" onclick="closeModal('runPayrollModal')">&times;</button>
             </div>
             <form onsubmit="handleRunPayroll(event)">
                 <div class="modal-body">
-                    <p style="font-size: 0.92rem; color: var(--text-muted); margin-bottom: 1.25rem; line-height: 1.5;">
-                        Calculates standard working days (excluding Sundays & holidays), sums verified punch-ins and approved paid leaves, and calculates daily-rate absent deductions.
+                    <p style="font-size: 0.92rem; color: var(--text-muted); margin-bottom: 1.25rem; line-height: 1.55;">
+                        Computes exact working days (excluding Sundays & company holidays), credits verified attendance and approved paid leaves, and calculates daily-rate absent deductions.
                     </p>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                         <div class="form-group">
@@ -423,72 +753,36 @@
         </div>
     </div>
 
-    <!-- 4. Edit Employee Modal -->
-    <div class="modal-overlay" id="editEmployeeModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 style="font-size: 1.2rem; font-weight: 800;">Edit Employee Profile</h3>
-                <button class="close-btn" onclick="closeModal('editEmployeeModal')">&times;</button>
-            </div>
-            <form onsubmit="handleUpdateEmployee(event)">
-                <input type="hidden" id="editEmpId">
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label class="form-label">Full Name *</label>
-                        <input type="text" id="editEmpName" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Work Email *</label>
-                        <input type="email" id="editEmpEmail" class="form-control" required>
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        <div class="form-group">
-                            <label class="form-label">Department *</label>
-                            <input type="text" id="editEmpDepartment" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Job Profile *</label>
-                            <input type="text" id="editEmpJob" class="form-control" required>
-                        </div>
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        <div class="form-group">
-                            <label class="form-label">Base Salary (₹) *</label>
-                            <input type="number" id="editEmpSalary" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Status *</label>
-                            <select id="editEmpStatus" class="form-control">
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('editEmployeeModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- 5. Add Holiday Modal -->
+    <!-- 7. Add Holiday Modal -->
     <div class="modal-overlay" id="addHolidayModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 style="font-size: 1.2rem; font-weight: 800;">Add Company Holiday</h3>
+                <h3 style="font-size: 1.25rem; font-weight: 800;">Add Company Holiday</h3>
                 <button class="close-btn" onclick="closeModal('addHolidayModal')">&times;</button>
             </div>
             <form onsubmit="handleAddHoliday(event)">
                 <div class="modal-body">
                     <div class="form-group">
                         <label class="form-label">Holiday Title *</label>
-                        <input type="text" id="holidayTitleInput" class="form-control" placeholder="e.g. Diwali Celebration" required>
+                        <input type="text" id="holidayTitleInput" class="form-control" placeholder="e.g. Gandhi Jayanti" required>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Date *</label>
+                            <input type="date" id="holidayDateInput" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Category</label>
+                            <select id="holidayTypeInput" class="form-control">
+                                <option value="national">National Holiday</option>
+                                <option value="festival">Festival</option>
+                                <option value="company">Company Foundation / Event</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Holiday Date *</label>
-                        <input type="date" id="holidayDateInput" class="form-control" required>
+                        <label class="form-label">Description</label>
+                        <input type="text" id="holidayDescInput" class="form-control" placeholder="Brief note...">
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -499,19 +793,19 @@
         </div>
     </div>
 
-    <!-- 6. Payslip View / Print Modal -->
-    <div class="modal-overlay" id="adminSlipModal">
-        <div class="modal-content" style="max-width: 680px;">
+    <!-- 8. View Payslip Modal -->
+    <div class="modal-overlay" id="viewSlipModal">
+        <div class="modal-content" style="max-width: 760px;">
             <div class="modal-header">
-                <h3 style="font-size: 1.2rem; font-weight: 800;">Employee Payslip Breakdown</h3>
-                <button class="close-btn" onclick="closeModal('adminSlipModal')">&times;</button>
+                <h3 style="font-size: 1.25rem; font-weight: 800;">Official Payslip Statement</h3>
+                <button class="close-btn" onclick="closeModal('viewSlipModal')">&times;</button>
             </div>
-            <div class="modal-body" id="adminSlipBody"></div>
+            <div class="modal-body" id="slipModalBody"></div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="window.print()">
-                    <i data-lucide="printer" style="width: 16px;"></i> Print Payslip
+                    <i data-lucide="printer" style="width: 16px;"></i> Print / Save PDF
                 </button>
-                <button type="button" class="btn btn-primary" onclick="closeModal('adminSlipModal')">Close</button>
+                <button type="button" class="btn btn-primary" onclick="closeModal('viewSlipModal')">Close</button>
             </div>
         </div>
     </div>
@@ -520,372 +814,548 @@
 
     <script src="js/app.js"></script>
     <script>
-        let currentActiveQrToken = '';
-        let trendChartInstance = null;
-        let deptChartInstance = null;
+        let attendanceChartInstance = null;
+        let leafletMap = null;
+        let mapMarkersLayer = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
-            const authRes = await apiRequest('auth.php?action=me');
-            if (!authRes.ok || !authRes.data.authenticated || authRes.data.user.role !== 'admin') {
-                window.location.href = 'login.html';
-                return;
-            }
+            const todayStr = new Date().toISOString().split('T')[0];
+            document.getElementById('attendanceFilterDate').value = todayStr;
+            document.getElementById('adminOnboardDoj').value = todayStr;
 
-            checkAuthNav();
-            initMonthSelects();
-
-            document.getElementById('attendanceFilterDate').value = new Date().toISOString().split('T')[0];
-            document.getElementById('holidayDateInput').value = new Date().toISOString().split('T')[0];
-
-            loadDashboardStats();
+            initMonthYearSelectors();
+            await checkAuthNav();
+            await loadStats();
+            initLeafletMap();
+            loadAttendanceMap();
+            loadPendingApprovals();
             loadEmployees();
             loadAttendanceLogs();
             loadAdminLeaves();
             loadAdminPayroll();
             loadAdminHolidays();
+            loadAdminLogs();
         });
 
-        function initMonthSelects() {
-            const now = new Date();
-            const currMonth = now.getMonth() + 1;
-            const currYear = now.getFullYear();
+        function initMonthYearSelectors() {
+            const mSelect = document.getElementById('payrollMonthSelect');
+            const runMSelect = document.getElementById('runPayrollMonth');
+            const ySelect = document.getElementById('payrollYearSelect');
+            const runYInput = document.getElementById('runPayrollYear');
 
-            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-            
-            const pMonth = document.getElementById('payrollMonthSelect');
-            const runMonth = document.getElementById('runPayrollMonth');
-            pMonth.innerHTML = monthNames.map((m, i) => `<option value="${i+1}" ${i+1 === currMonth ? 'selected' : ''}>Month ${i+1} (${m})</option>`).join('');
-            runMonth.innerHTML = pMonth.innerHTML;
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            const curMonth = new Date().getMonth() + 1;
+            const curYear = new Date().getFullYear();
 
-            const pYear = document.getElementById('payrollYearSelect');
-            pYear.innerHTML = `<option value="${currYear}" selected>${currYear}</option><option value="${currYear-1}">${currYear-1}</option>`;
-            document.getElementById('runPayrollYear').value = currYear;
+            mSelect.innerHTML = '';
+            runMSelect.innerHTML = '';
+
+            monthNames.forEach((name, i) => {
+                const opt1 = new Option(name, i + 1, false, (i + 1) === curMonth);
+                const opt2 = new Option(name, i + 1, false, (i + 1) === curMonth);
+                mSelect.add(opt1);
+                runMSelect.add(opt2);
+            });
+
+            ySelect.innerHTML = '';
+            [curYear - 1, curYear, curYear + 1].forEach(yr => {
+                const opt = new Option(yr, yr, false, yr === curYear);
+                ySelect.add(opt);
+            });
+            runYInput.value = curYear;
         }
 
         function showAdminTab(tab) {
-            const tabs = ['employees', 'attendance', 'leaves', 'payroll', 'holidays'];
+            playSound('click');
+            const tabs = ['approvals', 'employees', 'attendance', 'leaves', 'payroll', 'holidays', 'logs'];
             tabs.forEach(t => {
                 const sec = document.getElementById(`section${t.charAt(0).toUpperCase() + t.slice(1)}`);
+                const btn = document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1, 3)}Btn`) || document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1)}Btn`);
                 if (sec) sec.style.display = (t === tab) ? 'block' : 'none';
+                if (btn) btn.className = (t === tab) ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
             });
-            document.getElementById('tabEmpBtn').className = (tab === 'employees') ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
-            document.getElementById('tabAttBtn').className = (tab === 'attendance') ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
-            document.getElementById('tabLeaveBtn').className = (tab === 'leaves') ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
-            document.getElementById('tabPayBtn').className = (tab === 'payroll') ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
-            document.getElementById('tabHoliBtn').className = (tab === 'holidays') ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
-            lucide.createIcons();
         }
 
-        async function loadDashboardStats() {
+        async function loadStats() {
             const res = await apiRequest('admin.php?action=stats');
             if (res.ok && res.data.success) {
                 const s = res.data.stats;
-                document.getElementById('statTotalEmployees').textContent = s.total_employees;
-                document.getElementById('statPresentToday').textContent = s.present_today;
-                document.getElementById('statLateToday').textContent = s.late_today;
-                document.getElementById('statAbsentToday').textContent = s.absent_today;
-                document.getElementById('statPendingLeaves').textContent = s.pending_leaves;
+                animateValue(document.getElementById('statTotalEmployees'), 0, s.total_employees);
+                animateValue(document.getElementById('statPresentToday'), 0, s.present_today);
+                animateValue(document.getElementById('statLateToday'), 0, s.late_today);
+                animateValue(document.getElementById('statAbsentToday'), 0, s.absent_today);
+                animateValue(document.getElementById('statPendingApprovals'), 0, s.total_pending_approvals);
 
-                if (res.data.active_qr) {
-                    currentActiveQrToken = res.data.active_qr.token;
-                }
-
-                const bar = document.getElementById('activeGpsLinkAlert');
-                if (res.data.active_gps_link && res.data.active_gps_link.seconds_remaining > 0) {
-                    bar.style.display = 'flex';
-                    document.getElementById('gpsAlertTitle').textContent = `Active GPS Link: ${res.data.active_gps_link.title}`;
-                    document.getElementById('gpsAlertTimer').textContent = `Expires in ${Math.ceil(res.data.active_gps_link.seconds_remaining / 60)} minutes`;
-                    
-                    const fullUrl = window.location.origin + window.location.pathname.replace('admin.html', '') + res.data.active_gps_link.url;
-                    document.getElementById('gpsUrlCopyInput').value = fullUrl;
-                    document.getElementById('openGpsBtn').href = res.data.active_gps_link.url;
+                const navBadge = document.getElementById('navApprovalsCountBadge');
+                if (s.total_pending_approvals > 0) {
+                    navBadge.textContent = s.total_pending_approvals;
+                    navBadge.style.display = 'inline-flex';
                 } else {
-                    bar.style.display = 'none';
+                    navBadge.style.display = 'none';
                 }
 
-                if (res.data.charts) {
-                    renderCharts(res.data.charts);
+                // Active GPS Link
+                const activeGps = res.data.active_gps_link;
+                const gpsAlert = document.getElementById('activeGpsLinkAlert');
+                if (activeGps) {
+                    gpsAlert.style.display = 'flex';
+                    document.getElementById('gpsAlertTitle').textContent = activeGps.title;
+                    document.getElementById('gpsAlertTimer').textContent = `Expires at ${activeGps.expires_at} (${Math.round(activeGps.seconds_remaining / 60)} min remaining)`;
+                    document.getElementById('gpsUrlCopyInput').value = window.location.origin + window.location.pathname.replace('admin.html', '') + activeGps.url;
+                    document.getElementById('openGpsBtn').href = activeGps.url;
+                } else {
+                    gpsAlert.style.display = 'none';
                 }
+
+                // 7-day trend chart
+                initTrendChart(res.data.charts);
             }
         }
 
-        function renderCharts(c) {
-            // Trend Line Chart
-            const ctxTrend = document.getElementById('attendanceTrendChart').getContext('2d');
-            if (trendChartInstance) trendChartInstance.destroy();
+        function initTrendChart(chartData) {
+            const ctx = document.getElementById('attendanceTrendChart');
+            if (!ctx) return;
 
-            trendChartInstance = new Chart(ctxTrend, {
-                type: 'line',
+            if (attendanceChartInstance) {
+                attendanceChartInstance.destroy();
+            }
+
+            attendanceChartInstance = new Chart(ctx, {
+                type: 'bar',
                 data: {
-                    labels: c.labels,
+                    labels: chartData.labels,
                     datasets: [
-                        {
-                            label: 'Present On Time',
-                            data: c.present,
-                            borderColor: '#10b981',
-                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                            fill: true,
-                            tension: 0.35,
-                            borderWidth: 2.5,
-                        },
-                        {
-                            label: 'Late',
-                            data: c.late,
-                            borderColor: '#f59e0b',
-                            backgroundColor: 'rgba(245, 158, 11, 0.08)',
-                            fill: true,
-                            tension: 0.35,
-                            borderWidth: 2.5,
-                        },
-                        {
-                            label: 'Absent',
-                            data: c.absent,
-                            borderColor: '#ef4444',
-                            backgroundColor: 'transparent',
-                            borderDash: [5, 5],
-                            tension: 0.35,
-                            borderWidth: 2,
-                        }
+                        { label: 'Present', data: chartData.present, backgroundColor: '#10b981', borderRadius: 4 },
+                        { label: 'Late', data: chartData.late, backgroundColor: '#f59e0b', borderRadius: 4 },
+                        { label: 'Absent', data: chartData.absent, backgroundColor: '#ef4444', borderRadius: 4 }
                     ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'top', labels: { boxWidth: 12, font: { family: 'Plus Jakarta Sans', weight: '600' } } }
-                    },
                     scales: {
-                        y: { beginAtZero: true, ticks: { stepSize: 1 } }
-                    }
-                }
-            });
-
-            // Department Donut Chart
-            const ctxDept = document.getElementById('deptChart').getContext('2d');
-            if (deptChartInstance) deptChartInstance.destroy();
-
-            const deptLabels = c.departments && c.departments.length ? c.departments.map(d => d.department || 'General') : ['No Staff Yet'];
-            const deptData = c.departments && c.departments.length ? c.departments.map(d => d.c) : [1];
-            const deptColors = c.departments && c.departments.length ? ['#4f46e5', '#0ea5e9', '#8b5cf6', '#10b981', '#f59e0b', '#ec4899'] : ['#e2e8f0'];
-
-            deptChartInstance = new Chart(ctxDept, {
-                type: 'doughnut',
-                data: {
-                    labels: deptLabels,
-                    datasets: [{
-                        data: deptData,
-                        backgroundColor: deptColors,
-                        borderWidth: 2,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
+                        x: { stacked: true, grid: { display: false } },
+                        y: { stacked: true, beginAtZero: true, grid: { color: '#f1f5f9' } }
+                    },
                     plugins: {
-                        legend: { position: 'bottom', labels: { boxWidth: 10, font: { family: 'Plus Jakarta Sans', size: 11 } } }
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { family: 'Plus Jakarta Sans' } } }
                     }
                 }
             });
         }
 
-        function copyGpsUrl() {
-            const input = document.getElementById('gpsUrlCopyInput');
-            input.select();
-            navigator.clipboard.writeText(input.value);
-            showToast('GPS Link copied to clipboard!', 'success');
+        // Interactive Leaflet GPS Attendance Map
+        function initLeafletMap() {
+            const container = document.getElementById('adminAttendanceMap');
+            if (!container || leafletMap) return;
+
+            // Default centered on New Delhi / global hub
+            leafletMap = L.map('adminAttendanceMap').setView([28.6139, 77.2090], 11);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors',
+                maxZoom: 19,
+            }).addTo(leafletMap);
+
+            mapMarkersLayer = L.layerGroup().addTo(leafletMap);
         }
 
-        async function openQrModal() {
-            openModal('qrModal');
-            if (!currentActiveQrToken) {
-                const res = await apiRequest('attendance.php?action=active_qr');
-                if (res.ok) currentActiveQrToken = res.data.qr.token;
-            }
-            renderQrCode(currentActiveQrToken);
-        }
-
-        function renderQrCode(token) {
-            const container = document.getElementById('qrcodeDisplay');
-            container.innerHTML = '';
-            new QRCode(container, {
-                text: token,
-                width: 200,
-                height: 200,
-                colorDark : "#0f172a",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.H
-            });
-            document.getElementById('qrTokenLabel').textContent = token;
-        }
-
-        async function generateNewQr() {
-            const res = await apiRequest('attendance.php?action=generate_qr', 'POST');
+        async function loadAttendanceMap() {
+            if (!leafletMap) initLeafletMap();
+            const date = document.getElementById('attendanceFilterDate').value || '';
+            const res = await apiRequest(`admin.php?action=attendance_map&date=${date}`);
+            
             if (res.ok && res.data.success) {
-                currentActiveQrToken = res.data.qr.token;
-                renderQrCode(currentActiveQrToken);
-                showToast('QR Code rotated successfully!', 'success');
+                mapMarkersLayer.clearLayers();
+                const points = res.data.points;
+                document.getElementById('mapPointCountBadge').textContent = `${points.length} GPS Check-ins Today`;
+
+                if (points.length > 0) {
+                    const latLngs = [];
+                    points.forEach(p => {
+                        const lat = parseFloat(p.latitude);
+                        const lng = parseFloat(p.longitude);
+                        latLngs.push([lat, lng]);
+
+                        const customIcon = L.divIcon({
+                            className: 'map-custom-marker',
+                            html: `<div class="map-radar-pin"></div>`,
+                            iconSize: [24, 24],
+                            iconAnchor: [12, 12]
+                        });
+
+                        const popupHtml = `
+                            <div style="font-family: 'Plus Jakarta Sans', sans-serif; min-width: 180px;">
+                                <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.4rem;">
+                                    <div style="width: 28px; height: 28px; border-radius: 50%; background: #e0e7ff; overflow: hidden; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.8rem;">
+                                        ${p.photo_url ? `<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;">` : p.name.charAt(0)}
+                                    </div>
+                                    <div>
+                                        <strong>${p.name}</strong>
+                                        <div style="font-size: 0.72rem; color: #64748b;">${p.department || 'Operations'}</div>
+                                    </div>
+                                </div>
+                                <div style="font-size: 0.8rem; color: #334155; margin-bottom: 0.3rem;">
+                                    <strong>Check-in:</strong> ${p.check_in_time ? p.check_in_time.substring(0, 5) : '--'} (${p.status.toUpperCase()})
+                                </div>
+                                <div style="font-size: 0.75rem; color: #64748b; font-family: monospace;">
+                                    ${lat.toFixed(5)}, ${lng.toFixed(5)}
+                                </div>
+                            </div>
+                        `;
+
+                        L.marker([lat, lng], { icon: customIcon })
+                            .bindPopup(popupHtml)
+                            .addTo(mapMarkersLayer);
+                    });
+
+                    leafletMap.fitBounds(latLngs, { padding: [30, 30], maxZoom: 14 });
+                }
             }
         }
 
-        async function handleGenerateGpsLink(e) {
+        // Approvals Hub
+        async function loadPendingApprovals() {
+            // 1. Pending Registrations
+            const resReg = await apiRequest('admin.php?action=pending_registrations');
+            const tbodyReg = document.getElementById('pendingRegistrationsTableBody');
+            if (resReg.ok && resReg.data.success) {
+                const pending = resReg.data.pending;
+                document.getElementById('countPendingReg').textContent = `${pending.length} Pending`;
+                if (pending.length === 0) {
+                    tbodyReg.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No pending onboarding registrations.</td></tr>';
+                } else {
+                    tbodyReg.innerHTML = pending.map(p => `
+                        <tr>
+                            <td>
+                                <div class="avatar-sm">
+                                    ${p.photo_url ? `<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;">` : p.name.charAt(0)}
+                                </div>
+                            </td>
+                            <td><strong>${p.name}</strong></td>
+                            <td>${p.email}</td>
+                            <td>${p.department} &bull; <span style="color: var(--text-muted);">${p.job_profile}</span></td>
+                            <td>DOB: ${p.dob || '-'} &bull; DOJ: ${p.date_of_joining}</td>
+                            <td>₹${parseFloat(p.base_salary).toLocaleString()}</td>
+                            <td>
+                                <div style="display: flex; gap: 0.4rem;">
+                                    <button onclick="reviewRegistration(${p.id}, 'approve')" class="btn btn-success btn-sm">Approve</button>
+                                    <button onclick="reviewRegistration(${p.id}, 'reject')" class="btn btn-danger btn-sm">Reject</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            }
+
+            // 2. Pending Profile Changes
+            const resProf = await apiRequest('admin.php?action=pending_profile_changes');
+            const tbodyProf = document.getElementById('pendingProfileTableBody');
+            if (resProf.ok && resProf.data.success) {
+                const requests = resProf.data.requests;
+                document.getElementById('countPendingProfile').textContent = `${requests.length} Requests`;
+                if (requests.length === 0) {
+                    tbodyProf.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No pending profile update requests.</td></tr>';
+                } else {
+                    tbodyProf.innerHTML = requests.map(r => {
+                        const diffHtml = Object.entries(r.changes).map(([k, v]) => `
+                            <div style="margin-bottom: 0.25rem;">
+                                <strong>${k.toUpperCase()}:</strong>
+                                <span class="diff-badge-old">${v.old || 'empty'}</span> → 
+                                <span class="diff-badge-new">${v.new}</span>
+                            </div>
+                        `).join('');
+
+                        return `
+                            <tr>
+                                <td>
+                                    <strong>${r.user_name}</strong>
+                                    <div style="font-size: 0.78rem; color: var(--text-muted);">${r.user_email}</div>
+                                </td>
+                                <td>${diffHtml}</td>
+                                <td style="color: var(--text-muted); font-size: 0.88rem;">${r.reason || '-'}</td>
+                                <td style="font-size: 0.85rem;">${r.created_at}</td>
+                                <td>
+                                    <div style="display: flex; gap: 0.4rem;">
+                                        <button onclick="reviewProfileChange(${r.id}, 'approve')" class="btn btn-success btn-sm">Approve</button>
+                                        <button onclick="reviewProfileChange(${r.id}, 'reject')" class="btn btn-danger btn-sm">Reject</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            }
+        }
+
+        async function reviewRegistration(id, decision) {
+            playSound('click');
+            const res = await apiRequest('admin.php?action=review_registration', 'POST', { id, decision });
+            if (res.ok && res.data.success) {
+                if (decision === 'approve') {
+                    playSound('success');
+                    fireConfetti(2500);
+                }
+                showToast(res.data.message, 'success');
+                loadPendingApprovals();
+                loadEmployees();
+                loadStats();
+            } else {
+                playSound('error');
+                showToast(res.data.message || 'Error processing request', 'error');
+            }
+        }
+
+        async function reviewProfileChange(id, decision) {
+            playSound('click');
+            const res = await apiRequest('admin.php?action=review_profile_change', 'POST', { id, decision });
+            if (res.ok && res.data.success) {
+                playSound('success');
+                showToast(res.data.message, 'success');
+                loadPendingApprovals();
+                loadEmployees();
+                loadStats();
+            } else {
+                playSound('error');
+                showToast(res.data.message || 'Error processing request', 'error');
+            }
+        }
+
+        // Direct Admin Onboarding
+        async function handleAdminOnboardSubmit(e) {
             e.preventDefault();
-            const btn = document.getElementById('btnGenGps');
+            const btn = document.getElementById('btnAdminOnboardSubmit');
             btn.disabled = true;
 
             const payload = {
-                title: document.getElementById('gpsTitleInput').value,
-                validity_minutes: parseInt(document.getElementById('gpsValidityInput').value),
-                radius_meters: parseInt(document.getElementById('gpsRadiusInput').value) || 500
+                name: document.getElementById('adminOnboardName').value.trim(),
+                email: document.getElementById('adminOnboardEmail').value.trim(),
+                phone: document.getElementById('adminOnboardPhone').value.trim(),
+                dob: document.getElementById('adminOnboardDob').value,
+                department: document.getElementById('adminOnboardDept').value,
+                job_profile: document.getElementById('adminOnboardJob').value.trim(),
+                date_of_joining: document.getElementById('adminOnboardDoj').value,
+                base_salary: parseFloat(document.getElementById('adminOnboardSalary').value) || 40000,
+                address: document.getElementById('adminOnboardAddress').value.trim(),
+                password: document.getElementById('adminOnboardCustomPass').value.trim(),
+                first_login_required: document.getElementById('adminOnboardFirstLoginCheck').checked ? 1 : 0,
             };
 
-            const res = await apiRequest('attendance.php?action=generate_gps_link', 'POST', payload);
+            const res = await apiRequest('admin.php?action=admin_register', 'POST', payload);
             if (res.ok && res.data.success) {
-                showToast(res.data.message, 'success');
-                closeModal('generateGpsModal');
-                loadDashboardStats();
+                playSound('success');
+                fireConfetti(3000);
+                document.getElementById('adminOnboardForm').style.display = 'none';
+                document.getElementById('resCredEmail').textContent = res.data.credentials.email;
+                document.getElementById('resCredPass').textContent = res.data.credentials.temp_password;
+                document.getElementById('adminOnboardResultBox').style.display = 'block';
+                loadStats();
             } else {
-                showToast(res.data.message || 'Error generating link', 'error');
+                playSound('error');
+                showToast(res.data.message || 'Could not onboard employee', 'error');
+                btn.disabled = false;
             }
-            btn.disabled = false;
         }
 
+        // Employee Directory
         async function loadEmployees() {
-            const search = document.getElementById('employeeSearchInput')?.value || '';
-            const res = await apiRequest(`admin.php?action=employees&search=${encodeURIComponent(search)}`);
+            const q = document.getElementById('employeeSearchInput').value.trim();
+            const res = await apiRequest(`admin.php?action=employees&search=${encodeURIComponent(q)}`);
             const tbody = document.getElementById('employeesTableBody');
-            
+
             if (res.ok && res.data.success) {
                 const emps = res.data.employees;
                 if (emps.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No employees registered yet. Click "+ Add Employee" to onboard staff.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">No matching employees found.</td></tr>';
                     return;
                 }
 
                 tbody.innerHTML = emps.map(emp => `
                     <tr>
                         <td>
-                            <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                <div class="avatar-sm">
-                                    ${emp.photo_path ? `<img src="uploads/${emp.photo_path}" style="width:100%;height:100%;object-fit:cover;">` : emp.name.charAt(0)}
-                                </div>
-                                <div>
-                                    <strong>${emp.name}</strong>
-                                    <div style="font-size: 0.75rem; color: var(--text-muted);">${emp.email} • ${emp.phone || '-'}</div>
-                                </div>
+                            <div class="avatar-sm">
+                                ${emp.photo_url ? `<img src="${emp.photo_url}" style="width:100%;height:100%;object-fit:cover;">` : emp.name.charAt(0)}
                             </div>
                         </td>
-                        <td>${emp.department || '-'}</td>
-                        <td>${emp.job_profile || '-'}</td>
-                        <td>${emp.date_of_joining || '-'}</td>
+                        <td>
+                            <strong>${emp.name}</strong>
+                            <div style="font-size: 0.78rem; color: var(--text-muted);">${emp.email}</div>
+                        </td>
+                        <td>
+                            <div>${emp.department || 'Operations'}</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted);">${emp.job_profile || 'Staff'}</div>
+                        </td>
+                        <td style="font-size: 0.88rem;">
+                            <div>DOJ: ${emp.date_of_joining}</div>
+                            <div style="color: var(--text-muted); font-size: 0.8rem;">${emp.phone || '-'}</div>
+                        </td>
                         <td><strong>₹${parseFloat(emp.base_salary).toLocaleString()}</strong></td>
-                        <td>${(emp.casual_leave_total - emp.casual_leave_used)} CL / ${(emp.sick_leave_total - emp.sick_leave_used)} SL</td>
-                        <td><span class="badge badge-${emp.status}">${emp.status}</span></td>
+                        <td style="font-size: 0.86rem;">
+                            CL: <strong>${emp.casual_leave_total - emp.casual_leave_used}</strong>/${emp.casual_leave_total} &bull; 
+                            SL: <strong>${emp.sick_leave_total - emp.sick_leave_used}</strong>/${emp.sick_leave_total}
+                            <div>
+                                <a href="javascript:void(0)" onclick="openQuotaModal(${emp.id}, '${emp.name}', ${emp.casual_leave_total}, ${emp.sick_leave_total})" style="font-size: 0.76rem; color: var(--primary); font-weight: 700;">Edit Quotas</a>
+                            </div>
+                        </td>
+                        <td><span class="badge badge-${emp.status === 'active' ? 'success' : (emp.status === 'pending_approval' ? 'warning' : 'danger')}">${emp.status}</span></td>
                         <td>
                             <div style="display: flex; gap: 0.4rem;">
-                                <button onclick='editEmployee(${JSON.stringify(emp)})' class="btn btn-secondary btn-sm">Edit</button>
-                                <button onclick="deleteEmployee(${emp.id}, '${emp.name.replace(/'/g, "\\'")}')" class="btn btn-danger btn-sm">Delete</button>
+                                <button onclick="openEditEmployeeModal(${JSON.stringify(emp).replace(/"/g, '&quot;')})" class="btn btn-secondary btn-sm" title="Edit">
+                                    <i data-lucide="edit" style="width: 14px;"></i>
+                                </button>
+                                <button onclick="deleteEmployee(${emp.id})" class="btn btn-danger btn-sm" title="Remove">
+                                    <i data-lucide="trash-2" style="width: 14px;"></i>
+                                </button>
                             </div>
                         </td>
                     </tr>
                 `).join('');
+                lucide.createIcons();
             }
         }
 
-        function editEmployee(emp) {
+        function openQuotaModal(userId, name, cl, sl) {
+            document.getElementById('quotaUserId').value = userId;
+            document.getElementById('quotaEmpLabel').textContent = `Staff: ${name}`;
+            document.getElementById('quotaClInput').value = cl || 12;
+            document.getElementById('quotaSlInput').value = sl || 6;
+            openModal('editQuotaModal');
+        }
+
+        async function handleUpdateQuota(e) {
+            e.preventDefault();
+            const payload = {
+                user_id: document.getElementById('quotaUserId').value,
+                casual_leave_total: parseFloat(document.getElementById('quotaClInput').value),
+                sick_leave_total: parseFloat(document.getElementById('quotaSlInput').value)
+            };
+            const res = await apiRequest('admin.php?action=update_leave_quota', 'POST', payload);
+            if (res.ok && res.data.success) {
+                showToast(res.data.message, 'success');
+                closeModal('editQuotaModal');
+                loadEmployees();
+            } else {
+                showToast(res.data.message || 'Error updating quota', 'error');
+            }
+        }
+
+        function openEditEmployeeModal(emp) {
             document.getElementById('editEmpId').value = emp.id;
             document.getElementById('editEmpName').value = emp.name;
             document.getElementById('editEmpEmail').value = emp.email;
-            document.getElementById('editEmpDepartment').value = emp.department;
-            document.getElementById('editEmpJob').value = emp.job_profile;
-            document.getElementById('editEmpSalary').value = emp.base_salary;
-            document.getElementById('editEmpStatus').value = emp.status;
+            document.getElementById('editEmpPhone').value = emp.phone || '';
+            document.getElementById('editEmpDob').value = emp.dob || '';
+            document.getElementById('editEmpDoj').value = emp.date_of_joining || '';
+            document.getElementById('editEmpAddress').value = emp.address || '';
+            document.getElementById('editEmpDepartment').value = emp.department || '';
+            document.getElementById('editEmpJob').value = emp.job_profile || '';
+            document.getElementById('editEmpSalary').value = emp.base_salary || 30000;
+            document.getElementById('editEmpStatus').value = emp.status || 'active';
+            document.getElementById('editEmpNewPassword').value = '';
+            document.getElementById('editEmpFirstLogin').checked = !!emp.first_login_required;
             openModal('editEmployeeModal');
         }
 
         async function handleUpdateEmployee(e) {
             e.preventDefault();
-            const id = document.getElementById('editEmpId').value;
             const payload = {
-                id: id,
-                name: document.getElementById('editEmpName').value,
-                email: document.getElementById('editEmpEmail').value,
-                department: document.getElementById('editEmpDepartment').value,
-                job_profile: document.getElementById('editEmpJob').value,
+                id: document.getElementById('editEmpId').value,
+                name: document.getElementById('editEmpName').value.trim(),
+                email: document.getElementById('editEmpEmail').value.trim(),
+                phone: document.getElementById('editEmpPhone').value.trim(),
+                dob: document.getElementById('editEmpDob').value,
+                date_of_joining: document.getElementById('editEmpDoj').value,
+                address: document.getElementById('editEmpAddress').value.trim(),
+                department: document.getElementById('editEmpDepartment').value.trim(),
+                job_profile: document.getElementById('editEmpJob').value.trim(),
                 base_salary: parseFloat(document.getElementById('editEmpSalary').value),
                 status: document.getElementById('editEmpStatus').value,
+                new_password: document.getElementById('editEmpNewPassword').value.trim(),
+                first_login_required: document.getElementById('editEmpFirstLogin').checked ? 1 : 0,
             };
-
             const res = await apiRequest('admin.php?action=update_employee', 'POST', payload);
             if (res.ok && res.data.success) {
-                showToast('Employee updated successfully', 'success');
+                playSound('success');
+                showToast(res.data.message, 'success');
                 closeModal('editEmployeeModal');
                 loadEmployees();
-                loadDashboardStats();
+                loadStats();
             } else {
-                showToast(res.data.message || 'Error updating', 'error');
+                playSound('error');
+                showToast(res.data.message || 'Error updating employee', 'error');
             }
         }
 
-        async function deleteEmployee(id, name) {
-            if (!confirm(`Are you sure you want to delete employee "${name}"? This action cannot be undone.`)) {
-                return;
-            }
-
-            const res = await apiRequest(`admin.php?action=delete_employee&id=${id}`, 'POST', { id });
+        async function deleteEmployee(id) {
+            if (!confirm('Are you sure you want to remove this employee and all associated records?')) return;
+            const res = await apiRequest('admin.php?action=delete_employee', 'POST', { id });
             if (res.ok && res.data.success) {
-                showToast(`Employee "${name}" deleted`, 'success');
+                showToast('Employee removed', 'success');
                 loadEmployees();
-                loadDashboardStats();
-            } else {
-                showToast(res.data.message || 'Error deleting employee', 'error');
+                loadStats();
             }
         }
 
+        // Attendance Logs & CSV Export
         async function loadAttendanceLogs() {
-            const date = document.getElementById('attendanceFilterDate')?.value || '';
+            const date = document.getElementById('attendanceFilterDate').value || '';
             const res = await apiRequest(`attendance.php?action=history&date=${date}`);
             const tbody = document.getElementById('adminAttendanceTableBody');
 
             if (res.ok && res.data.success) {
-                const list = res.data.history;
-                if (list.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No logs recorded on this date.</td></tr>';
+                const history = res.data.history;
+                if (history.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">No attendance logged for this date.</td></tr>';
                     return;
                 }
 
-                tbody.innerHTML = list.map(row => `
+                tbody.innerHTML = history.map(h => `
                     <tr>
-                        <td><strong>${row.user_name}</strong></td>
-                        <td>${row.date}</td>
-                        <td><span class="badge badge-primary">${row.method.toUpperCase()}</span></td>
-                        <td>${row.check_in_time ? row.check_in_time.substring(0, 5) : '--'}</td>
-                        <td>${row.check_out_time ? row.check_out_time.substring(0, 5) : '--'}</td>
-                        <td><span class="badge badge-${row.status}">${row.status}</span></td>
-                        <td style="font-size: 0.8rem; color: var(--text-muted);">${row.notes || (row.latitude ? `GPS: ${row.latitude}, ${row.longitude}` : '-')}</td>
+                        <td>
+                            <strong>${h.user_name}</strong>
+                            <div style="font-size: 0.78rem; color: var(--text-muted);">${h.user_dept || 'Operations'}</div>
+                        </td>
+                        <td>${h.date}</td>
+                        <td><span class="badge badge-primary">${h.method.toUpperCase()}</span></td>
+                        <td><strong style="font-family: var(--font-mono);">${h.check_in_time ? h.check_in_time.substring(0, 5) : '--'}</strong></td>
+                        <td><strong style="font-family: var(--font-mono);">${h.check_out_time ? h.check_out_time.substring(0, 5) : '--'}</strong></td>
+                        <td><span class="badge badge-${h.status}">${h.status}</span></td>
+                        <td style="font-size: 0.82rem; color: var(--text-muted);">
+                            ${h.notes || '-'}
+                            ${h.latitude ? `<br><span style="font-family: monospace;">📍 ${h.latitude.toFixed(4)}, ${h.longitude.toFixed(4)} (IP: ${h.ip_address || '-'})</span>` : ''}
+                        </td>
                     </tr>
                 `).join('');
             }
         }
 
+        function exportAttendanceCsv() {
+            const date = document.getElementById('attendanceFilterDate').value || '';
+            window.location.href = `api/attendance.php?action=export_csv&date=${date}`;
+        }
+
+        // Leave Reviews
         async function loadAdminLeaves() {
-            const status = document.getElementById('leaveFilterStatus')?.value || 'all';
-            const res = await apiRequest(`leave.php?action=list&status=${status}`);
+            const st = document.getElementById('leaveFilterStatus').value;
+            const res = await apiRequest(`leave.php?action=list&status=${st}`);
             const tbody = document.getElementById('adminLeavesTableBody');
 
             if (res.ok && res.data.success) {
                 const leaves = res.data.leaves;
                 if (leaves.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No leave requests found.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">No leave applications found.</td></tr>';
                     return;
                 }
 
                 tbody.innerHTML = leaves.map(l => `
                     <tr>
-                        <td><strong>${l.user_name}</strong></td>
-                        <td><span class="badge badge-primary">${l.leave_type.toUpperCase()}</span></td>
+                        <td>
+                            <strong>${l.user_name}</strong>
+                            <div style="font-size: 0.78rem; color: var(--text-muted);">${l.user_dept}</div>
+                        </td>
+                        <td><strong>${l.leave_type.toUpperCase()} Leave</strong></td>
                         <td>${l.start_date} to ${l.end_date}</td>
-                        <td><strong>${l.total_days} days</strong></td>
-                        <td style="font-size: 0.85rem;">${l.reason}</td>
+                        <td>${l.total_days} days</td>
+                        <td style="color: var(--text-muted); font-size: 0.88rem;">${l.reason}</td>
                         <td><span class="badge badge-${l.status}">${l.status}</span></td>
                         <td>
                             ${l.status === 'pending' ? `
@@ -893,7 +1363,7 @@
                                     <button onclick="reviewLeave(${l.id}, 'approved')" class="btn btn-success btn-sm">Approve</button>
                                     <button onclick="reviewLeave(${l.id}, 'rejected')" class="btn btn-danger btn-sm">Reject</button>
                                 </div>
-                            ` : `<span style="color: var(--text-muted); font-size: 0.8rem;">Reviewed</span>`}
+                            ` : `<span style="font-size: 0.8rem; color: var(--text-muted);">Reviewed</span>`}
                         </td>
                     </tr>
                 `).join('');
@@ -901,145 +1371,300 @@
         }
 
         async function reviewLeave(id, status) {
+            playSound('click');
             const res = await apiRequest('leave.php?action=review', 'POST', { id, status });
             if (res.ok && res.data.success) {
+                if (status === 'approved') playSound('success');
                 showToast(res.data.message, 'success');
                 loadAdminLeaves();
-                loadDashboardStats();
-                loadEmployees();
+                loadStats();
             } else {
-                showToast(res.data.message || 'Error reviewing leave', 'error');
+                showToast(res.data.message || 'Error updating leave', 'error');
+            }
+        }
+
+        // Salary & Payroll Engine
+        async function loadAdminPayroll() {
+            const m = document.getElementById('payrollMonthSelect').value;
+            const y = document.getElementById('payrollYearSelect').value;
+            const res = await apiRequest(`payroll.php?action=list&month=${m}&year=${y}`);
+            const tbody = document.getElementById('adminPayrollTableBody');
+
+            if (res.ok && res.data.success) {
+                const payrolls = res.data.payrolls;
+                if (payrolls.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">No payroll calculated for this month yet. Click Run Auto-Calc above.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = payrolls.map(p => `
+                    <tr>
+                        <td>
+                            <strong>${p.user_name}</strong>
+                            <div style="font-size: 0.78rem; color: var(--text-muted);">${p.user_dept}</div>
+                        </td>
+                        <td>₹${parseFloat(p.base_salary).toLocaleString()}</td>
+                        <td>${p.total_working_days} days</td>
+                        <td>${p.present_days} Pres + ${p.paid_leaves} Leave</td>
+                        <td style="color: var(--danger); font-weight: 700;">-₹${parseFloat(p.deduction_amount).toLocaleString()} (${p.unpaid_days} d)</td>
+                        <td><strong style="color: var(--success); font-size: 1.05rem;">₹${parseFloat(p.net_salary).toLocaleString()}</strong></td>
+                        <td>
+                            <select onchange="updatePayrollStatus(${p.id}, this.value)" class="form-control" style="width: 100px; font-size: 0.8rem; padding: 0.25rem 0.5rem;">
+                                <option value="processed" ${p.status === 'processed' ? 'selected' : ''}>Processed</option>
+                                <option value="paid" ${p.status === 'paid' ? 'selected' : ''}>Paid</option>
+                            </select>
+                        </td>
+                        <td>
+                            <button onclick="viewAdminPayslip(${p.id})" class="btn btn-secondary btn-sm">
+                                <i data-lucide="file-text" style="width: 14px;"></i> Slip
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+                lucide.createIcons();
+            }
+        }
+
+        async function updatePayrollStatus(id, status) {
+            const res = await apiRequest('payroll.php?action=status', 'POST', { id, status });
+            if (res.ok && res.data.success) {
+                showToast(res.data.message, 'success');
             }
         }
 
         async function handleRunPayroll(e) {
             e.preventDefault();
-            const month = document.getElementById('runPayrollMonth').value;
-            const year = document.getElementById('runPayrollYear').value;
             const btn = document.getElementById('btnRunPayrollSubmit');
             btn.disabled = true;
             btn.textContent = 'Calculating...';
 
-            const res = await apiRequest('payroll.php?action=generate', 'POST', { month, year });
+            const payload = {
+                month: parseInt(document.getElementById('runPayrollMonth').value),
+                year: parseInt(document.getElementById('runPayrollYear').value),
+            };
+
+            const res = await apiRequest('payroll.php?action=generate', 'POST', payload);
             if (res.ok && res.data.success) {
+                playSound('success');
+                fireConfetti(2500);
                 showToast(res.data.message, 'success');
                 closeModal('runPayrollModal');
-                document.getElementById('payrollMonthSelect').value = month;
-                document.getElementById('payrollYearSelect').value = year;
                 loadAdminPayroll();
-                loadDashboardStats();
-                showAdminTab('payroll');
+                loadStats();
             } else {
-                showToast(res.data.message || 'Calculation failed', 'error');
+                playSound('error');
+                showToast(res.data.message || 'Payroll calculation failed', 'error');
             }
 
             btn.disabled = false;
             btn.textContent = 'Run Calculation';
         }
 
-        async function loadAdminPayroll() {
-            const month = document.getElementById('payrollMonthSelect').value;
-            const year = document.getElementById('payrollYearSelect').value;
-            const res = await apiRequest(`payroll.php?action=list&month=${month}&year=${year}`);
-            const tbody = document.getElementById('adminPayrollTableBody');
-
-            if (res.ok && res.data.success) {
-                const payrolls = res.data.payrolls;
-                if (payrolls.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No payroll data for this month. Click "Run Auto-Calc" above to compute.</td></tr>';
-                    return;
-                }
-
-                tbody.innerHTML = payrolls.map(p => `
-                    <tr>
-                        <td><strong>${p.user_name}</strong></td>
-                        <td>₹${parseFloat(p.base_salary).toLocaleString()}</td>
-                        <td>${p.total_working_days} days</td>
-                        <td>${p.present_days} Pres / ${p.paid_leaves} Leave</td>
-                        <td style="color: var(--danger); font-weight: 600;">-₹${parseFloat(p.deduction_amount).toLocaleString()} (${p.unpaid_days} days)</td>
-                        <td><strong style="color: var(--success); font-size: 1.05rem;">₹${parseFloat(p.net_salary).toLocaleString()}</strong></td>
-                        <td>
-                            <select onchange="updatePayStatus(${p.id}, this.value)" class="form-control" style="font-size: 0.8rem; padding: 0.2rem 0.5rem; width: 110px;">
-                                <option value="processed" ${p.status === 'processed' ? 'selected' : ''}>Processed</option>
-                                <option value="paid" ${p.status === 'paid' ? 'selected' : ''}>Paid</option>
-                            </select>
-                        </td>
-                        <td>
-                            <button onclick="adminViewSlip(${p.id})" class="btn btn-secondary btn-sm">Payslip</button>
-                        </td>
-                    </tr>
-                `).join('');
-            }
+        function exportPayrollCsv() {
+            const m = document.getElementById('payrollMonthSelect').value;
+            const y = document.getElementById('payrollYearSelect').value;
+            window.location.href = `api/payroll.php?action=export_csv&month=${m}&year=${y}`;
         }
 
-        async function updatePayStatus(id, status) {
-            const res = await apiRequest('payroll.php?action=status', 'POST', { id, status });
-            if (res.ok) showToast('Status updated', 'success');
-        }
-
-        async function adminViewSlip(id) {
+        async function viewAdminPayslip(id) {
             const res = await apiRequest(`payroll.php?action=slip&id=${id}`);
             if (res.ok && res.data.success) {
                 const p = res.data.payroll;
-                document.getElementById('adminSlipBody').innerHTML = `
-                    <div style="border: 1.5px solid var(--border-color); border-radius: var(--radius-md); padding: 1.75rem; background: #fff;">
-                        <div style="text-align: center; border-bottom: 2.5px solid var(--primary); padding-bottom: 1.25rem; margin-bottom: 1.25rem;">
-                            <div class="brand-badge" style="display: inline-block; margin-bottom: 0.5rem;">TGC CONNECT</div>
-                            <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--text-main); margin-bottom: 0.2rem;">SALARY COMPENSATION VOUCHER</h2>
-                            <p style="font-size: 0.85rem; color: var(--text-muted);">Period: ${p.month}/${p.year} &bull; Generated from Attendance & Leave Logs</p>
+                document.getElementById('slipModalBody').innerHTML = `
+                    <div class="payslip-container" style="position: relative;">
+                        <div class="payslip-watermark">CONFIDENTIAL</div>
+                        <div class="payslip-header">
+                            <div>
+                                <div class="brand-badge" style="margin-bottom: 0.5rem; display: inline-block;">TGC CONNECT HRMS</div>
+                                <h2 style="font-size: 1.6rem; font-weight: 800;">SALARY STATEMENT & PAY VOUCHER</h2>
+                                <p style="font-size: 0.88rem; color: var(--text-muted);">Period: Month ${p.month}/${p.year} &bull; Authorized by Admin</p>
+                            </div>
+                            <span class="badge badge-${p.status === 'paid' ? 'success' : 'warning'}" style="font-size: 0.95rem; padding: 0.4rem 0.9rem;">
+                                ${p.status.toUpperCase()}
+                            </span>
                         </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; font-size: 0.92rem; background: var(--bg-main); padding: 1rem; border-radius: var(--radius-sm);">
-                            <div><strong>Employee:</strong> ${p.user_name}</div>
-                            <div><strong>Department:</strong> ${p.user_dept || 'General'}</div>
-                            <div><strong>Designation:</strong> ${p.user_job || 'Staff'}</div>
-                            <div><strong>Status:</strong> <span class="badge badge-${p.status === 'paid' ? 'success' : 'warning'}">${p.status.toUpperCase()}</span></div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; background: var(--bg-main); padding: 1.25rem; border-radius: var(--radius-md);">
+                            <div>
+                                <div><strong>Employee:</strong> ${p.user_name}</div>
+                                <div style="color: var(--text-muted); font-size: 0.88rem;">Email: ${p.user_email}</div>
+                                <div style="color: var(--text-muted); font-size: 0.88rem;">ID: #TGC-${String(p.user_id).padStart(4, '0')}</div>
+                            </div>
+                            <div>
+                                <div><strong>Department:</strong> ${p.user_dept || 'Operations'}</div>
+                                <div style="color: var(--text-muted); font-size: 0.88rem;">Profile: ${p.user_job || 'Staff'}</div>
+                            </div>
                         </div>
-                        <table style="width: 100%; font-size: 0.92rem; margin-bottom: 1.25rem; border-collapse: collapse;">
-                            <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.5rem 0;">Base Monthly Salary</td><td style="text-align: right; font-weight: 700;">₹${parseFloat(p.base_salary).toLocaleString()}</td></tr>
-                            <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.5rem 0;">Total Month Working Days</td><td style="text-align: right;">${p.total_working_days} days</td></tr>
-                            <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.5rem 0;">Present + Paid Leaves</td><td style="text-align: right;">${p.present_days + p.paid_leaves} days</td></tr>
-                            <tr style="border-bottom: 1px solid var(--border-color); color: var(--danger);"><td style="padding: 0.5rem 0;">Absent/Unpaid Deductions (${p.unpaid_days} days @ ₹${p.daily_rate}/day)</td><td style="text-align: right; font-weight: 700;">-₹${parseFloat(p.deduction_amount).toLocaleString()}</td></tr>
-                            <tr style="font-size: 1.2rem; font-weight: 800; color: var(--success); border-top: 2px solid var(--border-color);"><td style="padding: 0.75rem 0;">NET SALARY PAYABLE</td><td style="text-align: right;">₹${parseFloat(p.net_salary).toLocaleString()}</td></tr>
+                        <table class="payslip-table">
+                            <thead>
+                                <tr><th>Earnings</th><th style="text-align: right;">Amount</th><th>Deductions</th><th style="text-align: right;">Amount</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Base Salary</td><td style="text-align: right; font-weight: 700;">₹${parseFloat(p.base_salary).toLocaleString()}</td>
+                                    <td>Absent Days: ${p.unpaid_days} d</td><td style="text-align: right; color: var(--danger); font-weight: 700;">-₹${parseFloat(p.deduction_amount).toLocaleString()}</td>
+                                </tr>
+                                <tr>
+                                    <td>Working Days: ${p.total_working_days} d</td><td>-</td>
+                                    <td>Daily Rate</td><td style="text-align: right;">₹${parseFloat(p.daily_rate).toFixed(2)}/d</td>
+                                </tr>
+                                <tr style="background: #f8fafc; font-size: 1.15rem; font-weight: 800;">
+                                    <td>Total</td><td style="text-align: right;">₹${parseFloat(p.base_salary).toLocaleString()}</td>
+                                    <td style="color: var(--success);">NET PAYABLE</td>
+                                    <td style="text-align: right; color: var(--success); font-size: 1.35rem; font-family: var(--font-mono);">₹${parseFloat(p.net_salary).toLocaleString()}</td>
+                                </tr>
+                            </tbody>
                         </table>
-                        <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center; border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
-                            Official System Voucher &bull; TGC Connect Workforce Management
-                        </div>
                     </div>
                 `;
-                openModal('adminSlipModal');
+                openModal('viewSlipModal');
             }
         }
 
+        // Holidays
         async function loadAdminHolidays() {
             const res = await apiRequest('leave.php?action=holidays');
             const tbody = document.getElementById('adminHolidaysTableBody');
             if (res.ok && res.data.success) {
-                const list = res.data.holidays;
-                tbody.innerHTML = list.map(h => `
+                const holidays = res.data.holidays;
+                if (holidays.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No holidays added yet.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = holidays.map(h => `
                     <tr>
                         <td><strong>${h.title}</strong></td>
-                        <td>${h.holiday_date}</td>
-                        <td><span class="badge badge-primary">${h.type.toUpperCase()}</span></td>
-                        <td style="color: var(--text-muted); font-size: 0.85rem;">${h.description || '-'}</td>
+                        <td><strong style="font-family: var(--font-mono);">${h.holiday_date}</strong></td>
+                        <td><span class="badge badge-secondary">${h.type}</span></td>
+                        <td style="color: var(--text-muted); font-size: 0.88rem;">${h.description || '-'}</td>
+                        <td>
+                            <button onclick="deleteHoliday(${h.id})" class="btn btn-danger btn-sm" title="Delete">
+                                <i data-lucide="trash-2" style="width: 14px;"></i>
+                            </button>
+                        </td>
                     </tr>
                 `).join('');
+                lucide.createIcons();
             }
         }
 
         async function handleAddHoliday(e) {
             e.preventDefault();
             const payload = {
-                title: document.getElementById('holidayTitleInput').value,
+                title: document.getElementById('holidayTitleInput').value.trim(),
                 holiday_date: document.getElementById('holidayDateInput').value,
+                type: document.getElementById('holidayTypeInput').value,
+                description: document.getElementById('holidayDescInput').value.trim(),
             };
             const res = await apiRequest('leave.php?action=add_holiday', 'POST', payload);
             if (res.ok && res.data.success) {
-                showToast('Holiday added', 'success');
+                showToast(res.data.message, 'success');
                 closeModal('addHolidayModal');
                 loadAdminHolidays();
-            } else {
-                showToast(res.data.message || 'Error adding holiday', 'error');
             }
+        }
+
+        async function deleteHoliday(id) {
+            if (!confirm('Remove this company holiday?')) return;
+            const res = await apiRequest('leave.php?action=delete_holiday', 'POST', { id });
+            if (res.ok && res.data.success) {
+                showToast(res.data.message, 'success');
+                loadAdminHolidays();
+            }
+        }
+
+        // System Audit Trail
+        async function loadAdminLogs() {
+            const res = await apiRequest('admin.php?action=logs');
+            const tbody = document.getElementById('adminLogsTableBody');
+            if (res.ok && res.data.success) {
+                const logs = res.data.logs;
+                if (logs.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">No system logs recorded yet.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = logs.map(l => `
+                    <tr>
+                        <td style="font-size: 0.82rem; font-family: var(--font-mono);">${l.created_at}</td>
+                        <td><span class="badge badge-primary">${l.action}</span></td>
+                        <td><strong>${l.admin_name || 'System / Self'}</strong></td>
+                        <td>${l.target_name || '-'}</td>
+                        <td style="font-size: 0.88rem; color: var(--text-muted);">${l.details || '-'}</td>
+                        <td style="font-size: 0.82rem; font-family: var(--font-mono);">${l.ip_address || '-'}</td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        // QR Standee
+        async function openQrModal() {
+            openModal('qrModal');
+            const res = await apiRequest('attendance.php?action=active_qr');
+            if (res.ok && res.data.qr) {
+                renderQrCode(res.data.qr.token);
+            }
+        }
+
+        function renderQrCode(text) {
+            const container = document.getElementById('qrcodeDisplay');
+            container.innerHTML = '';
+            new QRCode(container, {
+                text: text,
+                width: 200,
+                height: 200,
+                colorDark: '#0f172a',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H
+            });
+            document.getElementById('qrTokenLabel').textContent = text;
+        }
+
+        async function generateNewQr() {
+            playSound('click');
+            const res = await apiRequest('attendance.php?action=generate_qr', 'POST');
+            if (res.ok && res.data.success) {
+                playSound('success');
+                renderQrCode(res.data.qr.token);
+                showToast('Dynamic QR Token refreshed!', 'success');
+            }
+        }
+
+        // GPS Link Generator
+        async function handleGenerateGpsLink(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnGenGps');
+            btn.disabled = true;
+
+            const payload = {
+                title: document.getElementById('gpsTitleInput').value.trim(),
+                validity_minutes: parseInt(document.getElementById('gpsValidityInput').value),
+                radius_meters: parseInt(document.getElementById('gpsRadiusInput').value),
+            };
+
+            const res = await apiRequest('attendance.php?action=generate_gps_link', 'POST', payload);
+            if (res.ok && res.data.success) {
+                playSound('success');
+                fireConfetti(2500);
+                showToast(res.data.message, 'success');
+                closeModal('generateGpsModal');
+
+                const fullUrl = window.location.origin + window.location.pathname.replace('admin.html', '') + res.data.url;
+                navigator.clipboard.writeText(fullUrl).then(() => {
+                    showToast('Link copied to clipboard!', 'info');
+                });
+                loadStats();
+            } else {
+                playSound('error');
+                showToast(res.data.message || 'Error generating link', 'error');
+            }
+            btn.disabled = false;
+        }
+
+        function copyGpsUrl() {
+            const input = document.getElementById('gpsUrlCopyInput');
+            input.select();
+            navigator.clipboard.writeText(input.value);
+            playSound('click');
+            showToast('GPS link copied to clipboard!', 'success');
         }
     </script>
 </body>

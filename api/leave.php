@@ -67,10 +67,16 @@ switch ($action) {
             sendResponse(false, ['message' => 'End date cannot be earlier than start date.'], 422);
         }
 
-        // Calculate days excluding Sundays
+        // Fetch company holidays in this range
+        $stmtH = $pdo->prepare("SELECT holiday_date FROM holidays WHERE holiday_date BETWEEN ? AND ?");
+        $stmtH->execute([$startDate, $endDate]);
+        $holidayDates = $stmtH->fetchAll(PDO::FETCH_COLUMN) ?: [];
+
+        // Calculate days excluding Sundays and holidays
         $totalDays = 0;
         for ($t = $startTs; $t <= $endTs; $t += 86400) {
-            if (date('N', $t) != 7) { // not Sunday
+            $curDt = date('Y-m-d', $t);
+            if (date('N', $t) != 7 && !in_array($curDt, $holidayDates)) { // not Sunday and not holiday
                 $totalDays++;
             }
         }
@@ -101,10 +107,13 @@ switch ($action) {
             VALUES (?, ?, ?, ?, ?, ?, 'pending')
         ");
         $stmt->execute([$user['id'], $leaveType, $startDate, $endDate, $totalDays, $reason]);
+        $newLeaveId = $pdo->lastInsertId();
+
+        logAdminAction($pdo, null, 'apply_leave', $user['id'], "Employee {$user['name']} applied for {$totalDays} days {$leaveType} leave.");
 
         sendResponse(true, [
             'message' => "Leave application for {$totalDays} day(s) submitted successfully!",
-            'leave_id' => $pdo->lastInsertId(),
+            'leave_id' => $newLeaveId,
         ]);
         break;
 
@@ -118,7 +127,7 @@ switch ($action) {
         $statusFilter = $_GET['status'] ?? 'all';
 
         $sql = "
-            SELECT l.*, u.name as user_name, u.email as user_email, u.department as user_dept, u.job_profile as user_job
+            SELECT l.*, u.name as user_name, u.email as user_email, u.department as user_dept, u.job_profile as user_job, u.photo_path
             FROM leaves l
             JOIN users u ON l.user_id = u.id
             WHERE 1=1
@@ -135,11 +144,15 @@ switch ($action) {
             $params[] = $statusFilter;
         }
 
-        $sql .= " ORDER BY l.created_at DESC LIMIT 100";
+        $sql .= " ORDER BY l.created_at DESC LIMIT 150";
 
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         $leaves = $stmt->fetchAll();
+
+        foreach ($leaves as &$l) {
+            $l['photo_url'] = $l['photo_path'] ? 'uploads/' . $l['photo_path'] : null;
+        }
 
         sendResponse(true, ['leaves' => $leaves]);
         break;
@@ -158,7 +171,7 @@ switch ($action) {
             sendResponse(false, ['message' => 'Valid leave ID and status (approved/rejected) are required.'], 400);
         }
 
-        $stmt = $pdo->prepare("SELECT * FROM leaves WHERE id = ?");
+        $stmt = $pdo->prepare("SELECT l.*, u.name as employee_name FROM leaves l JOIN users u ON l.user_id = u.id WHERE l.id = ?");
         $stmt->execute([$leaveId]);
         $leave = $stmt->fetch();
 
@@ -182,6 +195,8 @@ switch ($action) {
                     ->execute([$leave['total_days'], $leave['user_id'], $year]);
             }
         }
+
+        logAdminAction($pdo, $user['id'], "leave_{$status}", $leave['user_id'], "Admin {$status} leave request #{$leaveId} for {$leave['employee_name']}.");
 
         sendResponse(true, ['message' => "Leave request has been {$status}."]);
         break;
@@ -211,7 +226,28 @@ switch ($action) {
         $stmt = $pdo->prepare("INSERT INTO holidays (title, holiday_date, type, description) VALUES (?, ?, ?, ?)");
         $stmt->execute([$title, $date, $type, $desc]);
 
+        logAdminAction($pdo, $user['id'], 'add_holiday', null, "Added company holiday '{$title}' on {$date}.");
+
         sendResponse(true, ['message' => 'Holiday added successfully.']);
+        break;
+
+    case 'delete_holiday':
+        $user = getCurrentUser($pdo);
+        if (!$user || $user['role'] !== 'admin') {
+            sendResponse(false, ['message' => 'Unauthorized'], 403);
+        }
+
+        $id = intval($input['id'] ?? ($_GET['id'] ?? 0));
+        if (!$id) {
+            sendResponse(false, ['message' => 'Valid holiday ID required.'], 400);
+        }
+
+        $stmt = $pdo->prepare("DELETE FROM holidays WHERE id = ?");
+        $stmt->execute([$id]);
+
+        logAdminAction($pdo, $user['id'], 'delete_holiday', null, "Deleted holiday #{$id}.");
+
+        sendResponse(true, ['message' => 'Holiday removed successfully.']);
         break;
 
     default:

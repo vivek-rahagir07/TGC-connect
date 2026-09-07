@@ -16,6 +16,10 @@ switch ($action) {
         }
 
         $token = trim($input['token'] ?? '');
+        $deviceFingerprint = trim($input['device_fingerprint'] ?? '');
+        $ip = getClientIp();
+        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+
         if (!$token) {
             sendResponse(false, ['message' => 'QR token is required.'], 400);
         }
@@ -26,7 +30,7 @@ switch ($action) {
         $qr = $stmt->fetch();
 
         if (!$qr) {
-            sendResponse(false, ['message' => 'Invalid or expired QR code.'], 422);
+            sendResponse(false, ['message' => 'Invalid or expired office QR code. Please scan the current standee.'], 422);
         }
 
         $today = date('Y-m-d');
@@ -46,23 +50,32 @@ switch ($action) {
 
         // Late threshold is 09:30 AM
         $status = (date('H:i') > '09:30') ? 'late' : 'present';
+        $notes = 'Office QR (' . $qr['title'] . ')';
 
         if ($existing) {
-            $stmtUpdate = $pdo->prepare("UPDATE attendances SET check_in_time = ?, method = 'qr', status = ?, notes = ? WHERE id = ?");
-            $stmtUpdate->execute([$nowTime, $status, 'Checked in via Office QR (' . $qr['title'] . ')', $existing['id']]);
+            $stmtUpdate = $pdo->prepare("
+                UPDATE attendances
+                SET check_in_time = ?, method = 'qr', status = ?, notes = ?, ip_address = ?, user_agent = ?, device_fingerprint = ?
+                WHERE id = ?
+            ");
+            $stmtUpdate->execute([$nowTime, $status, $notes, $ip, $userAgent, $deviceFingerprint, $existing['id']]);
             $attendanceId = $existing['id'];
         } else {
-            $stmtInsert = $pdo->prepare("INSERT INTO attendances (user_id, date, check_in_time, method, status, notes) VALUES (?, ?, ?, 'qr', ?, ?)");
-            $stmtInsert->execute([$user['id'], $today, $nowTime, $status, 'Checked in via Office QR (' . $qr['title'] . ')']);
+            $stmtInsert = $pdo->prepare("
+                INSERT INTO attendances (user_id, date, check_in_time, method, status, notes, ip_address, user_agent, device_fingerprint)
+                VALUES (?, ?, ?, 'qr', ?, ?, ?, ?, ?)
+            ");
+            $stmtInsert->execute([$user['id'], $today, $nowTime, $status, $notes, $ip, $userAgent, $deviceFingerprint]);
             $attendanceId = $pdo->lastInsertId();
         }
 
         $stmtAtt = $pdo->prepare("SELECT * FROM attendances WHERE id = ?");
         $stmtAtt->execute([$attendanceId]);
+        $attRecord = $stmtAtt->fetch();
 
         sendResponse(true, [
             'message' => 'Attendance punched in successfully! Welcome, ' . $user['name'] . ' (' . ucfirst($status) . ')',
-            'attendance' => $stmtAtt->fetch(),
+            'attendance' => $attRecord,
         ]);
         break;
 
@@ -74,6 +87,7 @@ switch ($action) {
 
         $today = date('Y-m-d');
         $nowTime = date('H:i:s');
+        $ip = getClientIp();
 
         $stmt = $pdo->prepare("SELECT * FROM attendances WHERE user_id = ? AND date = ?");
         $stmt->execute([$user['id'], $today]);
@@ -107,10 +121,14 @@ switch ($action) {
         $token = trim($input['token'] ?? '');
         $lat = floatval($input['latitude'] ?? 0);
         $lng = floatval($input['longitude'] ?? 0);
-        $locName = trim($input['location_name'] ?? 'GPS Verified Location');
+        $accuracy = floatval($input['accuracy_meters'] ?? 0);
+        $deviceFingerprint = trim($input['device_fingerprint'] ?? '');
+        $locName = trim($input['location_name'] ?? 'Verified GPS Coordinate');
+        $ip = getClientIp();
+        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
 
         if (!$token || !$lat || !$lng) {
-            sendResponse(false, ['message' => 'GPS coordinates and link token are required.'], 400);
+            sendResponse(false, ['message' => 'GPS coordinates and link token are required. Geolocation must be allowed.'], 400);
         }
 
         // Verify Link Token
@@ -119,18 +137,23 @@ switch ($action) {
         $gpsLink = $stmt->fetch();
 
         if (!$gpsLink) {
-            sendResponse(false, ['message' => 'Attendance link does not exist.'], 404);
+            sendResponse(false, ['message' => 'Attendance link does not exist or has been disabled.'], 404);
         }
 
         if (strtotime($gpsLink['expires_at']) < time()) {
-            sendResponse(false, ['message' => 'This attendance link has expired. Please ask Admin for a new link.'], 422);
+            sendResponse(false, ['message' => 'This attendance link has expired. Proxy-proof safeguard: attendance rejected.'], 422);
         }
 
-        // Check geofence if target coords exist
+        // Check geofence radius if target coordinates exist
+        $dist = null;
         if (!empty($gpsLink['target_lat']) && !empty($gpsLink['target_lng']) && $gpsLink['radius_meters'] > 0) {
             $dist = haversine($lat, $lng, $gpsLink['target_lat'], $gpsLink['target_lng']);
             if ($dist > $gpsLink['radius_meters']) {
-                sendResponse(false, ['message' => 'You are outside allowed radius (' . round($dist) . 'm away, allowed max ' . $gpsLink['radius_meters'] . 'm).'], 422);
+                sendResponse(false, [
+                    'message' => 'Location verification failed: You are outside the allowed office radius (' . round($dist) . 'm away, allowed max ' . $gpsLink['radius_meters'] . 'm).',
+                    'distance_meters' => round($dist),
+                    'allowed_radius' => $gpsLink['radius_meters']
+                ], 422);
             }
         }
 
@@ -144,23 +167,30 @@ switch ($action) {
         if (!$attendance || empty($attendance['check_in_time'])) {
             $status = (date('H:i') > '09:30') ? 'late' : 'present';
             $stmtInsert = $pdo->prepare("
-                INSERT INTO attendances (user_id, date, check_in_time, method, latitude, longitude, location_name, status, notes)
-                VALUES (?, ?, ?, 'gps', ?, ?, ?, ?, ?)
+                INSERT INTO attendances (user_id, date, check_in_time, method, latitude, longitude, accuracy_meters, location_name, ip_address, user_agent, device_fingerprint, status, notes)
+                VALUES (?, ?, ?, 'gps', ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
-            $stmtInsert->execute([$user['id'], $today, $nowTime, $lat, $lng, $locName, $status, 'Checked in via GPS link: ' . $gpsLink['title']]);
+            $stmtInsert->execute([
+                $user['id'], $today, $nowTime, $lat, $lng, $accuracy, $locName, $ip, $userAgent, $deviceFingerprint,
+                $status, 'GPS Link: ' . $gpsLink['title'] . ($dist !== null ? ' (' . round($dist) . 'm from hub)' : '')
+            ]);
 
             $stmtAtt = $pdo->prepare("SELECT * FROM attendances WHERE id = ?");
             $stmtAtt->execute([$pdo->lastInsertId()]);
 
             sendResponse(true, [
                 'type' => 'check_in',
-                'message' => 'GPS Attendance Check-In marked successfully!',
+                'message' => 'GPS Attendance Check-In verified successfully!',
                 'attendance' => $stmtAtt->fetch(),
             ]);
         } else {
             if (empty($attendance['check_out_time'])) {
-                $stmtUpdate = $pdo->prepare("UPDATE attendances SET check_out_time = ?, latitude = ?, longitude = ? WHERE id = ?");
-                $stmtUpdate->execute([$nowTime, $lat, $lng, $attendance['id']]);
+                $stmtUpdate = $pdo->prepare("
+                    UPDATE attendances
+                    SET check_out_time = ?, latitude = ?, longitude = ?, accuracy_meters = ?, ip_address = ?
+                    WHERE id = ?
+                ");
+                $stmtUpdate->execute([$nowTime, $lat, $lng, $accuracy, $ip, $attendance['id']]);
                 $attendance['check_out_time'] = $nowTime;
 
                 sendResponse(true, [
@@ -200,9 +230,9 @@ switch ($action) {
             'token' => $link['token'],
             'expires_at' => $link['expires_at'],
             'seconds_remaining' => $secondsRemaining,
-            'target_lat' => $link['target_lat'],
-            'target_lng' => $link['target_lng'],
-            'radius_meters' => $link['radius_meters'],
+            'target_lat' => (float) $link['target_lat'],
+            'target_lng' => (float) $link['target_lng'],
+            'radius_meters' => (int) $link['radius_meters'],
         ]);
         break;
 
@@ -227,11 +257,16 @@ switch ($action) {
         ");
         $stmt->execute([$token, $title, $targetLat, $targetLng, $radius, $expiresAt, $user['id']]);
 
+        logAdminAction($pdo, $user['id'], 'generate_gps_link', null, "Created GPS Link '{$title}' valid for {$validity}m, radius {$radius}m.");
+
         sendResponse(true, [
             'message' => "GPS Link generated successfully. Valid for {$validity} minutes.",
             'token' => $token,
             'url' => "gps_punch.html?token={$token}",
             'expires_at' => $expiresAt,
+            'radius_meters' => $radius,
+            'target_lat' => $targetLat,
+            'target_lng' => $targetLng,
         ]);
         break;
 
@@ -264,6 +299,8 @@ switch ($action) {
         $pdo->exec("UPDATE qr_codes SET is_active = 0");
         $stmt = $pdo->prepare("INSERT INTO qr_codes (token, title, is_active) VALUES (?, ?, 1)");
         $stmt->execute([$token, $title]);
+
+        logAdminAction($pdo, $user['id'], 'refresh_office_qr', null, "Refreshed Office QR token to '{$token}'.");
 
         sendResponse(true, [
             'message' => 'Office QR Code refreshed successfully.',
@@ -298,7 +335,7 @@ switch ($action) {
             $params[] = $filterDate;
         }
 
-        $sql .= " ORDER BY a.date DESC, a.check_in_time DESC LIMIT 100";
+        $sql .= " ORDER BY a.date DESC, a.check_in_time DESC LIMIT 150";
 
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
@@ -314,6 +351,49 @@ switch ($action) {
             'history' => $history,
         ]);
         break;
+
+    case 'export_csv':
+        $user = getCurrentUser($pdo);
+        if (!$user || $user['role'] !== 'admin') {
+            sendResponse(false, ['message' => 'Unauthorized'], 403);
+        }
+
+        $filterDate = $_GET['date'] ?? '';
+        $sql = "
+            SELECT a.date, u.name, u.email, u.department, u.job_profile, a.check_in_time, a.check_out_time,
+                   a.method, a.status, a.latitude, a.longitude, a.ip_address, a.notes
+            FROM attendances a
+            JOIN users u ON a.user_id = u.id
+            WHERE 1=1
+        ";
+        $params = [];
+        if ($filterDate) {
+            $sql .= " AND a.date = ?";
+            $params[] = $filterDate;
+        }
+        $sql .= " ORDER BY a.date DESC, a.check_in_time DESC";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll();
+
+        // Stream as CSV
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=attendance_report_' . ($filterDate ?: 'all') . '.csv');
+        $fp = fopen('php://output', 'w');
+        fputcsv($fp, ['Date', 'Employee Name', 'Email', 'Department', 'Role', 'Check-In', 'Check-Out', 'Method', 'Status', 'Latitude', 'Longitude', 'IP Address', 'Notes']);
+
+        foreach ($rows as $r) {
+            fputcsv($fp, [
+                $r['date'], $r['name'], $r['email'], $r['department'], $r['job_profile'],
+                $r['check_in_time'] ?: '-', $r['check_out_time'] ?: '-',
+                strtoupper($r['method']), ucfirst($r['status']),
+                $r['latitude'] ?: '-', $r['longitude'] ?: '-',
+                $r['ip_address'] ?: '-', $r['notes'] ?: '-'
+            ]);
+        }
+        fclose($fp);
+        exit;
 
     default:
         sendResponse(false, ['message' => 'Invalid attendance action.'], 400);

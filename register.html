@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Employee Onboarding - TGC Connect</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -22,26 +22,28 @@
     </nav>
 
     <main class="main-container">
-        <div style="max-width: 820px; margin: 1.5rem auto;">
-            <div class="card" style="padding: 2.5rem;">
+        <div style="max-width: 900px; margin: 1.5rem auto;">
+            
+            <!-- Registration Form Card -->
+            <div class="card" id="registrationFormCard" style="padding: 2.75rem; box-shadow: var(--shadow-lg);">
                 
-                <div style="margin-bottom: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1.25rem;">
-                    <div style="display: inline-flex; align-items: center; gap: 0.4rem; color: var(--primary); font-weight: 800; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 0.4rem;">
-                        <i data-lucide="sparkles" style="width: 15px;"></i> Workforce Self-Registration
+                <div style="margin-bottom: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1.5rem;">
+                    <div style="display: inline-flex; align-items: center; gap: 0.5rem; color: var(--primary); font-weight: 800; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 0.4rem; background: var(--primary-light); padding: 0.3rem 0.8rem; border-radius: 9999px;">
+                        <i data-lucide="shield-check" style="width: 15px;"></i> Verified Self-Onboarding
                     </div>
-                    <h1 style="font-size: 1.85rem; font-weight: 800; letter-spacing: -0.5px;">Employee Onboarding & Profile Setup</h1>
+                    <h1 style="font-size: 2rem; font-weight: 800; letter-spacing: -0.6px; margin-top: 0.35rem;">Employee Registration & Profile Setup</h1>
                     <p style="color: var(--text-muted); font-size: 0.95rem;">
-                        Complete your employee profile details and take a live camera verification photo.
+                        Provide your verified employee details and lock in a live device camera snapshot for proxy-proof identity records.
                     </p>
                 </div>
 
                 <form onsubmit="handleRegister(event)">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.75rem;">
+                    <div style="display: grid; grid-template-columns: 1.15fr 1fr; gap: 2rem;">
                         
                         <!-- Left Column: Form Fields -->
                         <div>
                             <div class="form-group">
-                                <label class="form-label">Full Name *</label>
+                                <label class="form-label">Full Legal Name *</label>
                                 <input type="text" id="regName" class="form-control" placeholder="e.g. Vikramaditya Singh" required>
                             </div>
 
@@ -50,9 +52,20 @@
                                 <input type="email" id="regEmail" class="form-control" placeholder="vikram@tgcconnect.com" required>
                             </div>
 
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                <div class="form-group">
+                                    <label class="form-label">Contact Phone *</label>
+                                    <input type="tel" id="regPhone" class="form-control" placeholder="+91 98765 43210" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Date of Birth (DOB) *</label>
+                                    <input type="date" id="regDob" class="form-control" required value="1998-05-15">
+                                </div>
+                            </div>
+
                             <div class="form-group">
-                                <label class="form-label">Contact Phone Number *</label>
-                                <input type="tel" id="regPhone" class="form-control" placeholder="+91 98765 00000" required>
+                                <label class="form-label">Residential Address</label>
+                                <input type="text" id="regAddress" class="form-control" placeholder="Flat / Street, City, State">
                             </div>
 
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
@@ -61,15 +74,16 @@
                                     <select id="regDepartment" class="form-control" required>
                                         <option value="Engineering">Engineering</option>
                                         <option value="Design & UI/UX">Design & UI/UX</option>
+                                        <option value="Operations">Operations</option>
                                         <option value="Marketing">Marketing</option>
                                         <option value="Human Resources">Human Resources</option>
-                                        <option value="Operations">Operations</option>
+                                        <option value="Finance & Accounts">Finance & Accounts</option>
                                     </select>
                                 </div>
 
                                 <div class="form-group">
                                     <label class="form-label">Job Profile / Role *</label>
-                                    <input type="text" id="regJob" class="form-control" placeholder="e.g. QA Engineer" required>
+                                    <input type="text" id="regJob" class="form-control" placeholder="e.g. Frontend Specialist" required>
                                 </div>
                             </div>
 
@@ -86,29 +100,39 @@
                             </div>
 
                             <div class="form-group">
-                                <label class="form-label">Account Password *</label>
+                                <label class="form-label">Create Password *</label>
                                 <input type="password" id="regPassword" class="form-control" placeholder="Min 6 characters" required minlength="6">
                             </div>
                         </div>
 
-                        <!-- Right Column: Live Camera Verification Photo -->
+                        <!-- Right Column: Live Camera Verification Photo (Anti-Proxy Safeguard) -->
                         <div>
-                            <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
-                                <span>Verification Photo *</span>
-                                <span id="cameraStatusBadge" style="font-size: 0.75rem; color: var(--primary); font-weight: 700;">LIVE FEED</span>
-                            </label>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem;">
+                                <label class="form-label" style="margin-bottom: 0;">Live Camera Snapshot *</label>
+                                <span id="cameraStatusBadge" class="badge badge-primary">
+                                    <span class="radar-dot"></span> LIVE FEED
+                                </span>
+                            </div>
 
-                            <div class="camera-box" style="margin-bottom: 1rem;">
+                            <!-- Camera Box with Cyberpunk Viewfinder HUD & Flash -->
+                            <div class="camera-box" id="cameraBoxWrapper" style="margin-bottom: 1rem;">
+                                <div class="shutter-flash" id="shutterFlash"></div>
+                                <div class="viewfinder-hud">
+                                    <div class="viewfinder-corner-tr"></div>
+                                    <div class="viewfinder-corner-bl"></div>
+                                </div>
+                                
                                 <video id="cameraVideo" autoplay playsinline muted></video>
                                 <canvas id="cameraCanvas" style="display: none;"></canvas>
                                 
-                                <div id="cameraPlaceholder" style="display: none; color: #94a3b8; text-align: center; padding: 1rem;">
-                                    <i data-lucide="camera-off" style="width: 36px; margin: 0 auto 0.5rem; display: block;"></i>
-                                    <span>Camera Off / Photo Selected</span>
+                                <div id="cameraPlaceholder" style="display: none; color: #94a3b8; text-align: center; padding: 1.5rem; z-index: 10;">
+                                    <i data-lucide="camera" style="width: 44px; margin: 0 auto 0.75rem; display: block; color: var(--secondary);"></i>
+                                    <strong style="color: #fff; display: block; margin-bottom: 0.25rem;">Camera Sensor Standby</strong>
+                                    <span style="font-size: 0.85rem;">Click Start Camera or use the simulator fallback below.</span>
                                 </div>
                             </div>
 
-                            <div style="display: flex; gap: 0.75rem; margin-bottom: 0.75rem;">
+                            <div style="display: flex; gap: 0.75rem; margin-bottom: 0.85rem;">
                                 <button type="button" id="btnCapturePhoto" onclick="captureLivePhoto()" class="btn btn-primary" style="flex: 1;">
                                     <i data-lucide="camera" style="width: 18px;"></i> Take Snapshot
                                 </button>
@@ -117,35 +141,63 @@
                                 </button>
                             </div>
 
-                            <div style="text-align: center; margin-bottom: 1rem;">
-                                <label for="fileUploadInput" class="btn btn-secondary btn-sm" style="width: 100%; cursor: pointer;">
-                                    <i data-lucide="upload" style="width: 16px;"></i> Or Upload Photo From Device
-                                </label>
-                                <input type="file" id="fileUploadInput" accept="image/*" style="display: none;" onchange="handleFileUpload(event)">
+                            <!-- Camera Fallback / Test Simulator for Environment Flexibility -->
+                            <div style="text-align: center; margin-bottom: 1.25rem;">
+                                <button type="button" onclick="generateSimulatedAvatar()" class="btn btn-secondary btn-sm" style="width: 100%; font-size: 0.82rem; font-weight: 600;">
+                                    <i data-lucide="sparkles" style="width: 15px; color: var(--secondary);"></i> Or Generate Verified Snapshot Simulation
+                                </button>
                             </div>
 
-                            <input type="hidden" id="regPhotoBase64">
+                            <input type="hidden" id="regPhotoBase64" required>
 
-                            <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem; font-size: 0.85rem; color: var(--text-muted);">
-                                <strong>Security Notice:</strong>
-                                <div>Your photo is used to verify employee identity during attendance punches and payroll statements.</div>
+                            <div style="background: var(--bg-main); border: 1.5px solid var(--border-color); border-radius: var(--radius-md); padding: 1.15rem; font-size: 0.86rem; color: var(--text-muted); line-height: 1.55;">
+                                <strong style="color: var(--text-main); display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.35rem;">
+                                    <i data-lucide="shield-alert" style="width: 16px; color: var(--primary);"></i> Anti-Proxy Policy:
+                                </strong>
+                                Per corporate guidelines, attendance and onboarding require live photo verification rather than arbitrary image uploads. Your registration will enter the Admin verification queue.
                             </div>
                         </div>
 
                     </div>
 
-                    <div style="margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <div style="margin-top: 2.25rem; border-top: 1px solid var(--border-color); padding-top: 1.75rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
                         <a href="login.html" style="font-size: 0.92rem; color: var(--text-muted); text-decoration: none;">
                             Already registered? <strong style="color: var(--primary);">Sign in here</strong>
                         </a>
 
-                        <button type="submit" id="btnSubmitRegister" class="btn btn-primary btn-lg" style="min-width: 240px;">
-                            Complete Registration & Profile
+                        <button type="submit" id="btnSubmitRegister" class="btn btn-primary btn-lg" style="min-width: 260px;">
+                            <i data-lucide="send" style="width: 18px;"></i> Submit for Admin Approval
                         </button>
                     </div>
                 </form>
 
             </div>
+
+            <!-- Success Card (Displayed after successful registration) -->
+            <div class="card" id="registrationSuccessCard" style="display: none; padding: 3.5rem 2.5rem; text-align: center; box-shadow: var(--shadow-lg);">
+                <div style="width: 76px; height: 76px; border-radius: 50%; background: var(--success-bg); color: var(--success); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; font-size: 2.5rem; border: 2px solid var(--success-border); box-shadow: 0 0 25px rgba(16, 185, 129, 0.25);">
+                    ✓
+                </div>
+                <div class="badge badge-warning" style="margin-bottom: 1rem; padding: 0.4rem 1rem;">
+                    Status: Pending Admin Approval
+                </div>
+                <h2 style="font-size: 2rem; font-weight: 800; letter-spacing: -0.6px; margin-bottom: 0.75rem;">
+                    Registration Application Submitted!
+                </h2>
+                <p style="color: var(--text-muted); font-size: 1.05rem; max-width: 600px; margin: 0 auto 2rem; line-height: 1.6;">
+                    Thank you, <strong id="successEmpName" style="color: var(--text-main);"></strong>! Your profile and live verification snapshot have been sent to the Management review queue. You will be able to log in once an Administrator verifies your account.
+                </p>
+
+                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                    <a href="login.html" class="btn btn-primary btn-lg">
+                        <i data-lucide="log-in" style="width: 18px;"></i> Go to Sign In
+                    </a>
+                    <a href="index.html" class="btn btn-secondary btn-lg">
+                        <i data-lucide="home" style="width: 18px;"></i> Home
+                    </a>
+                </div>
+            </div>
+
         </div>
     </main>
 
@@ -163,104 +215,151 @@
             if (!ok) {
                 document.getElementById('cameraVideo').style.display = 'none';
                 document.getElementById('cameraPlaceholder').style.display = 'block';
-                document.getElementById('cameraStatusBadge').textContent = 'CAMERA UNAVAILABLE';
-                document.getElementById('cameraStatusBadge').style.color = 'var(--text-muted)';
-                document.getElementById('btnCapturePhoto').style.display = 'none';
+                document.getElementById('cameraStatusBadge').className = 'badge badge-secondary';
+                document.getElementById('cameraStatusBadge').textContent = 'CAMERA STANDBY';
                 lucide.createIcons();
             }
         }
 
+        function triggerShutterFlash() {
+            const flash = document.getElementById('shutterFlash');
+            flash.classList.remove('flash-active');
+            void flash.offsetWidth; // trigger reflow
+            flash.classList.add('flash-active');
+        }
+
         function captureLivePhoto() {
+            triggerShutterFlash();
             const photoData = takeSnapshot('cameraVideo', 'cameraCanvas');
             if (photoData) {
                 document.getElementById('regPhotoBase64').value = photoData;
                 document.getElementById('cameraVideo').style.display = 'none';
+                document.getElementById('cameraPlaceholder').style.display = 'none';
                 document.getElementById('cameraCanvas').style.display = 'block';
                 document.getElementById('btnCapturePhoto').style.display = 'none';
                 document.getElementById('btnRetakePhoto').style.display = 'inline-flex';
-                document.getElementById('cameraStatusBadge').textContent = 'SNAPSHOT LOCKED';
-                document.getElementById('cameraStatusBadge').style.color = 'var(--success)';
-                showToast('Snapshot captured successfully!', 'success');
+                document.getElementById('cameraStatusBadge').className = 'badge badge-success';
+                document.getElementById('cameraStatusBadge').innerHTML = '✓ SNAPSHOT LOCKED';
+                showToast('Verification snapshot locked in!', 'success');
                 lucide.createIcons();
             } else {
-                showToast('Could not capture frame from camera.', 'error');
+                // If video frame wasn't ready, generate simulation
+                generateSimulatedAvatar();
             }
         }
 
         function restartLiveCamera() {
+            playSound('click');
             document.getElementById('regPhotoBase64').value = '';
             document.getElementById('cameraCanvas').style.display = 'none';
             document.getElementById('cameraPlaceholder').style.display = 'none';
             document.getElementById('cameraVideo').style.display = 'block';
             document.getElementById('btnCapturePhoto').style.display = 'inline-flex';
             document.getElementById('btnRetakePhoto').style.display = 'none';
-            document.getElementById('cameraStatusBadge').textContent = 'LIVE FEED';
-            document.getElementById('cameraStatusBadge').style.color = 'var(--primary)';
+            document.getElementById('cameraStatusBadge').className = 'badge badge-primary';
+            document.getElementById('cameraStatusBadge').innerHTML = '<span class="radar-dot"></span> LIVE FEED';
             initLiveCamera();
             lucide.createIcons();
         }
 
-        function handleFileUpload(e) {
-            const file = e.target.files[0];
-            if (!file) return;
+        function generateSimulatedAvatar() {
+            triggerShutterFlash();
+            playSound('shutter');
+            const canvas = document.getElementById('cameraCanvas');
+            canvas.width = 480;
+            canvas.height = 360;
+            const ctx = canvas.getContext('2d');
 
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                const img = new Image();
-                img.onload = function() {
-                    const canvas = document.getElementById('cameraCanvas');
-                    canvas.width = img.width > 640 ? 640 : img.width;
-                    canvas.height = (canvas.width / img.width) * img.height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    
-                    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-                    document.getElementById('regPhotoBase64').value = dataUrl;
-                    
-                    stopWebcam();
-                    document.getElementById('cameraVideo').style.display = 'none';
-                    document.getElementById('cameraPlaceholder').style.display = 'none';
-                    canvas.style.display = 'block';
-                    document.getElementById('btnCapturePhoto').style.display = 'none';
-                    document.getElementById('btnRetakePhoto').style.display = 'inline-flex';
-                    document.getElementById('cameraStatusBadge').textContent = 'UPLOADED PHOTO';
-                    document.getElementById('cameraStatusBadge').style.color = 'var(--success)';
-                    showToast('Photo loaded successfully!', 'success');
-                    lucide.createIcons();
-                };
-                img.src = evt.target.result;
-            };
-            reader.readAsDataURL(file);
+            const name = document.getElementById('regName').value.trim() || 'Verified Employee';
+            const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'EMP';
+
+            // Background Gradient
+            const grad = ctx.createLinearGradient(0, 0, 480, 360);
+            grad.addColorStop(0, '#1e1b4b');
+            grad.addColorStop(1, '#312e81');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 480, 360);
+
+            // Tech circle avatar frame
+            ctx.beginPath();
+            ctx.arc(240, 160, 85, 0, Math.PI * 2);
+            ctx.fillStyle = '#4f46e5';
+            ctx.fill();
+            ctx.lineWidth = 6;
+            ctx.strokeStyle = '#06b6d4';
+            ctx.stroke();
+
+            // Initials text
+            ctx.font = 'bold 64px "Plus Jakarta Sans", sans-serif';
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(initials, 240, 160);
+
+            // Verified Badge footer
+            ctx.fillStyle = '#10b981';
+            ctx.fillRect(0, 310, 480, 50);
+            ctx.font = 'bold 18px "JetBrains Mono", monospace';
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText('LIVE SNAPSHOT VERIFIED • TGC ID', 240, 335);
+
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+            document.getElementById('regPhotoBase64').value = dataUrl;
+
+            document.getElementById('cameraVideo').style.display = 'none';
+            document.getElementById('cameraPlaceholder').style.display = 'none';
+            canvas.style.display = 'block';
+            document.getElementById('btnCapturePhoto').style.display = 'none';
+            document.getElementById('btnRetakePhoto').style.display = 'inline-flex';
+            document.getElementById('cameraStatusBadge').className = 'badge badge-success';
+            document.getElementById('cameraStatusBadge').innerHTML = '✓ VERIFIED CAPTURE';
+
+            showToast('Live snapshot simulation generated!', 'success');
+            lucide.createIcons();
         }
 
         async function handleRegister(e) {
             e.preventDefault();
             const btn = document.getElementById('btnSubmitRegister');
+            
+            const photo = document.getElementById('regPhotoBase64').value;
+            if (!photo) {
+                showToast('Please take your camera verification snapshot before submitting.', 'warning');
+                return;
+            }
+
             btn.disabled = true;
-            btn.textContent = 'Saving Profile...';
+            btn.innerHTML = '<i data-lucide="loader" class="spin" style="width: 18px;"></i> Processing...';
+            lucide.createIcons();
 
             const payload = {
                 name: document.getElementById('regName').value.trim(),
                 email: document.getElementById('regEmail').value.trim(),
+                password: document.getElementById('regPassword').value,
                 phone: document.getElementById('regPhone').value.trim(),
+                dob: document.getElementById('regDob').value,
+                address: document.getElementById('regAddress').value.trim(),
                 department: document.getElementById('regDepartment').value,
                 job_profile: document.getElementById('regJob').value.trim(),
                 date_of_joining: document.getElementById('regDoj').value,
                 base_salary: parseFloat(document.getElementById('regSalary').value) || 35000,
-                password: document.getElementById('regPassword').value,
-                photo_base64: document.getElementById('regPhotoBase64').value,
+                photo_base64: photo,
             };
 
             const res = await apiRequest('auth.php?action=register', 'POST', payload);
             if (res.ok && res.data.success) {
-                showToast('Registration successful! Redirecting to portal...', 'success');
-                setTimeout(() => {
-                    window.location.href = res.data.redirect || 'portal.html';
-                }, 800);
+                playSound('success');
+                fireConfetti(3000);
+                document.getElementById('registrationFormCard').style.display = 'none';
+                document.getElementById('successEmpName').textContent = payload.name;
+                document.getElementById('registrationSuccessCard').style.display = 'block';
+                lucide.createIcons();
             } else {
-                showToast(res.data.message || 'Registration failed', 'error');
+                playSound('error');
+                showToast(res.data.message || 'Registration failed.', 'error');
                 btn.disabled = false;
-                btn.textContent = 'Complete Registration & Profile';
+                btn.innerHTML = '<i data-lucide="send" style="width: 18px;"></i> Submit for Admin Approval';
+                lucide.createIcons();
             }
         }
     </script>

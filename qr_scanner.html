@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Office QR Attendance Scanner - TGC Connect</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <link rel="stylesheet" href="css/style.css">
@@ -25,31 +25,35 @@
     </nav>
 
     <main class="main-container">
-        <div style="max-width: 600px; margin: 1rem auto;">
-            <div class="card" style="padding: 2.25rem; text-align: center;">
+        <div style="max-width: 620px; margin: 1rem auto;">
+            <div class="card" style="padding: 2.5rem 2.25rem; text-align: center; box-shadow: var(--shadow-lg);">
                 
                 <div style="margin-bottom: 1.75rem;">
-                    <div style="display: inline-flex; align-items: center; gap: 0.5rem; color: var(--primary); font-weight: 800; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.6px; margin-bottom: 0.5rem; background: var(--primary-light); padding: 0.35rem 0.85rem; border-radius: 999px;">
-                        <i data-lucide="scan" style="width: 16px;"></i> Live Optical Scanner
+                    <div style="display: inline-flex; align-items: center; gap: 0.5rem; color: var(--primary); font-weight: 800; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.6px; margin-bottom: 0.5rem; background: var(--primary-light); padding: 0.35rem 0.95rem; border-radius: 9999px;">
+                        <span class="radar-dot"></span> Optical Scanner HUD
                     </div>
-                    <h2 style="font-size: 1.75rem; font-weight: 800; letter-spacing: -0.5px;">Scan Office QR Code</h2>
+                    <h1 style="font-size: 1.85rem; font-weight: 800; letter-spacing: -0.5px; margin: 0.2rem 0;">Scan Office QR Standee</h1>
                     <p style="color: var(--text-muted); font-size: 0.92rem;">
-                        Align your camera with the reception standee to register your attendance timestamp.
+                        Align your device camera with the reception standee to register your timestamp.
                     </p>
                 </div>
 
-                <!-- Camera Scanner Box with Laser Effect -->
-                <div style="border-radius: var(--radius-lg); overflow: hidden; border: 2px dashed var(--primary); background: #0f172a; margin-bottom: 1.5rem; min-height: 290px; position: relative;">
+                <!-- Camera Scanner Box with Futuristic Cyberpunk Viewfinder HUD & Laser -->
+                <div style="border-radius: var(--radius-lg); overflow: hidden; border: 2px solid rgba(79, 70, 229, 0.4); background: #0f172a; margin-bottom: 1.5rem; min-height: 310px; position: relative; box-shadow: inset 0 0 35px rgba(0,0,0,0.8);">
+                    <div class="viewfinder-hud">
+                        <div class="viewfinder-corner-tr"></div>
+                        <div class="viewfinder-corner-bl"></div>
+                    </div>
                     <div class="scanner-laser" id="scannerLaser"></div>
                     <div id="qr-reader" style="width: 100%;"></div>
                 </div>
 
                 <!-- Result Status Box -->
                 <div id="scanResultBox" style="display: none; padding: 1.25rem; border-radius: var(--radius-md); background: var(--success-bg); border: 1.5px solid var(--success-border); margin-bottom: 1.5rem; text-align: left;">
-                    <div style="font-weight: 800; color: #065f46; margin-bottom: 0.25rem; font-size: 1.05rem;" id="scanResultTitle">
-                        Attendance Marked!
+                    <div style="font-weight: 800; color: #065f46; margin-bottom: 0.3rem; font-size: 1.1rem;" id="scanResultTitle">
+                        Attendance Verified!
                     </div>
-                    <div style="font-size: 0.9rem; color: #047857;" id="scanResultDetails"></div>
+                    <div style="font-size: 0.92rem; color: #047857;" id="scanResultDetails"></div>
                 </div>
 
                 <!-- Action Controls -->
@@ -65,13 +69,13 @@
                     </a>
                 </div>
 
-                <!-- Manual Code Input Fallback -->
+                <!-- Manual Standee Token Fallback -->
                 <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color); text-align: left;">
-                    <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">
-                        Manual QR Token Input (Standee Backup)
+                    <div style="font-size: 0.8rem; font-weight: 800; color: var(--text-muted); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.6px;">
+                        Manual Code Input (Reception Fallback)
                     </div>
                     <form onsubmit="handleManualQrSubmit(event)" style="display: flex; gap: 0.5rem;">
-                        <input type="text" id="manualTokenInput" class="form-control" placeholder="Enter QR Token..." required style="font-size: 0.88rem;">
+                        <input type="text" id="manualTokenInput" class="form-control" placeholder="Enter QR Token e.g. TGC-OFFICE-..." required style="font-size: 0.9rem; font-family: var(--font-mono);">
                         <button type="submit" class="btn btn-secondary btn-sm" style="white-space: nowrap; font-weight: 700;">Submit Token</button>
                     </form>
                 </div>
@@ -88,7 +92,7 @@
         let isProcessingScan = false;
 
         document.addEventListener('DOMContentLoaded', async () => {
-            checkAuthNav();
+            await checkAuthNav();
             loadActiveQrToken();
             startScanner();
         });
@@ -101,11 +105,12 @@
         }
 
         async function startScanner() {
+            playSound('click');
             try {
                 if (!html5QrCode) {
                     html5QrCode = new Html5Qrcode("qr-reader");
                 }
-                const config = { fps: 12, qrbox: { width: 250, height: 250 } };
+                const config = { fps: 15, qrbox: { width: 240, height: 240 } };
                 await html5QrCode.start(
                     { facingMode: "environment" },
                     config,
@@ -122,6 +127,7 @@
         }
 
         async function stopScanner() {
+            playSound('click');
             if (html5QrCode) {
                 await html5QrCode.stop();
                 document.getElementById('startScanBtn').style.display = 'inline-flex';
@@ -135,11 +141,15 @@
             if (isProcessingScan) return;
             isProcessingScan = true;
 
+            playSound('beep');
             showToast("QR Code recognized! Verifying...", "info");
 
-            const res = await apiRequest('attendance.php?action=qr_punch_in', 'POST', {
-                token: decodedText.trim()
-            });
+            const payload = {
+                token: decodedText.trim(),
+                device_fingerprint: getDeviceFingerprint(),
+            };
+
+            const res = await apiRequest('attendance.php?action=qr_punch_in', 'POST', payload);
 
             const resultBox = document.getElementById('scanResultBox');
             const resultTitle = document.getElementById('scanResultTitle');
@@ -147,22 +157,25 @@
             resultBox.style.display = 'block';
 
             if (res.ok && res.data.success) {
+                playSound('success');
+                fireConfetti(3000);
                 showToast(res.data.message, 'success');
                 resultBox.style.background = 'var(--success-bg)';
                 resultBox.style.borderColor = 'var(--success-border)';
-                resultTitle.textContent = '✅ ' + res.data.message;
+                resultTitle.textContent = '✓ ' + res.data.message;
                 resultDetails.innerHTML = `Date: <strong>${res.data.attendance.date}</strong> &bull; Time: <strong>${res.data.attendance.check_in_time}</strong> (${res.data.attendance.status.toUpperCase()})`;
                 
                 setTimeout(() => {
                     window.location.href = 'portal.html';
-                }, 1800);
+                }, 2000);
             } else {
+                playSound('error');
                 showToast(res.data.message || 'QR Verification failed', 'error');
                 resultBox.style.background = 'var(--danger-bg)';
                 resultBox.style.borderColor = 'var(--danger-border)';
-                resultTitle.textContent = '❌ ' + (res.data.message || 'Verification Failed');
-                resultDetails.textContent = res.data.message || 'The scanned QR code is either invalid, already punched, or expired.';
-                setTimeout(() => { isProcessingScan = false; }, 3000);
+                resultTitle.textContent = '✗ ' + (res.data.message || 'Verification Failed');
+                resultDetails.textContent = res.data.message || 'The scanned QR code is either invalid, already punched today, or expired.';
+                setTimeout(() => { isProcessingScan = false; }, 3200);
             }
         }
 

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Employee Portal - TGC Connect</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -27,61 +27,72 @@
         <div style="display: flex; flex-direction: column; gap: 2rem;">
             
             <!-- Employee Profile Banner -->
-            <div class="card" style="background: linear-gradient(135deg, #1e1b4b, #312e81); color: #fff; border: none; padding: 2.25rem; box-shadow: 0 10px 25px -5px rgba(49, 46, 129, 0.4);">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
+            <div class="card" style="background: linear-gradient(135deg, #1e1b4b, #312e81, #1e1b4b); color: #fff; border: none; padding: 2.25rem; box-shadow: 0 12px 30px -5px rgba(49, 46, 129, 0.45); position: relative; overflow: hidden;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem; position: relative; z-index: 2;">
                     <div style="display: flex; align-items: center; gap: 1.5rem;">
-                        <div id="userAvatarBox" style="width: 72px; height: 72px; border-radius: 50%; border: 3.5px solid rgba(255,255,255,0.25); overflow: hidden; background: #4338ca; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; font-weight: 800; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+                        <div id="userAvatarBox" style="width: 78px; height: 78px; border-radius: 50%; border: 3.5px solid rgba(255,255,255,0.3); overflow: hidden; background: #4338ca; display: flex; align-items: center; justify-content: center; font-size: 1.85rem; font-weight: 800; box-shadow: 0 6px 16px rgba(0,0,0,0.35);">
                             --
                         </div>
                         <div>
-                            <div id="userDeptProfile" style="font-size: 0.88rem; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 700;">
-                                Loading Profile...
+                            <div style="display: flex; align-items: center; gap: 0.65rem; margin-bottom: 0.25rem;">
+                                <div id="userDeptProfile" style="font-size: 0.88rem; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 700;">
+                                    Loading Profile...
+                                </div>
+                                <span id="pendingChangeNoticeBadge" style="display: none;" class="badge badge-warning">
+                                    Profile Update Pending Approval
+                                </span>
                             </div>
-                            <h1 id="userNameHeading" style="font-size: 2rem; font-weight: 800; margin: 0.25rem 0; letter-spacing: -0.5px;">Welcome Employee</h1>
+                            <h1 id="userNameHeading" style="font-size: 2.2rem; font-weight: 800; margin: 0.15rem 0; letter-spacing: -0.6px;">Welcome Employee</h1>
                             <div id="userSubInfo" style="font-size: 0.95rem; color: #c7d2fe;"></div>
                         </div>
                     </div>
 
-                    <div style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 0.85rem 1.35rem; border-radius: var(--radius-md); border: 1px solid rgba(255,255,255,0.18); text-align: right;">
-                        <div style="font-size: 0.75rem; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600;">Workplace Clock</div>
-                        <div id="liveClock" style="font-size: 1.2rem; font-weight: 700; color: #fff; font-family: var(--font-mono); margin-top: 0.15rem;">--:--:--</div>
+                    <div style="display: flex; gap: 0.75rem; align-items: center;">
+                        <button type="button" onclick="openProfileEditModal()" class="btn btn-secondary btn-sm" style="background: rgba(255,255,255,0.15); color: #fff; border-color: rgba(255,255,255,0.25);">
+                            <i data-lucide="edit-3" style="width: 16px;"></i> Request Profile Edit
+                        </button>
+
+                        <div style="background: rgba(255, 255, 255, 0.12); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 0.85rem 1.45rem; border-radius: var(--radius-md); border: 1px solid rgba(255,255,255,0.22); text-align: right;">
+                            <div style="font-size: 0.75rem; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.7px; font-weight: 700;">Workplace Clock</div>
+                            <div id="liveClock" style="font-size: 1.25rem; font-weight: 800; color: #fff; font-family: var(--font-mono); margin-top: 0.15rem;">--:--:--</div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Today's Attendance & Leave Quota Grid -->
-            <div style="display: grid; grid-template-columns: 1fr 1.4fr; gap: 1.5rem;">
+            <div style="display: grid; grid-template-columns: 1fr 1.35fr; gap: 1.65rem;">
                 
                 <!-- Today Attendance Card -->
                 <div class="card">
                     <div class="card-header">
                         <div class="card-title">
-                            <i data-lucide="clock" style="color: var(--primary);"></i> Today's Attendance Status
+                            <i data-lucide="clock" style="color: var(--primary);"></i> Today's Attendance Punch
                         </div>
                         <span id="todayDateBadge" class="badge badge-primary">Today</span>
                     </div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
-                        <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.15rem; text-align: center;">
-                            <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 0.3rem;">CHECK-IN TIME</div>
-                            <div id="checkInTimeDisplay" style="font-size: 1.35rem; font-weight: 800; color: var(--text-main); font-family: var(--font-mono);">--:--</div>
+                        <div style="background: var(--bg-main); border: 1.5px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem; text-align: center;">
+                            <div style="font-size: 0.78rem; font-weight: 800; color: var(--text-muted); letter-spacing: 0.6px; margin-bottom: 0.35rem;">CHECK-IN TIME</div>
+                            <div id="checkInTimeDisplay" style="font-size: 1.5rem; font-weight: 800; color: var(--text-main); font-family: var(--font-mono);">--:--</div>
                         </div>
 
-                        <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.15rem; text-align: center;">
-                            <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 0.3rem;">CHECK-OUT TIME</div>
-                            <div id="checkOutTimeDisplay" style="font-size: 1.35rem; font-weight: 800; color: var(--text-main); font-family: var(--font-mono);">--:--</div>
+                        <div style="background: var(--bg-main); border: 1.5px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem; text-align: center;">
+                            <div style="font-size: 0.78rem; font-weight: 800; color: var(--text-muted); letter-spacing: 0.6px; margin-bottom: 0.35rem;">CHECK-OUT TIME</div>
+                            <div id="checkOutTimeDisplay" style="font-size: 1.5rem; font-weight: 800; color: var(--text-main); font-family: var(--font-mono);">--:--</div>
                         </div>
                     </div>
 
-                    <div id="attendanceStatusBanner" style="padding: 0.85rem; border-radius: var(--radius-md); background: var(--bg-main); border: 1px solid var(--border-color); text-align: center; margin-bottom: 1.5rem; font-weight: 600; font-size: 0.92rem;">
+                    <div id="attendanceStatusBanner" style="padding: 1rem; border-radius: var(--radius-md); background: var(--bg-main); border: 1.5px solid var(--border-color); text-align: center; margin-bottom: 1.5rem; font-weight: 700; font-size: 0.95rem;">
                         Checking attendance status...
                     </div>
 
                     <div style="display: flex; gap: 0.75rem; flex-direction: column;">
-                        <a href="qr_scanner.html" class="btn btn-primary" style="width: 100%; padding: 0.8rem;">
-                            <i data-lucide="qr-code" style="width: 18px;"></i> Scan Office QR Code
+                        <a href="qr_scanner.html" class="btn btn-primary" style="width: 100%; padding: 0.85rem;" onclick="playSound('click')">
+                            <i data-lucide="qr-code" style="width: 18px;"></i> Scan Office QR Code (In / Out)
                         </a>
-                        <button type="button" id="punchOutBtn" onclick="handlePunchOut()" class="btn btn-danger" style="display: none; width: 100%; padding: 0.8rem;">
+                        <button type="button" id="punchOutBtn" onclick="handlePunchOut()" class="btn btn-danger" style="display: none; width: 100%; padding: 0.85rem;">
                             <i data-lucide="log-out" style="width: 18px;"></i> Mark Check-Out for Today
                         </button>
                     </div>
@@ -98,28 +109,28 @@
                         </button>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-                        <div style="background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: var(--radius-md); padding: 1.15rem;">
-                            <div style="font-size: 0.8rem; font-weight: 700; color: #1e40af; text-transform: uppercase; letter-spacing: 0.5px;">Casual Leave (CL)</div>
-                            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 0.5rem;">
-                                <span id="clRemaining" style="font-size: 1.85rem; font-weight: 800; color: #1e3a8a;">--</span>
-                                <span id="clTotal" style="font-size: 0.85rem; color: #3b82f6; font-weight: 600;">/ 12 days left</span>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1.15rem; margin-bottom: 1.5rem;">
+                        <div style="background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: var(--radius-md); padding: 1.25rem;">
+                            <div style="font-size: 0.8rem; font-weight: 800; color: #1e40af; text-transform: uppercase; letter-spacing: 0.6px;">Casual Leave (CL)</div>
+                            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 0.65rem;">
+                                <span id="clRemaining" style="font-size: 2rem; font-weight: 800; color: #1e3a8a; font-family: var(--font-mono);">--</span>
+                                <span id="clTotal" style="font-size: 0.85rem; color: #3b82f6; font-weight: 700;">/ 12 days left</span>
                             </div>
                         </div>
 
-                        <div style="background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: var(--radius-md); padding: 1.15rem;">
-                            <div style="font-size: 0.8rem; font-weight: 700; color: #166534; text-transform: uppercase; letter-spacing: 0.5px;">Sick Leave (SL)</div>
-                            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 0.5rem;">
-                                <span id="slRemaining" style="font-size: 1.85rem; font-weight: 800; color: #14532d;">--</span>
-                                <span id="slTotal" style="font-size: 0.85rem; color: #22c55e; font-weight: 600;">/ 6 days left</span>
+                        <div style="background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: var(--radius-md); padding: 1.25rem;">
+                            <div style="font-size: 0.8rem; font-weight: 800; color: #166534; text-transform: uppercase; letter-spacing: 0.6px;">Sick Leave (SL)</div>
+                            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 0.65rem;">
+                                <span id="slRemaining" style="font-size: 2rem; font-weight: 800; color: #14532d; font-family: var(--font-mono);">--</span>
+                                <span id="slTotal" style="font-size: 0.85rem; color: #22c55e; font-weight: 700;">/ 6 days left</span>
                             </div>
                         </div>
                     </div>
 
-                    <div style="font-size: 0.92rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.75rem;">
+                    <div style="font-size: 0.95rem; font-weight: 800; color: var(--text-main); margin-bottom: 0.75rem;">
                         Recent Leave Applications
                     </div>
-                    <div id="recentLeavesList" style="max-height: 160px; overflow-y: auto;">
+                    <div id="recentLeavesList" style="max-height: 175px; overflow-y: auto;">
                         <div style="color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 1rem;">Loading leaves...</div>
                     </div>
                 </div>
@@ -146,7 +157,7 @@
                                 <th>Check-In</th>
                                 <th>Check-Out</th>
                                 <th>Status</th>
-                                <th>Notes</th>
+                                <th>Notes / Verification Details</th>
                             </tr>
                         </thead>
                         <tbody id="attendanceHistoryTableBody">
@@ -159,18 +170,18 @@
                     <table class="custom-table">
                         <thead>
                             <tr>
-                                <th>Period</th>
+                                <th>Pay Period</th>
                                 <th>Base Salary</th>
                                 <th>Working Days</th>
                                 <th>Present / Paid</th>
-                                <th>Unpaid Deductions</th>
+                                <th>Absent Deductions</th>
                                 <th>Net Payable</th>
                                 <th>Status</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
                         <tbody id="salarySlipsTableBody">
-                            <tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Loading salary slips...</td></tr>
+                            <tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Loading slips...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -179,21 +190,22 @@
         </div>
     </main>
 
-    <!-- Apply Leave Modal -->
+    <!-- Modals -->
+
+    <!-- 1. Apply Leave Modal -->
     <div class="modal-overlay" id="applyLeaveModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 style="font-size: 1.2rem; font-weight: 800;">Apply for Leave</h3>
+                <h3 style="font-size: 1.25rem; font-weight: 800;">Apply for Leave</h3>
                 <button class="close-btn" onclick="closeModal('applyLeaveModal')">&times;</button>
             </div>
             <form onsubmit="handleApplyLeave(event)">
                 <div class="modal-body">
                     <div class="form-group">
-                        <label class="form-label">Leave Type *</label>
+                        <label class="form-label">Leave Category *</label>
                         <select id="leaveTypeInput" class="form-control" required>
                             <option value="casual">Casual Leave (CL)</option>
                             <option value="sick">Sick Leave (SL)</option>
-                            <option value="unpaid">Unpaid Leave</option>
                         </select>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
@@ -210,6 +222,9 @@
                         <label class="form-label">Reason for Leave *</label>
                         <textarea id="leaveReasonInput" class="form-control" rows="3" placeholder="Please mention the purpose of leave..." required></textarea>
                     </div>
+                    <div style="font-size: 0.82rem; color: var(--text-muted); background: var(--bg-main); padding: 0.75rem; border-radius: var(--radius-sm);">
+                        ℹ️ Sundays and official company holidays are automatically excluded from leave deductions.
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('applyLeaveModal')">Cancel</button>
@@ -219,17 +234,94 @@
         </div>
     </div>
 
-    <!-- View Payslip Modal -->
-    <div class="modal-overlay" id="viewSlipModal">
-        <div class="modal-content" style="max-width: 680px;">
+    <!-- 2. Request Profile Edit Modal -->
+    <div class="modal-overlay" id="profileEditModal">
+        <div class="modal-content">
             <div class="modal-header">
-                <h3 style="font-size: 1.2rem; font-weight: 800;">Employee Payslip Statement</h3>
+                <h3 style="font-size: 1.25rem; font-weight: 800;">Request Profile Information Edit</h3>
+                <button class="close-btn" onclick="closeModal('profileEditModal')">&times;</button>
+            </div>
+            <form onsubmit="handleProfileEditSubmit(event)">
+                <div class="modal-body">
+                    <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+                        Changes to employee profile records require Admin oversight and verification before becoming active.
+                    </p>
+                    <div class="form-group">
+                        <label class="form-label">Contact Phone</label>
+                        <input type="tel" id="editProfilePhone" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Date of Birth</label>
+                        <input type="date" id="editProfileDob" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Residential Address</label>
+                        <input type="text" id="editProfileAddress" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Reason for Update</label>
+                        <textarea id="editProfileReason" class="form-control" rows="2" placeholder="e.g. Changed contact number and relocated"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('profileEditModal')">Cancel</button>
+                    <button type="submit" id="btnSubmitProfileEdit" class="btn btn-primary">Submit Change Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 3. Mandatory First-Login Setup Wizard Modal -->
+    <div class="modal-overlay" id="firstLoginWizardModal">
+        <div class="modal-content" style="max-width: 540px;">
+            <div class="modal-header">
+                <h3 style="font-size: 1.25rem; font-weight: 800;">Welcome! First-Time Profile Setup</h3>
+            </div>
+            <form onsubmit="handleFirstLoginSetup(event)">
+                <div class="modal-body">
+                    <p style="font-size: 0.92rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+                        Your account was registered by an Administrator. Before accessing the workspace, corporate policy requires setting your personal password and taking a live webcam verification photo.
+                    </p>
+                    <div class="form-group">
+                        <label class="form-label">Set New Password *</label>
+                        <input type="password" id="firstLoginPassword" class="form-control" placeholder="Min 6 characters" required minlength="6">
+                    </div>
+
+                    <label class="form-label">Mandatory Live Photo Snapshot *</label>
+                    <div class="camera-box" style="margin-bottom: 1rem; aspect-ratio: 4/3;">
+                        <video id="firstLoginVideo" autoplay playsinline muted></video>
+                        <canvas id="firstLoginCanvas" style="display: none;"></canvas>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                        <button type="button" onclick="takeFirstLoginSnapshot()" class="btn btn-secondary btn-sm" style="flex: 1;">
+                            <i data-lucide="camera" style="width: 16px;"></i> Snap Photo
+                        </button>
+                        <button type="button" onclick="generateFirstLoginSim()" class="btn btn-secondary btn-sm">
+                            Simulation Fallback
+                        </button>
+                    </div>
+                    <input type="hidden" id="firstLoginPhotoBase64" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" id="btnFirstLoginSave" class="btn btn-primary" style="width: 100%;">
+                        Complete Onboarding & Access Portal
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 4. Printable Payslip Statement Modal -->
+    <div class="modal-overlay" id="viewSlipModal">
+        <div class="modal-content" style="max-width: 760px;">
+            <div class="modal-header">
+                <h3 style="font-size: 1.25rem; font-weight: 800;">Employee Payslip Statement</h3>
                 <button class="close-btn" onclick="closeModal('viewSlipModal')">&times;</button>
             </div>
             <div class="modal-body" id="slipModalBody"></div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="window.print()">
-                    <i data-lucide="printer" style="width: 16px;"></i> Print Payslip
+                    <i data-lucide="printer" style="width: 16px;"></i> Print / Save as PDF
                 </button>
                 <button type="button" class="btn btn-primary" onclick="closeModal('viewSlipModal')">Close</button>
             </div>
@@ -240,6 +332,8 @@
 
     <script src="js/app.js"></script>
     <script>
+        let currentUserData = null;
+
         document.addEventListener('DOMContentLoaded', async () => {
             initDigitalClock('liveClock');
             const todayStr = new Date().toISOString().split('T')[0];
@@ -263,6 +357,8 @@
             }
 
             const u = res.data.user;
+            currentUserData = u;
+
             document.getElementById('userNameHeading').textContent = `Welcome, ${u.name}`;
             document.getElementById('userDeptProfile').textContent = `${u.department || 'General'} • ${u.job_profile || 'Staff'}`;
             document.getElementById('userSubInfo').textContent = `Employee ID: #TGC-${String(u.id).padStart(4, '0')} • Base Salary: ₹${parseFloat(u.base_salary).toLocaleString()}/mo`;
@@ -274,10 +370,21 @@
                 avatarBox.textContent = u.name.charAt(0);
             }
 
+            if (u.pending_profile_change) {
+                document.getElementById('pendingChangeNoticeBadge').style.display = 'inline-flex';
+            }
+
+            // If first login is required, prompt setup wizard modal immediately
+            if (u.first_login_required) {
+                openModal('firstLoginWizardModal');
+                initWebcam('firstLoginVideo');
+            }
+
             checkAuthNav();
         }
 
         function switchTab(tab) {
+            playSound('click');
             document.getElementById('tabAttendanceContent').style.display = (tab === 'attendance') ? 'block' : 'none';
             document.getElementById('tabSalaryContent').style.display = (tab === 'salary') ? 'block' : 'none';
             document.getElementById('tabAttendanceBtn').className = (tab === 'attendance') ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
@@ -297,14 +404,14 @@
                         document.getElementById('checkOutTimeDisplay').textContent = today.check_out_time.substring(0, 5);
                         banner.className = 'badge badge-success';
                         banner.style.width = '100%';
-                        banner.style.padding = '0.75rem';
-                        banner.innerHTML = '✅ Completed attendance for today!';
+                        banner.style.padding = '0.85rem';
+                        banner.innerHTML = '✓ Daily Attendance Cycle Completed';
                         punchOutBtn.style.display = 'none';
                     } else {
                         banner.className = 'badge badge-warning';
                         banner.style.width = '100%';
-                        banner.style.padding = '0.75rem';
-                        banner.innerHTML = `🟢 Checked In (${today.status.toUpperCase()}) • Active at work`;
+                        banner.style.padding = '0.85rem';
+                        banner.innerHTML = `🟢 Checked In (${today.status.toUpperCase()}) at ${today.check_in_time.substring(0, 5)}`;
                         punchOutBtn.style.display = 'inline-flex';
                     }
                 } else {
@@ -321,10 +428,13 @@
 
             const res = await apiRequest('attendance.php?action=punch_out', 'POST');
             if (res.ok && res.data.success) {
-                showToast('Check-out marked successfully!', 'success');
+                playSound('success');
+                fireConfetti(2500);
+                showToast('Check-out marked successfully! Have a great evening.', 'success');
                 loadTodayAttendance();
                 loadAttendanceHistory();
             } else {
+                playSound('error');
                 showToast(res.data.message || 'Error marking check-out', 'error');
                 btn.disabled = false;
                 btn.textContent = 'Mark Check-Out for Today';
@@ -347,14 +457,14 @@
             const container = document.getElementById('recentLeavesList');
             if (res.ok && res.data.success) {
                 if (res.data.leaves.length === 0) {
-                    container.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 1rem;">No leave applications yet.</div>';
+                    container.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 1.25rem;">No leave applications yet.</div>';
                     return;
                 }
 
                 container.innerHTML = res.data.leaves.map(l => `
-                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.88rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.88rem;">
                         <div>
-                            <strong>${l.leave_type.toUpperCase()} Leave</strong> • ${l.start_date} (${l.total_days} days)
+                            <strong>${l.leave_type.toUpperCase()} Leave</strong> • ${l.start_date} to ${l.end_date} (${l.total_days} days)
                             <div style="color: var(--text-muted); font-size: 0.78rem;">${l.reason}</div>
                         </div>
                         <span class="badge badge-${l.status}">${l.status}</span>
@@ -378,16 +488,114 @@
 
             const res = await apiRequest('leave.php?action=apply', 'POST', payload);
             if (res.ok && res.data.success) {
+                playSound('success');
                 showToast(res.data.message, 'success');
                 closeModal('applyLeaveModal');
                 loadLeaveQuotas();
                 loadRecentLeaves();
             } else {
+                playSound('error');
                 showToast(res.data.message || 'Error submitting leave request', 'error');
             }
 
             btn.disabled = false;
             btn.textContent = 'Submit Application';
+        }
+
+        function openProfileEditModal() {
+            if (currentUserData) {
+                document.getElementById('editProfilePhone').value = currentUserData.phone || '';
+                document.getElementById('editProfileDob').value = currentUserData.dob || '';
+                document.getElementById('editProfileAddress').value = currentUserData.address || '';
+            }
+            openModal('profileEditModal');
+        }
+
+        async function handleProfileEditSubmit(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmitProfileEdit');
+            btn.disabled = true;
+
+            const payload = {
+                changes: {
+                    phone: document.getElementById('editProfilePhone').value.trim(),
+                    dob: document.getElementById('editProfileDob').value,
+                    address: document.getElementById('editProfileAddress').value.trim(),
+                },
+                reason: document.getElementById('editProfileReason').value.trim()
+            };
+
+            const res = await apiRequest('auth.php?action=request_profile_update', 'POST', payload);
+            if (res.ok && res.data.success) {
+                playSound('success');
+                showToast(res.data.message, 'success');
+                closeModal('profileEditModal');
+                loadUserProfile();
+            } else {
+                playSound('error');
+                showToast(res.data.message || 'Could not submit change request', 'error');
+            }
+            btn.disabled = false;
+        }
+
+        function takeFirstLoginSnapshot() {
+            const photo = takeSnapshot('firstLoginVideo', 'firstLoginCanvas');
+            if (photo) {
+                document.getElementById('firstLoginPhotoBase64').value = photo;
+                document.getElementById('firstLoginVideo').style.display = 'none';
+                document.getElementById('firstLoginCanvas').style.display = 'block';
+                showToast('Snapshot captured!', 'success');
+            }
+        }
+
+        function generateFirstLoginSim() {
+            playSound('shutter');
+            const canvas = document.getElementById('firstLoginCanvas');
+            canvas.width = 480;
+            canvas.height = 360;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#1e1b4b';
+            ctx.fillRect(0, 0, 480, 360);
+            ctx.fillStyle = '#4f46e5';
+            ctx.beginPath();
+            ctx.arc(240, 160, 80, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.font = 'bold 20px sans-serif';
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.fillText(currentUserData ? currentUserData.name : 'Employee', 240, 165);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            document.getElementById('firstLoginPhotoBase64').value = dataUrl;
+            document.getElementById('firstLoginVideo').style.display = 'none';
+            canvas.style.display = 'block';
+            showToast('Simulated snapshot generated!', 'success');
+        }
+
+        async function handleFirstLoginSetup(e) {
+            e.preventDefault();
+            const photo = document.getElementById('firstLoginPhotoBase64').value;
+            const pass = document.getElementById('firstLoginPassword').value;
+
+            if (!photo) {
+                showToast('Please take your live photo snapshot before proceeding.', 'warning');
+                return;
+            }
+
+            const res = await apiRequest('auth.php?action=first_login_setup', 'POST', {
+                password: pass,
+                photo_base64: photo
+            });
+
+            if (res.ok && res.data.success) {
+                playSound('success');
+                fireConfetti(3000);
+                showToast('Account setup complete! Welcome to the workspace.', 'success');
+                closeModal('firstLoginWizardModal');
+                loadUserProfile();
+            } else {
+                playSound('error');
+                showToast(res.data.message || 'Setup failed.', 'error');
+            }
         }
 
         async function loadAttendanceHistory() {
@@ -396,7 +604,7 @@
             if (res.ok && res.data.success) {
                 const history = res.data.history;
                 if (history.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No attendance records found.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">No attendance records logged yet.</td></tr>';
                     return;
                 }
 
@@ -404,10 +612,13 @@
                     <tr>
                         <td><strong>${row.date}</strong></td>
                         <td><span class="badge badge-primary">${row.method.toUpperCase()}</span></td>
-                        <td>${row.check_in_time ? row.check_in_time.substring(0, 5) : '--'}</td>
-                        <td>${row.check_out_time ? row.check_out_time.substring(0, 5) : '--'}</td>
+                        <td><strong style="font-family: var(--font-mono);">${row.check_in_time ? row.check_in_time.substring(0, 5) : '--'}</strong></td>
+                        <td><strong style="font-family: var(--font-mono);">${row.check_out_time ? row.check_out_time.substring(0, 5) : '--'}</strong></td>
                         <td><span class="badge badge-${row.status}">${row.status}</span></td>
-                        <td style="color: var(--text-muted); font-size: 0.88rem;">${row.notes || '-'}</td>
+                        <td style="color: var(--text-muted); font-size: 0.88rem;">
+                            ${row.notes || '-'}
+                            ${row.latitude ? ` • <span style="font-family: var(--font-mono); font-size: 0.8rem;">[${row.latitude.toFixed(4)}, ${row.longitude.toFixed(4)}]</span>` : ''}
+                        </td>
                     </tr>
                 `).join('');
             }
@@ -419,24 +630,27 @@
             if (res.ok && res.data.success) {
                 const payrolls = res.data.payrolls;
                 if (payrolls.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">No salary slips generated for this period yet.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">No monthly salary slips calculated yet.</td></tr>';
                     return;
                 }
 
                 tbody.innerHTML = payrolls.map(p => `
                     <tr>
-                        <td><strong>${p.month}/${p.year}</strong></td>
+                        <td><strong style="font-family: var(--font-mono);">${p.month}/${p.year}</strong></td>
                         <td>₹${parseFloat(p.base_salary).toLocaleString()}</td>
                         <td>${p.total_working_days} days</td>
                         <td>${p.present_days} Pres / ${p.paid_leaves} Leave</td>
-                        <td style="color: var(--danger); font-weight: 600;">-₹${parseFloat(p.deduction_amount).toLocaleString()} (${p.unpaid_days} days)</td>
-                        <td><strong style="color: var(--success); font-size: 1.05rem;">₹${parseFloat(p.net_salary).toLocaleString()}</strong></td>
+                        <td style="color: var(--danger); font-weight: 700;">-₹${parseFloat(p.deduction_amount).toLocaleString()} (${p.unpaid_days} d)</td>
+                        <td><strong style="color: var(--success); font-size: 1.1rem;">₹${parseFloat(p.net_salary).toLocaleString()}</strong></td>
                         <td><span class="badge badge-${p.status === 'paid' ? 'success' : 'warning'}">${p.status}</span></td>
                         <td>
-                            <button onclick="viewPayslip(${p.id})" class="btn btn-secondary btn-sm">View Slip</button>
+                            <button onclick="viewPayslip(${p.id})" class="btn btn-secondary btn-sm">
+                                <i data-lucide="file-text" style="width: 14px;"></i> View Slip
+                            </button>
                         </td>
                     </tr>
                 `).join('');
+                lucide.createIcons();
             }
         }
 
@@ -445,26 +659,87 @@
             if (res.ok && res.data.success) {
                 const p = res.data.payroll;
                 document.getElementById('slipModalBody').innerHTML = `
-                    <div style="border: 1.5px solid var(--border-color); border-radius: var(--radius-md); padding: 1.75rem; background: #fff;">
-                        <div style="text-align: center; border-bottom: 2.5px solid var(--primary); padding-bottom: 1.25rem; margin-bottom: 1.25rem;">
-                            <div class="brand-badge" style="display: inline-block; margin-bottom: 0.5rem;">TGC CONNECT</div>
-                            <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--text-main); margin-bottom: 0.2rem;">EMPLOYEE SALARY STATEMENT</h2>
-                            <p style="font-size: 0.85rem; color: var(--text-muted);">Period: Month ${p.month}/${p.year}</p>
+                    <div class="payslip-container" style="position: relative;">
+                        <div class="payslip-watermark">CONFIDENTIAL</div>
+                        
+                        <div class="payslip-header">
+                            <div>
+                                <div class="brand-badge" style="margin-bottom: 0.5rem; display: inline-block;">TGC CONNECT HRMS</div>
+                                <h2 style="font-size: 1.6rem; font-weight: 800; letter-spacing: -0.5px;">SALARY STATEMENT & PAY VOUCHER</h2>
+                                <p style="font-size: 0.88rem; color: var(--text-muted);">Pay Period: Month ${p.month} / ${p.year} • Official Corporate Document</p>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted);">STATUS</div>
+                                <span class="badge badge-${p.status === 'paid' ? 'success' : 'warning'}" style="font-size: 0.9rem; padding: 0.4rem 0.9rem;">
+                                    ${p.status.toUpperCase()}
+                                </span>
+                            </div>
                         </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; font-size: 0.92rem; background: var(--bg-main); padding: 1rem; border-radius: var(--radius-sm);">
-                            <div><strong>Employee:</strong> ${p.user_name}</div>
-                            <div><strong>Department:</strong> ${p.user_dept || 'General'}</div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.5rem; background: var(--bg-main); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                            <div>
+                                <div><strong>Employee:</strong> ${p.user_name}</div>
+                                <div style="color: var(--text-muted); font-size: 0.88rem;">Email: ${p.user_email}</div>
+                                <div style="color: var(--text-muted); font-size: 0.88rem;">Employee ID: #TGC-${String(p.user_id).padStart(4, '0')}</div>
+                            </div>
+                            <div>
+                                <div><strong>Department:</strong> ${p.user_dept || 'Operations'}</div>
+                                <div style="color: var(--text-muted); font-size: 0.88rem;">Role: ${p.user_job || 'Staff'}</div>
+                                <div style="color: var(--text-muted); font-size: 0.88rem;">Generated: ${p.created_at || 'Automatic'}</div>
+                            </div>
                         </div>
-                        <table style="width: 100%; font-size: 0.92rem; margin-bottom: 1.25rem; border-collapse: collapse;">
-                            <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.5rem 0;">Base Monthly Salary</td><td style="text-align: right; font-weight: 700;">₹${parseFloat(p.base_salary).toLocaleString()}</td></tr>
-                            <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.5rem 0;">Total Working Days in Month</td><td style="text-align: right;">${p.total_working_days} days</td></tr>
-                            <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.5rem 0;">Present + Paid Leaves</td><td style="text-align: right;">${p.present_days} present + ${p.paid_leaves} leaves</td></tr>
-                            <tr style="border-bottom: 1px solid var(--border-color); color: var(--danger);"><td style="padding: 0.5rem 0;">Absent/Unpaid Deductions (${p.unpaid_days} days @ ₹${p.daily_rate}/day)</td><td style="text-align: right; font-weight: 700;">-₹${parseFloat(p.deduction_amount).toLocaleString()}</td></tr>
-                            <tr style="font-size: 1.2rem; font-weight: 800; color: var(--success); border-top: 2px solid var(--border-color);"><td style="padding: 0.75rem 0;">NET PAYABLE SALARY</td><td style="text-align: right;">₹${parseFloat(p.net_salary).toLocaleString()}</td></tr>
+
+                        <table class="payslip-table">
+                            <thead>
+                                <tr>
+                                    <th>Earnings & Allowances</th>
+                                    <th style="text-align: right;">Amount (₹)</th>
+                                    <th>Deductions & Absences</th>
+                                    <th style="text-align: right;">Amount (₹)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Base Monthly Salary</td>
+                                    <td style="text-align: right; font-weight: 700;">₹${parseFloat(p.base_salary).toLocaleString()}</td>
+                                    <td>Unpaid Absences (${p.unpaid_days} days)</td>
+                                    <td style="text-align: right; color: var(--danger); font-weight: 700;">₹${parseFloat(p.deduction_amount).toLocaleString()}</td>
+                                </tr>
+                                <tr>
+                                    <td>Working Days in Month: ${p.total_working_days} d</td>
+                                    <td style="text-align: right;">-</td>
+                                    <td>Daily Deduction Rate</td>
+                                    <td style="text-align: right;">₹${parseFloat(p.daily_rate).toFixed(2)}/day</td>
+                                </tr>
+                                <tr>
+                                    <td>Present: ${p.present_days} d + Paid Leaves: ${p.paid_leaves} d</td>
+                                    <td style="text-align: right;">-</td>
+                                    <td>Other Taxes & Cess</td>
+                                    <td style="text-align: right;">₹0.00</td>
+                                </tr>
+                                <tr style="background: #f8fafc; font-size: 1.15rem; font-weight: 800;">
+                                    <td>Total Gross Pay</td>
+                                    <td style="text-align: right;">₹${parseFloat(p.base_salary).toLocaleString()}</td>
+                                    <td style="color: var(--success);">NET PAYABLE SALARY</td>
+                                    <td style="text-align: right; color: var(--success); font-size: 1.3rem; font-family: var(--font-mono);">₹${parseFloat(p.net_salary).toLocaleString()}</td>
+                                </tr>
+                            </tbody>
                         </table>
+
+                        <div style="margin-top: 2rem; display: flex; justify-content: space-between; align-items: flex-end; padding-top: 1.5rem; border-top: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-muted);">
+                            <div>
+                                <div>This is a computer-generated payslip authorized by TGC Connect Payroll Engine.</div>
+                                <div>Location Coordinates & Attendance are cryptographically audited.</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="border-bottom: 1.5px dashed #94a3b8; width: 180px; margin-bottom: 0.35rem;"></div>
+                                <strong>Authorized Signature</strong>
+                            </div>
+                        </div>
                     </div>
                 `;
                 openModal('viewSlipModal');
+                lucide.createIcons();
             }
         }
     </script>
