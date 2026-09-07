@@ -157,17 +157,53 @@ body::after {
 .brand-logo {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  font-size: 1.35rem;
-  font-weight: 800;
-  color: var(--text-main);
+  gap: 0.65rem;
   text-decoration: none;
-  letter-spacing: -0.5px;
-  transition: transform 0.2s ease;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
 }
 
 .brand-logo:hover {
   transform: scale(1.02);
+}
+
+.brand-logo-icon {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 8px rgba(2, 132, 199, 0.25));
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.brand-logo:hover .brand-logo-icon {
+  transform: rotate(4deg) scale(1.06);
+}
+
+.brand-name-wrap {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.brand-name-main {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: -0.4px;
+}
+
+.brand-name-accent {
+  background: linear-gradient(135deg, #0284c7, #4f46e5);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.brand-name-sub {
+  font-size: 0.64rem;
+  font-weight: 700;
+  color: #0284c7;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
 }
 
 .brand-badge {
