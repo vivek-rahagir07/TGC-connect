@@ -8,6 +8,17 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        @media (max-width: 768px) {
+            .registration-grid {
+                grid-template-columns: 1fr !important;
+                gap: 1.25rem !important;
+            }
+            .card {
+                padding: 1.25rem 1rem !important;
+            }
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -42,7 +53,7 @@
                 </div>
 
                 <form onsubmit="handleRegister(event)">
-                    <div style="display: grid; grid-template-columns: 1.15fr 1fr; gap: 1.75rem;">
+                    <div class="registration-grid" style="display: grid; grid-template-columns: 1.15fr 1fr; gap: 1.75rem;">
                         
                         <!-- Left Column: Form Fields -->
                         <div>

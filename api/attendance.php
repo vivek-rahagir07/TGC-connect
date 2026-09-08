@@ -230,8 +230,8 @@ switch ($action) {
             'token' => $link['token'],
             'expires_at' => $link['expires_at'],
             'seconds_remaining' => $secondsRemaining,
-            'target_lat' => (float) $link['target_lat'],
-            'target_lng' => (float) $link['target_lng'],
+            'target_lat' => $link['target_lat'] !== null ? (float) $link['target_lat'] : null,
+            'target_lng' => $link['target_lng'] !== null ? (float) $link['target_lng'] : null,
             'radius_meters' => (int) $link['radius_meters'],
         ]);
         break;
