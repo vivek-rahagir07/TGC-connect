@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mark Physical Attendance - TGC Connect</title>
+    <meta name="description" content="Secure, proxy-proof GPS attendance punch with automated address resolution and onboarding data verification.">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Leaflet.js for GPS Interactive Mini-Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .step-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: #fff;
+            font-size: 0.82rem;
+            font-weight: 700;
+            margin-right: 0.5rem;
+            flex-shrink: 0;
+        }
+        .step-badge.pending {
+            background: #94a3b8;
+        }
+        .step-badge.completed {
+            background: #10b981;
+        }
+        .step-card {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 1.35rem;
+            margin-bottom: 1.25rem;
+            text-align: left;
+            transition: all 0.25s ease;
+            box-shadow: var(--shadow-xs);
+        }
+        .step-card.active {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+        }
+        .step-card.completed {
+            border-color: #86efac;
+            background: #f0fdf4;
+        }
+        .pulse-beacon {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 0 rgba(16, 185, 129, 0.5);
+            animation: beacon-pulse 1.8s infinite;
+        }
+        @keyframes beacon-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.3rem 0.85rem;
+            border-radius: 9999px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+        .window-banner {
+            border-radius: var(--radius-md);
+            padding: 1rem 1.25rem;
+            margin-bottom: 1.35rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+            transition: all 0.3s ease;
+        }
+        .window-banner.open {
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            color: #065f46;
+        }
+        .window-banner.closed {
+            background: #fff1f2;
+            border: 1px solid #fecdd3;
+            color: #9f1239;
+        }
+        .receipt-card {
+            background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+            border: 1px solid #bfdbfe;
+            border-radius: var(--radius-md);
+            padding: 1.4rem;
+            margin-bottom: 1.25rem;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="brand-logo">
+                <img src="assets/logo_icon.png" alt="Global Connect Logo" class="brand-logo-icon">
+                <div class="brand-name-wrap">
+                    <span class="brand-name-main">Global<span class="brand-name-accent">Connect</span></span>
+                    <span class="brand-name-sub">by TGC</span>
+                </div>
+            </a>
+            <div class="nav-menu" id="navMenu">
+                <a href="portal.html" class="nav-link">
+                    <i data-lucide="arrow-left" style="width: 16px;"></i> Back to Employee Portal
+                </a>
+            </div>
+            <div id="navUserArea"></div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <main class="main-container">
+        <div style="max-width: 640px; margin: 1.5rem auto; padding: 0 0.75rem;">
+            
+            <div class="card animate-fade-in" style="padding: 1.85rem 2rem; text-align: center; box-shadow: var(--shadow-md); border-radius: var(--radius-lg);">
+                
+                <!-- Header -->
+                <div style="margin-bottom: 1.25rem;">
+                    <div style="display: inline-flex; align-items: center; gap: 0.45rem; color: var(--primary); font-weight: 700; text-transform: uppercase; font-size: 0.76rem; letter-spacing: 0.6px; margin-bottom: 0.4rem; background: var(--primary-light); padding: 0.28rem 0.85rem; border-radius: 9999px; border: 1px solid rgba(79, 70, 229, 0.2);">
+                        <i data-lucide="map-pin" style="width: 13px;"></i> GPS & Identity Verified Punch
+                    </div>
+                    <h1 style="font-size: 1.65rem; font-weight: 800; letter-spacing: -0.4px; margin: 0.2rem 0; color: var(--text-main);">
+                        Mark Your Attendance Now
+                    </h1>
+                    <p style="color: var(--text-muted); font-size: 0.88rem;">
+                        Physical location is automatically resolved via GPS satellite coordinates and verified against your employee onboarding profile.
+                    </p>
+                </div>
+
+                <!-- Live Attendance Window Status Banner -->
+                <div id="attendanceWindowBanner" class="window-banner closed">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; text-align: left;">
+                        <div id="windowIndicatorDot" style="width: 12px; height: 12px; border-radius: 50%; background: #e11d48;"></div>
+                        <div>
+                            <div style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px;" id="windowStatusTitle">
+                                Checking Attendance Window...
+                            </div>
+                            <div style="font-size: 0.85rem; font-weight: 500;" id="windowStatusSubtext">
+                                Verifying shift status with administration engine...
+                            </div>
+                        </div>
+                    </div>
+                    <div style="text-align: right;" id="windowTimerBox">
+                        <div style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.8;">Window Timer</div>
+                        <div id="windowCountdown" style="font-size: 1.45rem; font-weight: 800; font-family: var(--font-mono); line-height: 1.1;">
+                            --:--
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ALREADY MARKED BANNER (Shown if today is already logged) -->
+                <div id="alreadyMarkedCard" class="receipt-card" style="display: none;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                        <span class="status-pill" style="background: #dcfce7; color: #166534; border: 1px solid #86efac;">
+                            <i data-lucide="check-check" style="width: 14px;"></i> Already Checked In Today
+                        </span>
+                        <span id="alreadyMarkedTimeBadge" style="font-size: 0.85rem; font-weight: 700; font-family: var(--font-mono); color: var(--primary);">--:--</span>
+                    </div>
+                    <div style="font-size: 0.95rem; font-weight: 700; color: #0f172a; margin-bottom: 0.35rem;" id="alreadyMarkedEmpName">
+                        Welcome back!
+                    </div>
+                    <p style="font-size: 0.84rem; color: var(--text-muted); margin-bottom: 0.95rem;">
+                        Your attendance has already been officially recorded for today. You cannot submit multiple check-ins.
+                    </p>
+                    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 0.75rem 0.95rem; margin-bottom: 1rem; font-size: 0.82rem;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                            <span style="color: var(--text-muted);">Recorded Check-In:</span>
+                            <strong id="alreadyRecordedCheckInTime" style="font-family: var(--font-mono);">--:--</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                            <span style="color: var(--text-muted);">Logged Location:</span>
+                            <strong id="alreadyRecordedLocName">Office / Remote</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: var(--text-muted);">Status:</span>
+                            <span id="alreadyRecordedStatusBadge" class="badge badge-success">PRESENT</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 0.65rem;">
+                        <a href="portal.html" class="btn btn-primary" style="flex: 1; justify-content: center;">
+                            <i data-lucide="home" style="width: 16px;"></i> Return to Employee Portal
+                        </a>
+                        <button type="button" id="alreadyMarkedCheckOutBtn" onclick="handlePortalCheckOut()" class="btn btn-danger" style="display: none;">
+                            <i data-lucide="log-out" style="width: 16px;"></i> Mark Check-Out
+                        </button>
+                    </div>
+                </div>
+
+                <!-- MAIN WORKFLOW (Hidden if already checked in) -->
+                <div id="punchWorkflowArea">
+
+                    <!-- STEP 1: PHYSICAL GPS SATELLITE CAPTURE -->
+                    <div id="step1Card" class="step-card active">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.65rem;">
+                            <div style="display: flex; align-items: center;">
+                                <span class="step-badge" id="step1Badge">1</span>
+                                <strong style="font-size: 0.96rem; color: var(--text-main);">Share Physical GPS Location</strong>
+                            </div>
+                            <span id="gpsStatusTag" style="font-size: 0.74rem; font-weight: 700; color: #64748b; background: #e2e8f0; padding: 0.22rem 0.65rem; border-radius: 9999px;">
+                                Awaiting Permission
+                            </span>
+                        </div>
+                        <p style="font-size: 0.83rem; color: var(--text-muted); margin-bottom: 0.95rem; line-height: 1.45;">
+                            Tap the button below to share physical GPS coordinates. The place name will be automatically determined using high-precision satellite telemetry.
+                        </p>
+
+                        <button type="button" id="acquireGpsBtn" onclick="requestGpsLocation()" class="btn btn-primary" style="width: 100%; padding: 0.85rem 1.25rem; font-size: 0.94rem; font-weight: 700;">
+                            <i data-lucide="crosshair" style="width: 18px;"></i> Tap to Share GPS Location
+                        </button>
+
+                        <!-- Leaflet.js Mini-Map -->
+                        <div id="gpsMiniMap" style="height: 190px; width: 100%; margin-top: 0.95rem; display: none; border-radius: var(--radius-sm); border: 1px solid var(--border-color);"></div>
+
+                        <!-- Detected Location Box -->
+                        <div id="coordsBox" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: var(--radius-sm); padding: 0.95rem; margin-top: 0.95rem; display: none;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
+                                <div style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.78rem; font-weight: 800; color: #0f172a;">
+                                    <span class="pulse-beacon"></span> Captured Location:
+                                </div>
+                                <span id="accuracyBadge" style="font-size: 0.7rem; font-weight: 700; color: #0284c7; background: #e0f2fe; padding: 0.15rem 0.5rem; border-radius: 9999px;">
+                                    ± 15m
+                                </span>
+                            </div>
+                            <div id="detectedLocationName" style="font-weight: 800; font-size: 0.95rem; color: var(--primary); line-height: 1.35; margin-bottom: 0.3rem;">
+                                Resolving street address...
+                            </div>
+                            <div id="coordsText" style="font-family: var(--font-mono); font-size: 0.74rem; color: #64748b;"></div>
+                        </div>
+                    </div>
+
+                    <!-- STEP 2: ONBOARDING DATA VERIFICATION -->
+                    <div id="step2Card" class="step-card" style="opacity: 0.6; pointer-events: none;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.65rem;">
+                            <div style="display: flex; align-items: center;">
+                                <span class="step-badge pending" id="step2Badge">2</span>
+                                <strong style="font-size: 0.96rem; color: var(--text-main);">Verify Onboarding Details</strong>
+                            </div>
+                            <span id="authStatusBadge" style="font-size: 0.74rem; font-weight: 700; color: #64748b; background: #e2e8f0; padding: 0.22rem 0.65rem; border-radius: 9999px;">
+                                Required
+                            </span>
+                        </div>
+                        <p style="font-size: 0.83rem; color: var(--text-muted); margin-bottom: 0.95rem; line-height: 1.45;">
+                            Confirm your employee onboarding credentials. These must strictly match your profile in the TGC Connect employee database.
+                        </p>
+
+                        <!-- Logged In Notification -->
+                        <div id="loggedInNotice" style="display: none; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-sm); padding: 0.65rem 0.85rem; margin-bottom: 0.85rem; font-size: 0.82rem; color: #1e40af; text-align: left;">
+                            <i data-lucide="user-check" style="width: 15px; display: inline-block; vertical-align: middle; margin-right: 0.3rem;"></i>
+                            Authenticated as <strong id="noticeName">-</strong> (<span id="noticeEmail">-</span>). Details pre-filled below.
+                        </div>
+
+                        <form id="attendanceForm" onsubmit="event.preventDefault(); submitAttendanceCheckIn();">
+                            <div class="form-group" style="margin-bottom: 0.85rem;">
+                                <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 0.25rem;">
+                                    Full Name (As registered in onboarding) <span style="color: var(--danger);">*</span>
+                                </label>
+                                <input type="text" id="empNameInput" class="form-control" placeholder="e.g. Rohan Verma" required style="font-size: 0.88rem; padding: 0.6rem 0.75rem;">
+                            </div>
+
+                            <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.85rem;">
+                                <div>
+                                    <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 0.25rem;">
+                                        Registered Work Email <span style="color: var(--danger);">*</span>
+                                    </label>
+                                    <input type="email" id="empEmailInput" class="form-control" placeholder="e.g. rohan.verma@tgcconnect.com" required style="font-size: 0.88rem; padding: 0.6rem 0.75rem;">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 0.25rem;">
+                                        Registered Phone Number <span style="color: var(--danger);">*</span>
+                                    </label>
+                                    <input type="tel" id="empPhoneInput" class="form-control" placeholder="e.g. +91 98112 34567" required style="font-size: 0.88rem; padding: 0.6rem 0.75rem;">
+                                </div>
+                            </div>
+
+                            <div class="form-row" style="display: grid; grid-template-columns: 1fr 1.25fr; gap: 0.75rem; margin-bottom: 0.85rem;">
+                                <div>
+                                    <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 0.25rem;">Department</label>
+                                    <select id="empDeptSelect" class="form-control" style="font-size: 0.88rem; padding: 0.6rem 0.75rem;">
+                                        <option value="Operations">Operations</option>
+                                        <option value="Engineering">Engineering</option>
+                                        <option value="Design & UX">Design & UX</option>
+                                        <option value="Marketing">Marketing</option>
+                                        <option value="Sales">Sales</option>
+                                        <option value="HR & Admin">HR & Admin</option>
+                                        <option value="Finance">Finance</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 0.25rem;">Shift Note (Optional)</label>
+                                    <input type="text" id="empNotesInput" class="form-control" placeholder="e.g. Shift start at HQ" style="font-size: 0.88rem; padding: 0.6rem 0.75rem;">
+                                </div>
+                            </div>
+
+                            <button type="submit" id="submitPunchBtn" class="btn btn-primary btn-lg" style="width: 100%; padding: 0.85rem 1.5rem; font-size: 1rem; font-weight: 800; margin-top: 0.65rem; justify-content: center; gap: 0.55rem;">
+                                <i data-lucide="check-circle-2" style="width: 20px;"></i> Verify Onboarding Details & Mark Attendance
+                            </button>
+                        </form>
+                    </div>
+
+                </div>
+
+                <!-- SUCCESS CELEBRATION RECEIPT CARD (Shown after successful punch) -->
+                <div id="punchSuccessCard" class="receipt-card" style="display: none;">
+                    <div style="text-align: center; margin-bottom: 1rem;">
+                        <div style="width: 56px; height: 56px; border-radius: 50%; background: #dcfce7; color: #16a34a; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 0.5rem;">
+                            <i data-lucide="check" style="width: 32px; height: 32px;"></i>
+                        </div>
+                        <h2 style="font-size: 1.4rem; font-weight: 800; color: #065f46; margin-bottom: 0.25rem;">
+                            Attendance Verified & Marked!
+                        </h2>
+                        <p style="font-size: 0.86rem; color: #047857;" id="successMsgText">
+                            Your check-in has been logged into the TGC Connect HRMS engine.
+                        </p>
+                    </div>
+
+                    <div style="background: #ffffff; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); padding: 1rem 1.15rem; margin-bottom: 1.15rem; font-size: 0.84rem;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; border-bottom: 1px dashed #e2e8f0; padding-bottom: 0.4rem;">
+                            <span style="color: var(--text-muted);">Employee:</span>
+                            <strong id="receiptEmpName">-</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; border-bottom: 1px dashed #e2e8f0; padding-bottom: 0.4rem;">
+                            <span style="color: var(--text-muted);">Check-In Time:</span>
+                            <strong id="receiptCheckInTime" style="font-family: var(--font-mono); color: var(--primary); font-size: 1.05rem;">--:--</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; border-bottom: 1px dashed #e2e8f0; padding-bottom: 0.4rem;">
+                            <span style="color: var(--text-muted);">Punch Status:</span>
+                            <span id="receiptStatusBadge" class="badge badge-success">PRESENT</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: var(--text-muted);">GPS Location:</span>
+                            <strong id="receiptLocation" style="text-align: right; max-width: 60%;">-</strong>
+                        </div>
+                    </div>
+
+                    <a href="portal.html" class="btn btn-primary" style="width: 100%; padding: 0.75rem; justify-content: center;">
+                        <i data-lucide="arrow-left" style="width: 18px;"></i> Return to Employee Portal
+                    </a>
+                </div>
+
+                <!-- Footer Anti-Proxy Safeguard Note -->
+                <div style="margin-top: 1.5rem; font-size: 0.76rem; color: var(--text-muted); line-height: 1.45; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+                    🔒 <strong>Anti-Proxy Safeguard:</strong> Hardware geofence telemetry, satellite precision, and registered onboarding identity matching prevent proxy check-ins.
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <div id="toast-container"></div>
+
+    <script src="js/app.js"></script>
+    <script>
+        let isWindowOpen = false;
+        let windowRemainingSeconds = 0;
+        let windowTimerInterval = null;
+
+        let capturedLat = null;
+        let capturedLng = null;
+        let capturedAccuracy = null;
+        let capturedLocationName = '';
+        let currentUser = null;
+        let miniMap = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAuthNav();
+            await loadCurrentUserProfile();
+            await checkTodayAttendanceStatus();
+            await checkAttendanceWindowStatus();
+
+            // Auto-refresh window status every 20 seconds
+            setInterval(checkAttendanceWindowStatus, 20000);
+        });
+
+        // Load Current Logged In User
+        async function loadCurrentUserProfile() {
+            try {
+                const res = await apiRequest('auth.php?action=me');
+                if (res.ok && res.data && res.data.authenticated) {
+                    currentUser = res.data.user;
+
+                    const nameInp = document.getElementById('empNameInput');
+                    const emailInp = document.getElementById('empEmailInput');
+                    const phoneInp = document.getElementById('empPhoneInput');
+                    const deptSel = document.getElementById('empDeptSelect');
+
+                    if (nameInp && currentUser.name) nameInp.value = currentUser.name;
+                    if (emailInp && currentUser.email) emailInp.value = currentUser.email;
+                    if (phoneInp && currentUser.phone) phoneInp.value = currentUser.phone;
+                    if (deptSel && currentUser.department) deptSel.value = currentUser.department;
+
+                    const notice = document.getElementById('loggedInNotice');
+                    if (notice) {
+                        notice.style.display = 'block';
+                        document.getElementById('noticeName').textContent = currentUser.name;
+                        document.getElementById('noticeEmail').textContent = currentUser.email;
+                    }
+
+                    const badge = document.getElementById('authStatusBadge');
+                    if (badge) {
+                        badge.textContent = 'Account Linked';
+                        badge.style.background = '#dcfce7';
+                        badge.style.color = '#15803d';
+                    }
+                }
+            } catch (e) {
+                console.warn('Could not load user profile:', e);
+            }
+        }
+
+        // Check if user already marked attendance for today
+        async function checkTodayAttendanceStatus() {
+            try {
+                const res = await apiRequest('attendance.php?action=history&my_only=1');
+                if (res.ok && res.data && res.data.today) {
+                    const today = res.data.today;
+                    if (today.check_in_time) {
+                        renderAlreadyMarked(today);
+                    }
+                }
+            } catch (e) {
+                console.warn('Today attendance status check failed:', e);
+            }
+        }
+
+        function renderAlreadyMarked(record) {
+            document.getElementById('punchWorkflowArea').style.display = 'none';
+            const card = document.getElementById('alreadyMarkedCard');
+            card.style.display = 'block';
+
+            const timeStr = record.check_in_time ? record.check_in_time.substring(0, 5) : '--:--';
+            document.getElementById('alreadyMarkedTimeBadge').textContent = timeStr;
+            document.getElementById('alreadyRecordedCheckInTime').textContent = timeStr;
+            document.getElementById('alreadyRecordedLocName').textContent = record.location_name || 'GPS Verified';
+            
+            const badge = document.getElementById('alreadyRecordedStatusBadge');
+            badge.textContent = (record.status || 'present').toUpperCase();
+            badge.className = record.status === 'late' ? 'badge badge-warning' : 'badge badge-success';
+
+            if (currentUser && currentUser.name) {
+                document.getElementById('alreadyMarkedEmpName').textContent = `Welcome, ${currentUser.name}!`;
+            }
+
+            const checkOutBtn = document.getElementById('alreadyMarkedCheckOutBtn');
+            if (record.check_in_time && !record.check_out_time) {
+                checkOutBtn.style.display = 'inline-flex';
+            } else {
+                checkOutBtn.style.display = 'none';
+            }
+        }
+
+        async function handlePortalCheckOut() {
+            const btn = document.getElementById('alreadyMarkedCheckOutBtn');
+            btn.disabled = true;
+            btn.textContent = 'Checking Out...';
+
+            const res = await apiRequest('attendance.php?action=punch_out', 'POST');
+            if (res.ok && res.data.success) {
+                playSound('success');
+                fireConfetti(2500);
+                showToast('Check-out marked successfully! Have a great evening.', 'success');
+                btn.style.display = 'none';
+                checkTodayAttendanceStatus();
+            } else {
+                playSound('error');
+                showToast(res.data.message || 'Error marking check-out', 'error');
+                btn.disabled = false;
+                btn.textContent = 'Mark Check-Out';
+            }
+        }
+
+        // Check Attendance Window Status
+        async function checkAttendanceWindowStatus() {
+            try {
+                const res = await apiRequest('attendance.php?action=attendance_window_status');
+                const banner = document.getElementById('attendanceWindowBanner');
+                const dot = document.getElementById('windowIndicatorDot');
+                const title = document.getElementById('windowStatusTitle');
+                const subtext = document.getElementById('windowStatusSubtext');
+                const timerEl = document.getElementById('windowCountdown');
+                const submitBtn = document.getElementById('submitPunchBtn');
+
+                if (res.ok && res.data.is_open && res.data.window) {
+                    isWindowOpen = true;
+                    windowRemainingSeconds = res.data.window.seconds_remaining;
+
+                    banner.className = 'window-banner open';
+                    dot.style.background = '#10b981';
+                    title.textContent = 'Active Attendance Window (Admin Authorized)';
+                    title.style.color = '#065f46';
+                    subtext.textContent = res.data.window.title || 'Shift Attendance Window is Open';
+                    subtext.style.color = '#047857';
+
+                    startWindowCountdown();
+
+                    if (submitBtn && capturedLat !== null) {
+                        submitBtn.disabled = false;
+                    }
+                } else {
+                    isWindowOpen = false;
+                    clearInterval(windowTimerInterval);
+                    windowTimerInterval = null;
+
+                    banner.className = 'window-banner closed';
+                    dot.style.background = '#e11d48';
+                    title.textContent = 'Attendance Window is Closed';
+                    title.style.color = '#9f1239';
+                    subtext.textContent = 'Administrator enables attendance during shift start (e.g. 10-minute window).';
+                    subtext.style.color = '#be123c';
+                    timerEl.textContent = 'CLOSED';
+                    timerEl.style.color = '#e11d48';
+
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                    }
+                }
+            } catch (e) {
+                console.warn('Window status error:', e);
+            }
+        }
+
+        function startWindowCountdown() {
+            if (windowTimerInterval) clearInterval(windowTimerInterval);
+
+            const timerEl = document.getElementById('windowCountdown');
+
+            function tick() {
+                if (windowRemainingSeconds <= 0) {
+                    clearInterval(windowTimerInterval);
+                    windowTimerInterval = null;
+                    checkAttendanceWindowStatus();
+                    return;
+                }
+
+                const mins = Math.floor(windowRemainingSeconds / 60);
+                const secs = windowRemainingSeconds % 60;
+                timerEl.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+                timerEl.style.color = windowRemainingSeconds < 120 ? '#dc2626' : '#047857';
+
+                windowRemainingSeconds--;
+            }
+
+            tick();
+            windowTimerInterval = setInterval(tick, 1000);
+        }
+
+        // STEP 1: Request Geolocation & Automatic Reverse Geocoding
+        function requestGpsLocation() {
+            playSound('click');
+            const btn = document.getElementById('acquireGpsBtn');
+
+            if (!navigator.geolocation) {
+                showToast('Geolocation is not supported on this browser or device.', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="loader-2" class="spin" style="width: 18px;"></i> Capturing Satellite Location...';
+            lucide.createIcons();
+
+            navigator.geolocation.getCurrentPosition(
+                async (pos) => {
+                    capturedLat = pos.coords.latitude;
+                    capturedLng = pos.coords.longitude;
+                    capturedAccuracy = Math.round(pos.coords.accuracy);
+
+                    document.getElementById('coordsBox').style.display = 'block';
+                    document.getElementById('coordsText').textContent = 
+                        `Latitude: ${capturedLat.toFixed(6)} | Longitude: ${capturedLng.toFixed(6)} (±${capturedAccuracy}m)`;
+                    document.getElementById('accuracyBadge').textContent = `± ${capturedAccuracy}m Accuracy`;
+
+                    // Reverse geocode to resolve place name
+                    document.getElementById('detectedLocationName').textContent = 'Resolving physical street address...';
+                    capturedLocationName = await fetchReadableAddress(capturedLat, capturedLng);
+                    document.getElementById('detectedLocationName').textContent = capturedLocationName;
+
+                    // Initialize or update mini-map
+                    initMiniMap(capturedLat, capturedLng, capturedAccuracy);
+
+                    // Update UI states
+                    btn.className = 'btn btn-secondary';
+                    btn.disabled = false;
+                    btn.innerHTML = '<i data-lucide="check" style="width: 18px; color: var(--success);"></i> GPS Location Verified (Tap to Recalibrate)';
+                    
+                    document.getElementById('gpsStatusTag').textContent = 'Captured';
+                    document.getElementById('gpsStatusTag').style.background = '#dcfce7';
+                    document.getElementById('gpsStatusTag').style.color = '#15803d';
+
+                    document.getElementById('step1Card').className = 'step-card completed';
+                    document.getElementById('step1Badge').className = 'step-badge completed';
+                    document.getElementById('step1Badge').innerHTML = '✓';
+
+                    // Activate Step 2
+                    const step2 = document.getElementById('step2Card');
+                    step2.style.opacity = '1';
+                    step2.style.pointerEvents = 'auto';
+                    step2.className = 'step-card active';
+                    document.getElementById('step2Badge').className = 'step-badge';
+
+                    if (isWindowOpen) {
+                        document.getElementById('submitPunchBtn').disabled = false;
+                    }
+
+                    showToast('GPS Satellite coordinates captured successfully!', 'success');
+                    playSound('success');
+                    lucide.createIcons();
+                },
+                (err) => {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i data-lucide="crosshair" style="width: 18px;"></i> Tap to Share GPS Location';
+                    lucide.createIcons();
+
+                    let errorMsg = 'Failed to acquire location.';
+                    if (err.code === 1) errorMsg = 'Location permission denied. Please allow location access in your browser settings to mark attendance.';
+                    else if (err.code === 2) errorMsg = 'Physical GPS position unavailable. Ensure GPS is turned on.';
+                    else if (err.code === 3) errorMsg = 'Location request timed out. Please try again in an open area.';
+
+                    showToast(errorMsg, 'error');
+                    playSound('error');
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 12000,
+                    maximumAge: 0
+                }
+            );
+        }
+
+        // Automatic Reverse Geocoding
+        async function fetchReadableAddress(lat, lng) {
+            try {
+                const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+                const res = await fetch(url, {
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.address) {
+                        const addr = data.address;
+                        const parts = [
+                            addr.building || addr.office || addr.amenity || addr.suburb || addr.neighbourhood || '',
+                            addr.road || addr.street || addr.residential || '',
+                            addr.city || addr.town || addr.village || addr.county || '',
+                            addr.state || ''
+                        ].filter(Boolean);
+                        if (parts.length > 0) return parts.join(', ');
+                    }
+                    if (data && data.display_name) {
+                        return data.display_name.split(', ').slice(0, 4).join(', ');
+                    }
+                }
+            } catch (err) {
+                console.warn('Nominatim reverse geocode failed:', err);
+            }
+
+            // Fallback to BigDataCloud
+            try {
+                const bdcRes = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`);
+                if (bdcRes.ok) {
+                    const bdc = await bdcRes.json();
+                    const parts = [
+                        bdc.locality || bdc.subLocality || '',
+                        bdc.city || bdc.principalSubdivision || '',
+                        bdc.countryName || ''
+                    ].filter(Boolean);
+                    if (parts.length > 0) return parts.join(', ');
+                }
+            } catch (e) {
+                console.warn('Fallback geocode failed:', e);
+            }
+
+            return `Coordinates: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        }
+
+        // Leaflet.js Mini-Map
+        function initMiniMap(lat, lng, accuracy) {
+            const mapEl = document.getElementById('gpsMiniMap');
+            mapEl.style.display = 'block';
+
+            if (!miniMap) {
+                miniMap = L.map('gpsMiniMap').setView([lat, lng], 16);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; OpenStreetMap contributors',
+                    maxZoom: 19
+                }).addTo(miniMap);
+            } else {
+                miniMap.setView([lat, lng], 16);
+            }
+
+            L.marker([lat, lng]).addTo(miniMap).bindPopup('Verified Attendance Location').openPopup();
+            L.circle([lat, lng], {
+                color: '#4f46e5',
+                fillColor: '#818cf8',
+                fillOpacity: 0.2,
+                radius: accuracy || 25
+            }).addTo(miniMap);
+
+            setTimeout(() => {
+                if (miniMap) miniMap.invalidateSize();
+            }, 250);
+        }
+
+        // STEP 2: Submit Attendance Check-In
+        async function submitAttendanceCheckIn() {
+            playSound('click');
+
+            if (!isWindowOpen) {
+                showToast('Attendance window is currently closed. Administrator must enable the window to accept punches.', 'error');
+                return;
+            }
+
+            if (capturedLat === null || capturedLng === null) {
+                showToast('Please share your physical GPS location first (Step 1).', 'warning');
+                return;
+            }
+
+            const name = document.getElementById('empNameInput').value.trim();
+            const email = document.getElementById('empEmailInput').value.trim();
+            const phone = document.getElementById('empPhoneInput').value.trim();
+            const department = document.getElementById('empDeptSelect').value;
+            const notes = document.getElementById('empNotesInput').value.trim();
+
+            if (!name || !email || !phone) {
+                showToast('Please provide your Full Name, Registered Email, and Registered Phone.', 'warning');
+                return;
+            }
+
+            const btn = document.getElementById('submitPunchBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="loader-2" class="spin" style="width: 20px;"></i> Verifying Onboarding Records...';
+            lucide.createIcons();
+
+            const payload = {
+                name: name,
+                email: email,
+                phone: phone,
+                department: department,
+                notes: notes,
+                latitude: capturedLat,
+                longitude: capturedLng,
+                accuracy_meters: capturedAccuracy,
+                location_name: capturedLocationName,
+                device_fingerprint: 'fp-' + (navigator.userAgent.replace(/[^a-zA-Z0-9]/g, '').slice(0, 20))
+            };
+
+            const res = await apiRequest('attendance.php?action=mark_attendance', 'POST', payload);
+
+            if (res.ok && res.data.success) {
+                playSound('success');
+                fireConfetti(3500);
+
+                // Show celebration receipt card
+                document.getElementById('punchWorkflowArea').style.display = 'none';
+                const successCard = document.getElementById('punchSuccessCard');
+                successCard.style.display = 'block';
+
+                document.getElementById('receiptEmpName').textContent = res.data.employee_name;
+                document.getElementById('receiptCheckInTime').textContent = res.data.check_in_time;
+                document.getElementById('receiptLocation').textContent = res.data.location_name;
+
+                const badge = document.getElementById('receiptStatusBadge');
+                badge.textContent = (res.data.status || 'present').toUpperCase();
+                badge.className = res.data.status === 'late' ? 'badge badge-warning' : 'badge badge-success';
+
+                showToast(res.data.message || 'Attendance check-in recorded successfully!', 'success');
+                lucide.createIcons();
+            } else {
+                playSound('error');
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="check-circle-2" style="width: 20px;"></i> Verify Onboarding Details & Mark Attendance';
+                lucide.createIcons();
+
+                showToast(res.data.message || 'Attendance verification failed.', 'error');
+            }
+        }
+    </script>
+</body>
+</html>

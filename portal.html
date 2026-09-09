@@ -21,7 +21,7 @@
             </a>
             <div class="nav-menu" id="navMenu">
                 <a href="portal.html" class="nav-link active"><i data-lucide="user" style="width: 18px;"></i> Employee Portal</a>
-                <a href="qr_scanner.html" class="nav-link"><i data-lucide="qr-code" style="width: 18px;"></i> QR Punch</a>
+                <a href="mark_attendance.html" class="nav-link"><i data-lucide="map-pin" style="width: 18px;"></i> Mark Attendance</a>
             </div>
             <div id="navUserArea"></div>
         </div>
@@ -88,15 +88,19 @@
                         </div>
                     </div>
 
+                    <div id="portalWindowBanner" style="display: none; padding: 0.65rem 0.85rem; border-radius: var(--radius-sm); margin-bottom: 0.85rem; font-size: 0.82rem; font-weight: 700; text-align: center;">
+                        <span id="portalWindowText">-</span>
+                    </div>
+
                     <div id="attendanceStatusBanner" style="padding: 0.85rem; border-radius: var(--radius-sm); background: var(--bg-main); border: 1px solid var(--border-color); text-align: center; margin-bottom: 1.25rem; font-weight: 600; font-size: 0.9rem;">
                         Checking attendance status...
                     </div>
 
                     <div style="display: flex; gap: 0.65rem; flex-direction: column;">
-                        <a href="qr_scanner.html" class="btn btn-primary" style="width: 100%; padding: 0.75rem;" onclick="playSound('click')">
-                            <i data-lucide="qr-code" style="width: 18px;"></i> Scan Office QR Code (In / Out)
+                        <a href="mark_attendance.html" id="markAttendanceNavBtn" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-weight: 700; justify-content: center;" onclick="playSound('click')">
+                            <i data-lucide="map-pin" style="width: 18px;"></i> Mark Your Attendance Now
                         </a>
-                        <button type="button" id="punchOutBtn" onclick="handlePunchOut()" class="btn btn-danger" style="display: none; width: 100%; padding: 0.75rem;">
+                        <button type="button" id="punchOutBtn" onclick="handlePunchOut()" class="btn btn-danger" style="display: none; width: 100%; padding: 0.75rem; font-weight: 700; justify-content: center;">
                             <i data-lucide="log-out" style="width: 18px;"></i> Mark Check-Out for Today
                         </button>
                     </div>
@@ -453,14 +457,52 @@
 
 
         async function loadTodayAttendance() {
+            // 1. Fetch Window Status
+            try {
+                const winRes = await apiRequest('attendance.php?action=attendance_window_status');
+                const winBanner = document.getElementById('portalWindowBanner');
+                const winText = document.getElementById('portalWindowText');
+                if (winRes.ok && winBanner && winText) {
+                    winBanner.style.display = 'block';
+                    if (winRes.data.is_open && winRes.data.window) {
+                        const mins = Math.floor(winRes.data.window.seconds_remaining / 60);
+                        const secs = winRes.data.window.seconds_remaining % 60;
+                        const timeStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+                        winBanner.style.background = '#ecfdf5';
+                        winBanner.style.border = '1px solid #a7f3d0';
+                        winBanner.style.color = '#065f46';
+                        winText.innerHTML = `🟢 Attendance Window Active (Open for ${timeStr})`;
+                    } else {
+                        winBanner.style.background = '#f1f5f9';
+                        winBanner.style.border = '1px solid #cbd5e1';
+                        winBanner.style.color = '#475569';
+                        winText.innerHTML = `🔒 Attendance Window Closed by Administrator`;
+                    }
+                }
+            } catch (e) {
+                console.warn('Window status error in portal:', e);
+            }
+
+            // 2. Fetch Today Attendance Record
             const res = await apiRequest('attendance.php?action=history&my_only=1');
             if (res.ok && res.data.success) {
                 const today = res.data.today;
                 const banner = document.getElementById('attendanceStatusBanner');
                 const punchOutBtn = document.getElementById('punchOutBtn');
+                const markBtn = document.getElementById('markAttendanceNavBtn');
 
                 if (today && today.check_in_time) {
                     document.getElementById('checkInTimeDisplay').textContent = today.check_in_time.substring(0, 5);
+
+                    // Disable "Mark Your Attendance Now" button once checked in
+                    if (markBtn) {
+                        markBtn.className = 'btn btn-secondary';
+                        markBtn.style.opacity = '0.7';
+                        markBtn.style.pointerEvents = 'none';
+                        markBtn.style.cursor = 'not-allowed';
+                        markBtn.innerHTML = `<i data-lucide="check-circle-2" style="width: 18px; color: var(--success);"></i> Attendance Marked for Today (${today.check_in_time.substring(0, 5)})`;
+                    }
+
                     if (today.check_out_time) {
                         document.getElementById('checkOutTimeDisplay').textContent = today.check_out_time.substring(0, 5);
                         banner.className = 'badge badge-success';
@@ -476,9 +518,23 @@
                         punchOutBtn.style.display = 'inline-flex';
                     }
                 } else {
+                    banner.className = '';
+                    banner.style.padding = '0.85rem';
+                    banner.style.borderRadius = 'var(--radius-sm)';
+                    banner.style.background = 'var(--bg-main)';
+                    banner.style.border = '1px solid var(--border-color)';
                     banner.innerHTML = '⏳ You have not checked in today yet.';
                     punchOutBtn.style.display = 'none';
+
+                    if (markBtn) {
+                        markBtn.className = 'btn btn-primary';
+                        markBtn.style.opacity = '1';
+                        markBtn.style.pointerEvents = 'auto';
+                        markBtn.style.cursor = 'pointer';
+                        markBtn.innerHTML = `<i data-lucide="map-pin" style="width: 18px;"></i> Mark Your Attendance Now`;
+                    }
                 }
+                lucide.createIcons();
             }
         }
 
@@ -678,7 +734,14 @@
                         <td><span class="badge badge-${row.status}">${row.status}</span></td>
                         <td style="color: var(--text-muted); font-size: 0.88rem;">
                             ${row.notes || '-'}
-                            ${row.latitude ? ` • <span style="font-family: var(--font-mono); font-size: 0.8rem;">[${parseFloat(row.latitude).toFixed(4)}, ${parseFloat(row.longitude).toFixed(4)}]</span>` : ''}
+                            ${(row.location_name || row.latitude) ? `
+                                <div style="margin-top: 0.25rem; font-size: 0.8rem; color: var(--text-main);">
+                                    📍 <strong>${escapeHtml(row.location_name || 'GPS Punch')}</strong>
+                                    ${row.latitude ? `
+                                        <a href="https://www.google.com/maps?q=${row.latitude},${row.longitude}" target="_blank" rel="noopener noreferrer" style="color: var(--primary); margin-left: 0.25rem; font-size: 0.74rem; text-decoration: underline;">View Map</a>
+                                    ` : ''}
+                                </div>
+                            ` : ''}
                         </td>
                     </tr>
                 `).join('');

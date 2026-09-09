@@ -11,6 +11,55 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        .step-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: #fff;
+            font-size: 0.82rem;
+            font-weight: 700;
+            margin-right: 0.45rem;
+        }
+        .step-badge.pending {
+            background: #94a3b8;
+        }
+        .step-card {
+            background: var(--bg-main, #f8fafc);
+            border: 1px solid var(--border-color, #e2e8f0);
+            border-radius: var(--radius-md, 12px);
+            padding: 1.25rem;
+            margin-bottom: 1.25rem;
+            text-align: left;
+            transition: all 0.25s ease;
+        }
+        .step-card.active {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+        .step-card.completed {
+            border-color: #10b981;
+            background: #f0fdf4;
+        }
+        .pulse-ring {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
+            animation: pulse-ring 1.8s infinite;
+        }
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+            70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -33,69 +82,153 @@
         <div style="max-width: 620px; margin: 1.25rem auto;">
             <div class="card animate-fade-in" style="padding: 1.85rem 2rem; text-align: center; box-shadow: var(--shadow-md); border-radius: var(--radius-lg);">
                 
-                <div style="margin-bottom: 1.5rem;">
+                <div style="margin-bottom: 1.25rem;">
                     <div style="display: inline-flex; align-items: center; gap: 0.45rem; color: var(--warning-text); font-weight: 600; text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.5px; margin-bottom: 0.4rem; background: var(--warning-bg); padding: 0.25rem 0.8rem; border-radius: 9999px; border: 1px solid var(--warning-border);">
                         <span class="radar-dot" style="background: var(--warning);"></span> Time-Bound Geofence Verification
                     </div>
-                    <h1 id="linkTitleHeader" style="font-size: 1.65rem; font-weight: 700; letter-spacing: -0.4px; margin: 0.15rem 0;">Remote GPS Attendance Punch</h1>
-                    <p style="color: var(--text-muted); font-size: 0.9rem;">
-                        This temporary verification session was issued by Administration. Geolocation permission is mandatory.
+                    <h1 id="linkTitleHeader" style="font-size: 1.6rem; font-weight: 700; letter-spacing: -0.4px; margin: 0.15rem 0;">Remote GPS Attendance Punch</h1>
+                    <p style="color: var(--text-muted); font-size: 0.88rem;">
+                        This verification session was issued by Administration. Geolocation permission is mandatory.
                     </p>
                 </div>
 
                 <!-- Animated Circular Progress Countdown Timer Box -->
-                <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.35rem; position: relative;">
-                    <div style="font-size: 0.74rem; font-weight: 700; color: #92400e; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 0.65rem;">
+                <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-md); padding: 1rem 1.25rem; margin-bottom: 1.35rem; position: relative;">
+                    <div style="font-size: 0.72rem; font-weight: 700; color: #92400e; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 0.5rem;">
                         SESSION REMAINING DURATION
                     </div>
 
                     <div style="display: flex; align-items: center; justify-content: center; gap: 1.25rem; flex-wrap: wrap;">
-                        <div class="svg-countdown-container" style="width: 80px; height: 80px;">
-                            <svg width="80" height="80">
-                                <circle cx="40" cy="40" r="34" stroke="#fde68a" stroke-width="5" fill="transparent" />
-                                <circle id="countdownSvgCircle" class="svg-countdown-circle" cx="40" cy="40" r="34" stroke="#d97706" stroke-width="5" fill="transparent" stroke-dasharray="213.63" stroke-dashoffset="0" stroke-linecap="round" />
+                        <div class="svg-countdown-container" style="width: 72px; height: 72px;">
+                            <svg width="72" height="72">
+                                <circle cx="36" cy="36" r="30" stroke="#fde68a" stroke-width="5" fill="transparent" />
+                                <circle id="countdownSvgCircle" class="svg-countdown-circle" cx="36" cy="36" r="30" stroke="#d97706" stroke-width="5" fill="transparent" stroke-dasharray="188.5" stroke-dashoffset="0" stroke-linecap="round" />
                             </svg>
-                            <div style="position: absolute; font-size: 0.95rem; font-weight: 700; font-family: var(--font-mono); color: #92400e;" id="countdownPercent">100%</div>
+                            <div style="position: absolute; font-size: 0.9rem; font-weight: 700; font-family: var(--font-mono); color: #92400e;" id="countdownPercent">100%</div>
                         </div>
 
                         <div>
-                            <div id="countdownTimer" style="font-size: 2.35rem; font-weight: 700; color: #b45309; font-family: var(--font-mono); line-height: 1; letter-spacing: 0.5px;">
+                            <div id="countdownTimer" style="font-size: 2.1rem; font-weight: 700; color: #b45309; font-family: var(--font-mono); line-height: 1; letter-spacing: 0.5px;">
                                 --:--
                             </div>
-                            <div id="timerSubtext" style="font-size: 0.82rem; color: #78350f; font-weight: 500; margin-top: 0.25rem;">
-                                Submit coordinates before expiration.
+                            <div id="timerSubtext" style="font-size: 0.8rem; color: #78350f; font-weight: 500; margin-top: 0.25rem;">
+                                Submit coordinates before link expiration.
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Interactive Mini-Map Preview (Leaflet) -->
-                <div id="gpsPunchMiniMap" style="height: 200px; width: 100%; margin-bottom: 1.35rem; display: none; border-radius: var(--radius-sm); border: 1px solid var(--border-color);"></div>
-
-                <!-- Detected GPS Status Preview -->
-                <div id="coordsBox" style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.95rem; margin-bottom: 1.35rem; display: none; text-align: left;">
-                    <div style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.2rem;">Captured Device Coordinates:</div>
-                    <div id="coordsText" style="font-weight: 700; font-family: var(--font-mono); font-size: 0.92rem; color: var(--primary);"></div>
+                <!-- Verification Result Banner (shown when punch is completed) -->
+                <div id="gpsResultBox" style="display: none; padding: 1.15rem; border-radius: var(--radius-md); margin-bottom: 1.35rem; text-align: left;">
+                    <div style="font-weight: 700; margin-bottom: 0.35rem; font-size: 1.05rem;" id="gpsResultTitle"></div>
+                    <div style="font-size: 0.9rem;" id="gpsResultDetails"></div>
                 </div>
 
-                <!-- Verification Result Banner -->
-                <div id="gpsResultBox" style="display: none; padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.35rem; text-align: left;">
-                    <div style="font-weight: 700; margin-bottom: 0.2rem; font-size: 1.05rem;" id="gpsResultTitle"></div>
-                    <div style="font-size: 0.88rem;" id="gpsResultDetails"></div>
-                </div>
+                <!-- STEP 1: GPS ACQUISITION CARD -->
+                <div id="step1Card" class="step-card active">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.65rem;">
+                        <div style="display: flex; align-items: center;">
+                            <span class="step-badge" id="step1Badge">1</span>
+                            <strong style="font-size: 0.95rem; color: var(--text-main);">Acquire GPS Satellite Location</strong>
+                        </div>
+                        <span id="gpsStatusTag" style="font-size: 0.74rem; font-weight: 600; color: #64748b; background: #e2e8f0; padding: 0.2rem 0.6rem; border-radius: 9999px;">
+                            Pending Capture
+                        </span>
+                    </div>
+                    <p style="font-size: 0.83rem; color: var(--text-muted); margin-bottom: 0.85rem; line-height: 1.4;">
+                        Allow browser location permissions to capture your precise physical GPS coordinates.
+                    </p>
 
-                <!-- Main Action Buttons -->
-                <div style="display: flex; gap: 0.65rem; flex-direction: column;">
-                    <button type="button" id="markGpsBtn" onclick="requestLocationAndPunch()" class="btn btn-primary" style="padding: 0.75rem 1.25rem; font-size: 0.95rem;">
-                        <i data-lucide="crosshair" style="width: 18px;"></i> Tap to Verify GPS & Mark Attendance
+                    <button type="button" id="acquireGpsBtn" onclick="requestGpsLocation()" class="btn btn-primary" style="width: 100%; padding: 0.75rem 1rem; font-size: 0.92rem; font-weight: 600;">
+                        <i data-lucide="crosshair" style="width: 18px;"></i> Tap to Acquire GPS Location
                     </button>
-                    <a href="portal.html" class="btn btn-secondary btn-sm" style="padding: 0.55rem 1rem;">
-                        <i data-lucide="home" style="width: 16px;"></i> Return to Employee Portal
+
+                    <!-- Interactive Mini-Map Preview (Leaflet) -->
+                    <div id="gpsPunchMiniMap" style="height: 180px; width: 100%; margin-top: 0.85rem; display: none; border-radius: var(--radius-sm); border: 1px solid var(--border-color);"></div>
+
+                    <!-- Detected GPS Status Preview -->
+                    <div id="coordsBox" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: var(--radius-sm); padding: 0.85rem; margin-top: 0.85rem; display: none;">
+                        <div style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; font-weight: 700; color: #0f172a; margin-bottom: 0.3rem;">
+                            <span class="pulse-ring"></span> Verified Physical Location:
+                        </div>
+                        <div id="detectedLocationName" style="font-weight: 700; font-size: 0.92rem; color: var(--primary); line-height: 1.35; margin-bottom: 0.25rem;">
+                            Resolving street address...
+                        </div>
+                        <div id="coordsText" style="font-family: var(--font-mono); font-size: 0.75rem; color: #64748b;"></div>
+                    </div>
+                </div>
+
+                <!-- STEP 2: EMPLOYEE IDENTIFICATION CARD (Enabled once GPS is acquired) -->
+                <div id="step2Card" class="step-card" style="opacity: 0.65; pointer-events: none;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.65rem;">
+                        <div style="display: flex; align-items: center;">
+                            <span class="step-badge pending" id="step2Badge">2</span>
+                            <strong style="font-size: 0.95rem; color: var(--text-main);">Confirm Employee Identification</strong>
+                        </div>
+                        <span id="authStatusBadge" style="font-size: 0.74rem; font-weight: 600; color: #64748b; background: #e2e8f0; padding: 0.2rem 0.6rem; border-radius: 9999px;">
+                            Required
+                        </span>
+                    </div>
+                    <p style="font-size: 0.83rem; color: var(--text-muted); margin-bottom: 0.95rem; line-height: 1.4;">
+                        Provide your name and registered employee email to attribute this check-in to your account.
+                    </p>
+
+                    <div id="loggedInUserNotice" style="display: none; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 0.6rem 0.75rem; margin-bottom: 0.85rem; font-size: 0.82rem; color: #1e40af;">
+                        <i data-lucide="user-check" style="width: 15px; display: inline-block; vertical-align: middle;"></i>
+                        Logged in as <strong id="noticeUserName">-</strong> (<span id="noticeUserEmail">-</span>).
+                    </div>
+
+                    <form id="employeeDetailsForm" onsubmit="event.preventDefault(); submitGpsAttendance();">
+                        <div class="form-group" style="margin-bottom: 0.75rem;">
+                            <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-main); display: block; margin-bottom: 0.25rem;">
+                                Full Name <span style="color: var(--danger);">*</span>
+                            </label>
+                            <input type="text" id="empNameInput" class="form-control" placeholder="e.g. Rohan Verma" required style="font-size: 0.88rem; padding: 0.55rem 0.75rem;">
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 0.75rem;">
+                            <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-main); display: block; margin-bottom: 0.25rem;">
+                                Registered Work Email <span style="color: var(--danger);">*</span>
+                            </label>
+                            <input type="email" id="empEmailInput" class="form-control" placeholder="e.g. rohan.verma@tgcconnect.com" required style="font-size: 0.88rem; padding: 0.55rem 0.75rem;">
+                            <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 0.2rem;">Matches your employee record in TGC Connect.</span>
+                        </div>
+
+                        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                            <div>
+                                <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-main); display: block; margin-bottom: 0.25rem;">Department</label>
+                                <select id="empDeptSelect" class="form-control" style="font-size: 0.88rem; padding: 0.55rem 0.75rem;">
+                                    <option value="Operations">Operations</option>
+                                    <option value="Design">Design</option>
+                                    <option value="Engineering">Engineering</option>
+                                    <option value="Marketing">Marketing</option>
+                                    <option value="Sales">Sales</option>
+                                    <option value="HR & Admin">HR & Admin</option>
+                                    <option value="Finance">Finance</option>
+                                    <option value="Field Staff">Field Staff</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-main); display: block; margin-bottom: 0.25rem;">Notes / Reason (Optional)</label>
+                                <input type="text" id="empNotesInput" class="form-control" placeholder="e.g. Remote site visit" style="font-size: 0.88rem; padding: 0.55rem 0.75rem;">
+                            </div>
+                        </div>
+
+                        <button type="submit" id="submitGpsBtn" class="btn btn-primary btn-lg" style="width: 100%; padding: 0.8rem 1.25rem; font-size: 0.95rem; font-weight: 700; margin-top: 0.5rem;">
+                            <i data-lucide="check-circle" style="width: 18px;"></i> Verify Details & Submit Attendance
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Footer Navigation Link -->
+                <div style="margin-top: 1.25rem;">
+                    <a href="portal.html" class="btn btn-secondary btn-sm" style="padding: 0.5rem 1rem;">
+                        <i data-lucide="home" style="width: 15px;"></i> Return to Employee Portal
                     </a>
                 </div>
 
-                <div style="margin-top: 1.5rem; font-size: 0.8rem; color: var(--text-muted); line-height: 1.45;">
-                    🔒 <strong>Anti-Proxy Safeguard:</strong> This single-use link requires strict device GPS permission. Manual override is not permitted.
+                <div style="margin-top: 1.25rem; font-size: 0.78rem; color: var(--text-muted); line-height: 1.45;">
+                    🔒 <strong>Anti-Proxy Safeguard:</strong> Single-use GPS link with anti-spoof coordinates and registered account verification.
                 </div>
 
             </div>
@@ -113,16 +246,56 @@
         let countdownInterval = null;
         let miniMap = null;
 
+        // Captured Location State
+        let capturedLat = null;
+        let capturedLng = null;
+        let capturedAccuracy = null;
+        let capturedLocationName = '';
+        let currentUser = null;
+
         document.addEventListener('DOMContentLoaded', async () => {
             await checkAuthNav();
+            await checkCurrentUser();
+
             if (!token) {
                 document.getElementById('countdownTimer').textContent = 'NO TOKEN';
                 document.getElementById('timerSubtext').textContent = 'Please open the full attendance link with token parameter.';
-                document.getElementById('markGpsBtn').disabled = true;
+                document.getElementById('acquireGpsBtn').disabled = true;
                 return;
             }
             loadLinkDetails();
         });
+
+        async function checkCurrentUser() {
+            try {
+                const res = await apiRequest('auth.php?action=me');
+                if (res.ok && res.data && res.data.authenticated) {
+                    currentUser = res.data.user;
+                    // Pre-fill employee inputs
+                    const nameInp = document.getElementById('empNameInput');
+                    const emailInp = document.getElementById('empEmailInput');
+                    const deptSel = document.getElementById('empDeptSelect');
+                    if (nameInp && currentUser.name) nameInp.value = currentUser.name;
+                    if (emailInp && currentUser.email) emailInp.value = currentUser.email;
+                    if (deptSel && currentUser.department) deptSel.value = currentUser.department;
+
+                    const notice = document.getElementById('loggedInUserNotice');
+                    if (notice) {
+                        notice.style.display = 'block';
+                        document.getElementById('noticeUserName').textContent = currentUser.name;
+                        document.getElementById('noticeUserEmail').textContent = currentUser.email;
+                    }
+                    const badge = document.getElementById('authStatusBadge');
+                    if (badge) {
+                        badge.textContent = 'Account Linked';
+                        badge.style.background = '#dcfce7';
+                        badge.style.color = '#15803d';
+                    }
+                }
+            } catch (e) {
+                console.warn('Auth check error:', e);
+            }
+        }
 
         async function loadLinkDetails() {
             const res = await apiRequest(`attendance.php?action=gps_link_details&token=${token}`);
@@ -137,14 +310,14 @@
                 document.getElementById('countdownTimer').textContent = 'EXPIRED';
                 document.getElementById('countdownTimer').style.color = 'var(--danger)';
                 document.getElementById('timerSubtext').textContent = 'This attendance link has expired or is invalid.';
-                document.getElementById('markGpsBtn').disabled = true;
-                document.getElementById('markGpsBtn').style.opacity = '0.5';
+                document.getElementById('acquireGpsBtn').disabled = true;
+                document.getElementById('acquireGpsBtn').style.opacity = '0.5';
             }
         }
 
         function startCountdown() {
             const circle = document.getElementById('countdownSvgCircle');
-            const circumference = 2 * Math.PI * 38; // ~238.76
+            const circumference = 2 * Math.PI * 30; // ~188.5
 
             function tick() {
                 if (remainingSeconds <= 0) {
@@ -152,8 +325,11 @@
                     document.getElementById('countdownTimer').textContent = '00:00';
                     document.getElementById('countdownTimer').style.color = 'var(--danger)';
                     document.getElementById('timerSubtext').textContent = 'Link has expired. Attendance rejected per anti-proxy policy.';
-                    document.getElementById('markGpsBtn').disabled = true;
-                    document.getElementById('markGpsBtn').style.opacity = '0.5';
+                    document.getElementById('acquireGpsBtn').disabled = true;
+                    document.getElementById('acquireGpsBtn').style.opacity = '0.5';
+                    if (document.getElementById('submitGpsBtn')) {
+                        document.getElementById('submitGpsBtn').disabled = true;
+                    }
                     if (circle) circle.style.strokeDashoffset = circumference;
                     document.getElementById('countdownPercent').textContent = '0%';
                     return;
@@ -191,7 +367,7 @@
             }
 
             // User pin
-            L.marker([lat, lng]).addTo(miniMap).bindPopup('Your Current Position').openPopup();
+            L.marker([lat, lng]).addTo(miniMap).bindPopup('Your Current Location').openPopup();
             // Accuracy radius circle
             L.circle([lat, lng], {
                 color: '#4f46e5',
@@ -199,11 +375,65 @@
                 fillOpacity: 0.25,
                 radius: accuracy || 50
             }).addTo(miniMap);
+
+            setTimeout(() => {
+                if (miniMap) miniMap.invalidateSize();
+            }, 200);
         }
 
-        function requestLocationAndPunch() {
+        // Reverse geocoding to human-readable address
+        async function fetchReadableAddress(lat, lng) {
+            try {
+                const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+                const res = await fetch(url, {
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.address) {
+                        const addr = data.address;
+                        const parts = [
+                            addr.amenity || addr.building || addr.office || addr.shop || addr.suburb || addr.neighbourhood || '',
+                            addr.road || addr.street || addr.residential || '',
+                            addr.city || addr.town || addr.village || addr.county || '',
+                            addr.state || ''
+                        ].filter(Boolean);
+                        if (parts.length > 0) {
+                            return parts.join(', ');
+                        }
+                    }
+                    if (data && data.display_name) {
+                        const parts = data.display_name.split(', ');
+                        return parts.slice(0, 4).join(', ');
+                    }
+                }
+            } catch (err) {
+                console.warn('Nominatim reverse geocode lookup failed:', err);
+            }
+
+            // Secondary Fallback: Free client reverse geocoding API
+            try {
+                const bdcRes = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`);
+                if (bdcRes.ok) {
+                    const bdc = await bdcRes.json();
+                    const parts = [
+                        bdc.locality || bdc.subLocality || '',
+                        bdc.city || bdc.principalSubdivision || '',
+                        bdc.countryName || ''
+                    ].filter(Boolean);
+                    if (parts.length > 0) return parts.join(', ');
+                }
+            } catch (e) {
+                console.warn('Fallback geocode failed:', e);
+            }
+
+            return `Coordinates: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        }
+
+        // Step 1: Request Geolocation & Reverse Geocode
+        function requestGpsLocation() {
             playSound('click');
-            const btn = document.getElementById('markGpsBtn');
+            const btn = document.getElementById('acquireGpsBtn');
             if (!navigator.geolocation) {
                 showToast('Geolocation is not supported by your browser.', 'error');
                 return;
@@ -215,68 +445,156 @@
 
             navigator.geolocation.getCurrentPosition(
                 async (pos) => {
-                    const lat = pos.coords.latitude;
-                    const lng = pos.coords.longitude;
-                    const accuracy = Math.round(pos.coords.accuracy);
+                    capturedLat = pos.coords.latitude;
+                    capturedLng = pos.coords.longitude;
+                    capturedAccuracy = Math.round(pos.coords.accuracy);
 
                     document.getElementById('coordsBox').style.display = 'block';
-                    document.getElementById('coordsText').textContent = `Latitude: ${lat.toFixed(6)} • Longitude: ${lng.toFixed(6)} (±${accuracy}m)`;
-                    initMiniMap(lat, lng, accuracy);
+                    document.getElementById('coordsText').textContent = `Accuracy: ±${capturedAccuracy}m • Coordinates: ${capturedLat.toFixed(5)}, ${capturedLng.toFixed(5)}`;
+                    initMiniMap(capturedLat, capturedLng, capturedAccuracy);
 
-                    const payload = {
-                        token: token,
-                        latitude: lat,
-                        longitude: lng,
-                        accuracy_meters: accuracy,
-                        device_fingerprint: getDeviceFingerprint(),
-                        location_name: `Verified GPS Check-In (±${accuracy}m)`
-                    };
+                    // Fetch readable address
+                    document.getElementById('detectedLocationName').innerHTML = '<i data-lucide="loader" class="spin" style="width: 14px; display: inline-block;"></i> Resolving street & location address...';
+                    lucide.createIcons();
 
-                    const res = await apiRequest('attendance.php?action=gps_punch', 'POST', payload);
+                    capturedLocationName = await fetchReadableAddress(capturedLat, capturedLng);
+                    document.getElementById('detectedLocationName').textContent = capturedLocationName;
 
-                    const resBox = document.getElementById('gpsResultBox');
-                    const resTitle = document.getElementById('gpsResultTitle');
-                    const resDetails = document.getElementById('gpsResultDetails');
-                    resBox.style.display = 'block';
+                    // Update Step 1 Status
+                    const step1Card = document.getElementById('step1Card');
+                    step1Card.className = 'step-card completed';
+                    document.getElementById('step1Badge').innerHTML = '✓';
+                    document.getElementById('step1Badge').style.background = '#10b981';
+                    const gpsTag = document.getElementById('gpsStatusTag');
+                    gpsTag.textContent = 'GPS Verified';
+                    gpsTag.style.background = '#dcfce7';
+                    gpsTag.style.color = '#15803d';
 
-                    if (res.ok && res.data.success) {
-                        playSound('success');
-                        fireConfetti(3000);
-                        showToast(res.data.message, 'success');
-                        resBox.style.background = 'var(--success-bg)';
-                        resBox.style.border = '1.5px solid var(--success-border)';
-                        resTitle.style.color = '#065f46';
-                        resTitle.textContent = '✓ ' + res.data.message;
-                        resDetails.innerHTML = `Date: <strong>${res.data.attendance.date}</strong> &bull; Check-in: <strong>${res.data.attendance.check_in_time}</strong>`;
-                        btn.innerHTML = '✓ Attendance Verified';
-                        btn.className = 'btn btn-success btn-lg';
+                    btn.disabled = false;
+                    btn.innerHTML = '✓ Location Acquired (Tap to Re-acquire)';
+                    btn.className = 'btn btn-secondary btn-sm';
+                    btn.style.width = 'auto';
+                    btn.style.marginTop = '0.5rem';
 
-                        setTimeout(() => {
-                            window.location.href = 'portal.html';
-                        }, 2200);
-                    } else {
-                        playSound('error');
-                        showToast(res.data.message || 'GPS Verification failed', 'error');
-                        resBox.style.background = 'var(--danger-bg)';
-                        resBox.style.border = '1.5px solid var(--danger-border)';
-                        resTitle.style.color = '#991b1b';
-                        resTitle.textContent = '✗ Geolocation Verification Failed';
-                        resDetails.textContent = res.data.message;
-                        btn.disabled = false;
-                        btn.innerHTML = '<i data-lucide="crosshair" style="width: 20px;"></i> Retry GPS Verification';
-                        lucide.createIcons();
-                    }
+                    // Enable Step 2: Employee Identification
+                    const step2Card = document.getElementById('step2Card');
+                    step2Card.style.opacity = '1';
+                    step2Card.style.pointerEvents = 'auto';
+                    step2Card.className = 'step-card active animate-fade-in';
+                    const step2Badge = document.getElementById('step2Badge');
+                    step2Badge.className = 'step-badge';
+
+                    showToast('GPS coordinates acquired! Please fill in your name and details.', 'success');
+                    lucide.createIcons();
+
+                    // Smooth scroll to step 2
+                    step2Card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 },
                 (err) => {
                     console.error(err);
                     playSound('error');
                     btn.disabled = false;
-                    btn.innerHTML = '<i data-lucide="crosshair" style="width: 20px;"></i> Tap to Verify GPS & Mark Attendance';
+                    btn.innerHTML = '<i data-lucide="crosshair" style="width: 18px;"></i> Tap to Acquire GPS Location';
                     lucide.createIcons();
                     showToast('Please enable device location permissions in your browser.', 'error');
                 },
                 { enableHighAccuracy: true, timeout: 12000 }
             );
+        }
+
+        // Step 2: Submit Details & Mark Attendance
+        async function submitGpsAttendance() {
+            playSound('click');
+
+            if (!capturedLat || !capturedLng) {
+                showToast('Please acquire GPS location first in Step 1.', 'warning');
+                return;
+            }
+
+            const name = document.getElementById('empNameInput').value.trim();
+            const email = document.getElementById('empEmailInput').value.trim();
+            const dept = document.getElementById('empDeptSelect').value;
+            const notes = document.getElementById('empNotesInput').value.trim();
+
+            if (!name) {
+                showToast('Please enter your full name.', 'error');
+                document.getElementById('empNameInput').focus();
+                return;
+            }
+            if (!email) {
+                showToast('Please enter your registered work email.', 'error');
+                document.getElementById('empEmailInput').focus();
+                return;
+            }
+
+            const submitBtn = document.getElementById('submitGpsBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i data-lucide="loader" class="spin" style="width: 18px;"></i> Verifying with Server...';
+            lucide.createIcons();
+
+            const payload = {
+                token: token,
+                latitude: capturedLat,
+                longitude: capturedLng,
+                accuracy_meters: capturedAccuracy,
+                device_fingerprint: getDeviceFingerprint(),
+                location_name: capturedLocationName || `GPS Punch (±${capturedAccuracy}m)`,
+                name: name,
+                email: email,
+                department: dept,
+                notes: notes
+            };
+
+            const res = await apiRequest('attendance.php?action=gps_punch', 'POST', payload);
+
+            const resBox = document.getElementById('gpsResultBox');
+            const resTitle = document.getElementById('gpsResultTitle');
+            const resDetails = document.getElementById('gpsResultDetails');
+            resBox.style.display = 'block';
+
+            if (res.ok && res.data.success) {
+                playSound('success');
+                showToast(res.data.message, 'success');
+                resBox.style.background = 'var(--success-bg)';
+                resBox.style.border = '1.5px solid var(--success-border)';
+                resTitle.style.color = '#065f46';
+                resTitle.textContent = '✓ ' + res.data.message;
+                
+                const att = res.data.attendance || {};
+                const locDisplay = res.data.location_name || capturedLocationName;
+                resDetails.innerHTML = `
+                    <div style="margin-top: 0.35rem; line-height: 1.5;">
+                        <div>Employee: <strong>${res.data.employee_name || name}</strong></div>
+                        <div>Date: <strong>${att.date || new Date().toISOString().split('T')[0]}</strong> &bull; Check-in: <strong>${att.check_in_time || '--'}</strong></div>
+                        <div style="margin-top: 0.2rem; color: #047857;">📍 <strong>Location:</strong> ${locDisplay}</div>
+                    </div>
+                `;
+
+                submitBtn.innerHTML = '✓ Attendance Successfully Recorded';
+                submitBtn.className = 'btn btn-success btn-lg';
+
+                // Mark Step 2 completed
+                const step2Card = document.getElementById('step2Card');
+                step2Card.className = 'step-card completed';
+                document.getElementById('step2Badge').innerHTML = '✓';
+                document.getElementById('step2Badge').style.background = '#10b981';
+
+                setTimeout(() => {
+                    window.location.href = 'portal.html';
+                }, 2800);
+            } else {
+                playSound('error');
+                showToast(res.data.message || 'GPS Verification failed', 'error');
+                resBox.style.background = 'var(--danger-bg)';
+                resBox.style.border = '1.5px solid var(--danger-border)';
+                resTitle.style.color = '#991b1b';
+                resTitle.textContent = '✗ Attendance Verification Failed';
+                resDetails.textContent = res.data.message;
+
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i data-lucide="crosshair" style="width: 18px;"></i> Retry Submission';
+                lucide.createIcons();
+            }
         }
     </script>
 </body>

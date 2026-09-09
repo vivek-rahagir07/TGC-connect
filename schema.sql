@@ -55,13 +55,27 @@ CREATE TABLE IF NOT EXISTS `attendances` (
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 3. Dynamic QR Codes Table
+-- 3. Dynamic QR Codes Table (Retained for backwards compatibility)
 CREATE TABLE IF NOT EXISTS `qr_codes` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `token` VARCHAR(100) NOT NULL UNIQUE,
     `title` VARCHAR(150) DEFAULT 'TGC Office Main Reception QR',
     `is_active` TINYINT(1) DEFAULT 1,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 3b. Admin-Controlled Attendance Windows (Time-Bound shift opening e.g. 10 mins)
+CREATE TABLE IF NOT EXISTS `attendance_windows` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `is_active` TINYINT(1) DEFAULT 1,
+    `opened_at` DATETIME NOT NULL,
+    `duration_minutes` INT NOT NULL DEFAULT 10,
+    `expires_at` DATETIME NOT NULL,
+    `opened_by` INT DEFAULT NULL,
+    `title` VARCHAR(150) DEFAULT 'Shift Attendance Window',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_window_active` (`is_active`, `expires_at`),
+    FOREIGN KEY (`opened_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 4. Time-Bound GPS Links Table

@@ -310,12 +310,12 @@ async function checkAuthNav() {
       if (u.role === 'admin') {
         navMenu.innerHTML = `
           <a href="admin.html" class="nav-link"><i data-lucide="layout-dashboard" style="width: 18px;"></i> Admin Console</a>
-          <a href="qr_scanner.html" class="nav-link"><i data-lucide="qr-code" style="width: 18px;"></i> QR Punch</a>
+          <a href="mark_attendance.html" class="nav-link"><i data-lucide="map-pin" style="width: 18px;"></i> Mark Attendance</a>
         `;
       } else {
         navMenu.innerHTML = `
           <a href="portal.html" class="nav-link"><i data-lucide="user" style="width: 18px;"></i> Employee Portal</a>
-          <a href="qr_scanner.html" class="nav-link"><i data-lucide="qr-code" style="width: 18px;"></i> QR Punch</a>
+          <a href="mark_attendance.html" class="nav-link"><i data-lucide="map-pin" style="width: 18px;"></i> Mark Attendance</a>
         `;
       }
     }

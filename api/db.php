@@ -5,6 +5,8 @@
  * Standardized exclusively on MySQL/MariaDB with PDO.
  */
 
+date_default_timezone_set('Asia/Kolkata');
+
 if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.cookie_httponly', 1);
     ini_set('session.use_only_cookies', 1);

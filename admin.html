@@ -26,7 +26,7 @@
             </a>
             <div class="nav-menu" id="navMenu">
                 <a href="admin.html" class="nav-link active"><i data-lucide="layout-dashboard" style="width: 18px;"></i> Dashboard</a>
-                <a href="qr_scanner.html" class="nav-link"><i data-lucide="qr-code" style="width: 18px;"></i> QR Punch</a>
+                <a href="mark_attendance.html" class="nav-link"><i data-lucide="map-pin" style="width: 18px;"></i> Mark Attendance</a>
             </div>
             <div id="navUserArea"></div>
         </div>
@@ -49,8 +49,10 @@
                     <button type="button" onclick="openModal('generateGpsModal')" class="btn btn-secondary btn-sm">
                         <i data-lucide="map-pin" style="width: 15px; color: var(--warning);"></i> Time-Bound GPS Link
                     </button>
-                    <button type="button" onclick="openQrModal()" class="btn btn-secondary btn-sm">
-                        <i data-lucide="qr-code" style="width: 15px; color: var(--primary);"></i> Office QR Standee
+                    <button type="button" id="adminAttendanceWindowHeaderBtn" onclick="openAttendanceWindowModal()" class="btn btn-secondary btn-sm" style="border-color: #818cf8;">
+                        <i data-lucide="clock" style="width: 15px; color: var(--primary);"></i>
+                        <span id="adminAttendanceWindowHeaderLabel">Attendance Window</span>
+                        <span id="adminAttendanceWindowHeaderBadge" class="badge badge-sm badge-secondary" style="margin-left: 4px; font-size: 0.7rem;">Closed</span>
                     </button>
                     <button type="button" onclick="openModal('adminOnboardModal')" class="btn btn-secondary btn-sm">
                         <i data-lucide="user-plus" style="width: 15px; color: var(--success);"></i> + Direct Onboard
@@ -574,29 +576,76 @@
 
     <!-- Modals -->
 
-    <!-- 1. QR Standee Modal with Dynamic Rotating Ring -->
-    <div class="modal-overlay" id="qrModal">
-        <div class="modal-content" style="max-width: 480px; text-align: center;">
+    <!-- 1. Admin Attendance Window Controller Modal -->
+    <div class="modal-overlay" id="attendanceWindowModal">
+        <div class="modal-content" style="max-width: 520px; text-align: center;">
             <div class="modal-header">
-                <h3 style="font-size: 1.25rem; font-weight: 800;">Office Entrance QR Standee</h3>
-                <button class="close-btn" onclick="closeModal('qrModal')">&times;</button>
+                <div>
+                    <h3 style="font-size: 1.25rem; font-weight: 800; margin: 0; text-align: left;">Shift Attendance Window</h3>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); text-align: left; margin-top: 2px;">Allow employees to mark attendance within a controlled time window.</div>
+                </div>
+                <button class="close-btn" onclick="closeModal('attendanceWindowModal')">&times;</button>
             </div>
-            <div class="modal-body">
-                <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 1.5rem;">
-                    Place this high-resolution QR standee at the reception entrance for staff badge scanning.
-                </p>
-                <div class="qr-preview-box" style="margin-bottom: 1.5rem;">
-                    <div id="qrcodeDisplay" style="padding: 14px; background: #fff; border-radius: var(--radius-sm); box-shadow: var(--shadow-sm);"></div>
-                    <div id="qrTokenLabel" style="margin-top: 1rem; font-weight: 800; font-family: var(--font-mono); font-size: 1.15rem; color: var(--primary); letter-spacing: 1px;"></div>
+            <div class="modal-body" style="padding: 1.25rem 1.5rem;">
+                
+                <!-- Window Live Status Card -->
+                <div id="adminModalWindowCard" style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.25rem; text-align: center;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <span id="adminWindowPulseDot" style="width: 10px; height: 10px; border-radius: 50%; background: #94a3b8; display: inline-block;"></span>
+                        <span id="adminWindowStatusLabel" style="font-size: 0.85rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">
+                            Window Closed
+                        </span>
+                    </div>
+
+                    <div id="adminWindowTimerDisplay" style="font-size: 2.5rem; font-weight: 800; font-family: var(--font-mono); color: var(--text-main); line-height: 1.1; margin: 0.35rem 0;">
+                        00:00
+                    </div>
+
+                    <div id="adminWindowSubtext" style="font-size: 0.82rem; color: var(--text-muted);">
+                        Employees currently cannot mark attendance. Click below to open a 10-minute window.
+                    </div>
                 </div>
-                <div style="display: flex; gap: 0.75rem; justify-content: center;">
-                    <button type="button" onclick="generateNewQr()" class="btn btn-secondary btn-sm">
-                        <i data-lucide="refresh-cw" style="width: 16px;"></i> Refresh QR Token
+
+                <!-- Duration Configuration -->
+                <div style="text-align: left; margin-bottom: 1.25rem;">
+                    <label style="font-size: 0.82rem; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 0.4rem;">
+                        Select Window Duration (Minutes):
+                    </label>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-bottom: 0.65rem;">
+                        <button type="button" class="btn btn-secondary btn-sm preset-duration-btn" onclick="selectDurationPreset(10)" id="presetBtn10" style="justify-content: center; font-weight: 700; border-color: var(--primary); color: var(--primary);">
+                            10 Min
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm preset-duration-btn" onclick="selectDurationPreset(15)" id="presetBtn15" style="justify-content: center; font-weight: 600;">
+                            15 Min
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm preset-duration-btn" onclick="selectDurationPreset(30)" id="presetBtn30" style="justify-content: center; font-weight: 600;">
+                            30 Min
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm preset-duration-btn" onclick="selectDurationPreset(60)" id="presetBtn60" style="justify-content: center; font-weight: 600;">
+                            1 Hour
+                        </button>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <span style="font-size: 0.78rem; color: var(--text-muted); white-space: nowrap;">Or custom:</span>
+                        <input type="number" id="customDurationMinutesInput" class="form-control" value="10" min="1" max="720" style="font-size: 0.88rem; padding: 0.4rem 0.65rem; width: 90px; text-align: center;" oninput="onCustomDurationChange(this.value)">
+                        <span style="font-size: 0.78rem; color: var(--text-muted);">minutes</span>
+                    </div>
+                </div>
+
+                <!-- Window Action Buttons -->
+                <div style="display: flex; gap: 0.75rem;">
+                    <button type="button" id="btnOpenAttendanceWindow" onclick="executeOpenAttendanceWindow()" class="btn btn-primary" style="flex: 1; padding: 0.75rem; justify-content: center; font-weight: 800;">
+                        <i data-lucide="play" style="width: 16px;"></i> Start 10-Min Window
                     </button>
-                    <button type="button" onclick="window.print()" class="btn btn-primary btn-sm">
-                        <i data-lucide="printer" style="width: 16px;"></i> Print Standee
+                    <button type="button" id="btnCloseAttendanceWindow" onclick="executeCloseAttendanceWindow()" class="btn btn-danger" style="display: none; padding: 0.75rem; justify-content: center; font-weight: 700;">
+                        <i data-lucide="square" style="width: 16px;"></i> Close Window Now
                     </button>
                 </div>
+
+                <div style="margin-top: 1.15rem; font-size: 0.78rem; color: var(--text-muted); text-align: left; line-height: 1.4; border-top: 1px solid var(--border-color); padding-top: 0.85rem;">
+                    💡 <strong>Tip:</strong> Turning on the window allows staff members to mark their attendance on the site during these active minutes (e.g. 9:00 AM to 9:10 AM). Once expired, check-ins are locked.
+                </div>
+
             </div>
         </div>
     </div>
@@ -1277,6 +1326,11 @@
                     gpsAlert.style.display = 'none';
                 }
 
+                // Active Attendance Window Header Sync
+                if (res.data.active_attendance_window) {
+                    updateAdminWindowHeaderState(res.data.active_attendance_window);
+                }
+
                 // 7-day trend chart
                 initTrendChart(res.data.charts);
             }
@@ -1354,7 +1408,7 @@
                         });
 
                         const popupHtml = `
-                            <div style="font-family: 'Plus Jakarta Sans', sans-serif; min-width: 180px;">
+                            <div style="font-family: 'Plus Jakarta Sans', sans-serif; min-width: 200px;">
                                 <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.4rem;">
                                     <div style="width: 28px; height: 28px; border-radius: 50%; background: #e0e7ff; overflow: hidden; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.8rem;">
                                         ${p.photo_url ? `<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;">` : p.name.charAt(0)}
@@ -1364,11 +1418,16 @@
                                         <div style="font-size: 0.72rem; color: #64748b;">${p.department || 'Operations'}</div>
                                     </div>
                                 </div>
-                                <div style="font-size: 0.8rem; color: #334155; margin-bottom: 0.3rem;">
+                                <div style="font-size: 0.8rem; color: #334155; margin-bottom: 0.35rem;">
                                     <strong>Check-in:</strong> ${p.check_in_time ? p.check_in_time.substring(0, 5) : '--'} (${p.status.toUpperCase()})
                                 </div>
-                                <div style="font-size: 0.75rem; color: #64748b; font-family: monospace;">
-                                    ${lat.toFixed(5)}, ${lng.toFixed(5)}
+                                <div style="font-size: 0.78rem; color: #1e293b; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 0.35rem 0.5rem; margin-bottom: 0.35rem; line-height: 1.35;">
+                                    📍 <strong>Location:</strong> ${escapeHtml(p.location_name || 'Field GPS Punch')}
+                                </div>
+                                <div style="font-size: 0.72rem;">
+                                    <a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" rel="noopener noreferrer" style="color: var(--primary); text-decoration: underline;">
+                                        Open in Google Maps &rarr;
+                                    </a>
                                 </div>
                             </div>
                         `;
@@ -1690,8 +1749,21 @@
                         <td><strong style="font-family: var(--font-mono);">${h.check_out_time ? h.check_out_time.substring(0, 5) : '--'}</strong></td>
                         <td><span class="badge badge-${h.status}">${h.status}</span></td>
                         <td style="font-size: 0.82rem; color: var(--text-muted);">
-                            ${h.notes || '-'}
-                            ${h.latitude ? `<br><span style="font-family: monospace;">📍 ${parseFloat(h.latitude).toFixed(4)}, ${parseFloat(h.longitude).toFixed(4)} (IP: ${h.ip_address || '-'})</span>` : ''}
+                            ${h.notes ? `<div>${escapeHtml(h.notes)}</div>` : ''}
+                            ${(h.location_name || h.latitude) ? `
+                                <div style="margin-top: 0.3rem; display: flex; align-items: flex-start; gap: 0.35rem; color: var(--text-main);">
+                                    <span style="color: var(--primary); font-size: 0.95rem; line-height: 1;">📍</span>
+                                    <div>
+                                        <strong style="color: var(--text-main); font-size: 0.82rem;">${escapeHtml(h.location_name || 'Field GPS Punch')}</strong>
+                                        ${h.latitude ? `
+                                            <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.15rem;">
+                                                <a href="https://www.google.com/maps?q=${h.latitude},${h.longitude}" target="_blank" rel="noopener noreferrer" style="color: var(--primary); text-decoration: underline;">View on Map</a>
+                                                ${h.ip_address ? ` • IP: ${h.ip_address}` : ''}
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            ` : (!h.notes ? '-' : '')}
                         </td>
                     </tr>
                 `).join('');
@@ -1965,36 +2037,205 @@
             }
         }
 
-        // QR Standee
-        async function openQrModal() {
-            openModal('qrModal');
-            const res = await apiRequest('attendance.php?action=active_qr');
-            if (res.ok && res.data.qr) {
-                renderQrCode(res.data.qr.token);
+        // Attendance Window Controller
+        let adminWindowSecondsRemaining = 0;
+        let adminWindowTimerInterval = null;
+        let selectedDurationMinutes = 10;
+
+        function updateAdminWindowHeaderState(winData) {
+            const label = document.getElementById('adminAttendanceWindowHeaderLabel');
+            const badge = document.getElementById('adminAttendanceWindowHeaderBadge');
+            const btn = document.getElementById('adminAttendanceWindowHeaderBtn');
+
+            if (winData && winData.is_open && winData.seconds_remaining > 0) {
+                adminWindowSecondsRemaining = winData.seconds_remaining;
+                badge.className = 'badge badge-sm badge-success';
+                badge.style.background = '#dcfce7';
+                badge.style.color = '#15803d';
+                badge.style.borderColor = '#86efac';
+                badge.textContent = `Open (${Math.ceil(adminWindowSecondsRemaining / 60)}m)`;
+                if (btn) btn.style.borderColor = '#10b981';
+            } else {
+                adminWindowSecondsRemaining = 0;
+                badge.className = 'badge badge-sm badge-secondary';
+                badge.style.background = '#f1f5f9';
+                badge.style.color = '#64748b';
+                badge.style.borderColor = '#cbd5e1';
+                badge.textContent = 'Closed';
+                if (btn) btn.style.borderColor = '#818cf8';
             }
         }
 
-        function renderQrCode(text) {
-            const container = document.getElementById('qrcodeDisplay');
-            container.innerHTML = '';
-            new QRCode(container, {
-                text: text,
-                width: 200,
-                height: 200,
-                colorDark: '#0f172a',
-                colorLight: '#ffffff',
-                correctLevel: QRCode.CorrectLevel.H
-            });
-            document.getElementById('qrTokenLabel').textContent = text;
+        async function openAttendanceWindowModal() {
+            openModal('attendanceWindowModal');
+            await refreshAdminAttendanceWindowStatus();
         }
 
-        async function generateNewQr() {
+        async function refreshAdminAttendanceWindowStatus() {
+            try {
+                const res = await apiRequest('attendance.php?action=attendance_window_status');
+                if (res.ok) {
+                    renderAdminWindowModalState(res.data.is_open ? res.data.window : null);
+                }
+            } catch (e) {
+                console.warn('Error fetching window status:', e);
+            }
+        }
+
+        function renderAdminWindowModalState(win) {
+            const card = document.getElementById('adminModalWindowCard');
+            const dot = document.getElementById('adminWindowPulseDot');
+            const statusLabel = document.getElementById('adminWindowStatusLabel');
+            const timerDisplay = document.getElementById('adminWindowTimerDisplay');
+            const subtext = document.getElementById('adminWindowSubtext');
+            const btnOpen = document.getElementById('btnOpenAttendanceWindow');
+            const btnClose = document.getElementById('btnCloseAttendanceWindow');
+
+            if (win && win.seconds_remaining > 0) {
+                adminWindowSecondsRemaining = win.seconds_remaining;
+                card.style.background = '#ecfdf5';
+                card.style.borderColor = '#a7f3d0';
+                dot.style.background = '#10b981';
+                statusLabel.textContent = 'Attendance Window Active';
+                statusLabel.style.color = '#065f46';
+                subtext.innerHTML = `Employees can punch attendance until <strong>${win.expires_at}</strong>.`;
+                subtext.style.color = '#047857';
+
+                btnOpen.innerHTML = '<i data-lucide="refresh-cw" style="width: 16px;"></i> Extend Window';
+                btnClose.style.display = 'inline-flex';
+
+                startAdminWindowCountdown();
+            } else {
+                adminWindowSecondsRemaining = 0;
+                if (adminWindowTimerInterval) clearInterval(adminWindowTimerInterval);
+                adminWindowTimerInterval = null;
+
+                card.style.background = '#f8fafc';
+                card.style.borderColor = 'var(--border-color)';
+                dot.style.background = '#94a3b8';
+                statusLabel.textContent = 'Window Closed';
+                statusLabel.style.color = 'var(--text-muted)';
+                timerDisplay.textContent = '00:00';
+                timerDisplay.style.color = 'var(--text-main)';
+                subtext.textContent = 'Employees currently cannot mark attendance. Select duration and start the window.';
+                subtext.style.color = 'var(--text-muted)';
+
+                btnOpen.innerHTML = `<i data-lucide="play" style="width: 16px;"></i> Start ${selectedDurationMinutes}-Min Window`;
+                btnClose.style.display = 'none';
+            }
+
+            updateAdminWindowHeaderState(win ? { is_open: true, seconds_remaining: adminWindowSecondsRemaining } : null);
+            lucide.createIcons();
+        }
+
+        function startAdminWindowCountdown() {
+            if (adminWindowTimerInterval) clearInterval(adminWindowTimerInterval);
+            const timerDisplay = document.getElementById('adminWindowTimerDisplay');
+
+            function tick() {
+                if (adminWindowSecondsRemaining <= 0) {
+                    clearInterval(adminWindowTimerInterval);
+                    adminWindowTimerInterval = null;
+                    refreshAdminAttendanceWindowStatus();
+                    loadStats();
+                    return;
+                }
+
+                const mins = Math.floor(adminWindowSecondsRemaining / 60);
+                const secs = adminWindowSecondsRemaining % 60;
+                timerDisplay.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+                timerDisplay.style.color = adminWindowSecondsRemaining < 120 ? '#dc2626' : '#059669';
+
+                updateAdminWindowHeaderState({ is_open: true, seconds_remaining: adminWindowSecondsRemaining });
+                adminWindowSecondsRemaining--;
+            }
+
+            tick();
+            adminWindowTimerInterval = setInterval(tick, 1000);
+        }
+
+        function selectDurationPreset(mins) {
             playSound('click');
-            const res = await apiRequest('attendance.php?action=generate_qr', 'POST');
+            selectedDurationMinutes = mins;
+            document.getElementById('customDurationMinutesInput').value = mins;
+
+            document.querySelectorAll('.preset-duration-btn').forEach(b => {
+                b.style.borderColor = 'var(--border-color)';
+                b.style.color = 'var(--text-main)';
+                b.style.fontWeight = '600';
+            });
+
+            const activeBtn = document.getElementById(`presetBtn${mins}`);
+            if (activeBtn) {
+                activeBtn.style.borderColor = 'var(--primary)';
+                activeBtn.style.color = 'var(--primary)';
+                activeBtn.style.fontWeight = '700';
+            }
+
+            const btnOpen = document.getElementById('btnOpenAttendanceWindow');
+            if (btnOpen && (!adminWindowSecondsRemaining || adminWindowSecondsRemaining <= 0)) {
+                btnOpen.innerHTML = `<i data-lucide="play" style="width: 16px;"></i> Start ${mins}-Min Window`;
+                lucide.createIcons();
+            }
+        }
+
+        function onCustomDurationChange(val) {
+            const mins = Math.max(1, parseInt(val) || 10);
+            selectedDurationMinutes = mins;
+
+            document.querySelectorAll('.preset-duration-btn').forEach(b => {
+                b.style.borderColor = 'var(--border-color)';
+                b.style.color = 'var(--text-main)';
+            });
+
+            const btnOpen = document.getElementById('btnOpenAttendanceWindow');
+            if (btnOpen && (!adminWindowSecondsRemaining || adminWindowSecondsRemaining <= 0)) {
+                btnOpen.innerHTML = `<i data-lucide="play" style="width: 16px;"></i> Start ${mins}-Min Window`;
+                lucide.createIcons();
+            }
+        }
+
+        async function executeOpenAttendanceWindow() {
+            playSound('click');
+            const btn = document.getElementById('btnOpenAttendanceWindow');
+            btn.disabled = true;
+
+            const res = await apiRequest('attendance.php?action=toggle_attendance_window', 'POST', {
+                command: 'open',
+                duration_minutes: selectedDurationMinutes,
+                title: `${selectedDurationMinutes}-Minute Shift Attendance Window`
+            });
+
+            btn.disabled = false;
             if (res.ok && res.data.success) {
                 playSound('success');
-                renderQrCode(res.data.qr.token);
-                showToast('Dynamic QR Token refreshed!', 'success');
+                showToast(res.data.message || `Attendance window opened for ${selectedDurationMinutes} minutes!`, 'success');
+                renderAdminWindowModalState(res.data.window);
+                loadStats();
+            } else {
+                playSound('error');
+                showToast(res.data.message || 'Error opening attendance window.', 'error');
+            }
+        }
+
+        async function executeCloseAttendanceWindow() {
+            playSound('click');
+            const btn = document.getElementById('btnCloseAttendanceWindow');
+            btn.disabled = true;
+
+            const res = await apiRequest('attendance.php?action=toggle_attendance_window', 'POST', {
+                command: 'close'
+            });
+
+            btn.disabled = false;
+            if (res.ok && res.data.success) {
+                playSound('success');
+                showToast('Attendance window closed successfully.', 'info');
+                renderAdminWindowModalState(null);
+                loadStats();
+            } else {
+                playSound('error');
+                showToast(res.data.message || 'Error closing attendance window.', 'error');
             }
         }
 

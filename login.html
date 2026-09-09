@@ -428,7 +428,7 @@
                         </a>
                     </div>
                     <div style="font-size: 0.78rem; color: var(--text-muted);">
-                        Office QR Attendance station? <a href="qr_scanner.html" style="color: var(--text-main); font-weight: 600;">Open QR Terminal</a>
+                        Need to punch shift? <a href="mark_attendance.html" style="color: var(--text-main); font-weight: 600;">Mark Attendance Now</a>
                     </div>
                 </div>
 
@@ -540,7 +540,6 @@
             const res = await apiRequest('auth.php?action=login', 'POST', payload);
             if (res.ok && res.data.success) {
                 playSound('success');
-                fireConfetti();
                 showToast(`Welcome back, ${res.data.user.name}! Accessing workspace...`, 'success');
 
                 setTimeout(() => {

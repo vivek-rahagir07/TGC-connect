@@ -90,6 +90,10 @@ switch ($action) {
         $stmtGps->execute([$nowStr]);
         $activeGps = $stmtGps->fetch();
 
+        // Active Attendance Window (Admin Controlled)
+        $stmtWin = $pdo->query("SELECT * FROM attendance_windows WHERE is_active = 1 AND expires_at > NOW() ORDER BY id DESC LIMIT 1");
+        $activeWindow = $stmtWin->fetch();
+
         // Monthly Payroll Total Processed
         $currMonth = (int) date('m');
         $currYear = (int) date('Y');
@@ -115,6 +119,18 @@ switch ($action) {
                 'late' => $trendLate,
                 'absent' => $trendAbsent,
                 'departments' => $deptDistribution,
+            ],
+            'active_attendance_window' => $activeWindow ? [
+                'id' => (int) $activeWindow['id'],
+                'title' => $activeWindow['title'],
+                'opened_at' => $activeWindow['opened_at'],
+                'expires_at' => $activeWindow['expires_at'],
+                'duration_minutes' => (int) $activeWindow['duration_minutes'],
+                'seconds_remaining' => max(0, strtotime($activeWindow['expires_at']) - time()),
+                'is_open' => true,
+            ] : [
+                'is_open' => false,
+                'seconds_remaining' => 0
             ],
             'active_qr' => $activeQr,
             'active_gps_link' => $activeGps ? [

@@ -4,11 +4,261 @@ require_once __DIR__ . '/db.php';
 $action = $_GET['action'] ?? ($_POST['action'] ?? '');
 $input = getJsonInput();
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($action)) {
+$reqMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+if ($reqMethod === 'POST' && empty($action)) {
     $action = $input['action'] ?? '';
 }
 
 switch ($action) {
+    case 'attendance_window_status':
+        $stmtWin = $pdo->query("
+            SELECT *, TIMESTAMPDIFF(SECOND, NOW(), expires_at) as diff_sec
+            FROM attendance_windows
+            WHERE is_active = 1 AND expires_at > NOW()
+            ORDER BY id DESC LIMIT 1
+        ");
+        $activeWindow = $stmtWin->fetch();
+
+        if ($activeWindow && (int)$activeWindow['diff_sec'] > 0) {
+            $secondsRemaining = (int) $activeWindow['diff_sec'];
+            sendResponse(true, [
+                'is_open' => true,
+                'window' => [
+                    'id' => (int) $activeWindow['id'],
+                    'title' => $activeWindow['title'],
+                    'opened_at' => $activeWindow['opened_at'],
+                    'expires_at' => $activeWindow['expires_at'],
+                    'duration_minutes' => (int) $activeWindow['duration_minutes'],
+                    'seconds_remaining' => $secondsRemaining,
+                ]
+            ]);
+        } else {
+            sendResponse(true, [
+                'is_open' => false,
+                'message' => 'Attendance window is currently closed. Administrator must open the window to accept punches.',
+                'window' => null
+            ]);
+        }
+        break;
+
+    case 'toggle_attendance_window':
+        $admin = getCurrentUser($pdo);
+        if (!$admin || $admin['role'] !== 'admin') {
+            sendResponse(false, ['message' => 'Unauthorized. Administrator access required.'], 403);
+        }
+
+        $cmd = trim($input['command'] ?? ($input['status'] ?? 'open'));
+        $duration = max(1, min(1440, intval($input['duration_minutes'] ?? 10)));
+        $title = trim($input['title'] ?? 'Shift Attendance Window');
+
+        // Always close any previous open windows first
+        $pdo->exec("UPDATE attendance_windows SET is_active = 0 WHERE is_active = 1");
+
+        if ($cmd === 'close') {
+            logAdminAction($pdo, $admin['id'], 'close_attendance_window', null, 'Closed active attendance window.');
+            sendResponse(true, [
+                'message' => 'Attendance window closed successfully.',
+                'is_open' => false,
+                'window' => null
+            ]);
+        } else {
+            $stmtIns = $pdo->prepare("
+                INSERT INTO attendance_windows (is_active, opened_at, duration_minutes, expires_at, opened_by, title)
+                VALUES (1, NOW(), ?, DATE_ADD(NOW(), INTERVAL ? MINUTE), ?, ?)
+            ");
+            $stmtIns->execute([$duration, $duration, $admin['id'], $title]);
+            $winId = $pdo->lastInsertId();
+
+            $stmtFetch = $pdo->prepare("
+                SELECT *, TIMESTAMPDIFF(SECOND, NOW(), expires_at) as diff_sec
+                FROM attendance_windows WHERE id = ?
+            ");
+            $stmtFetch->execute([$winId]);
+            $newWin = $stmtFetch->fetch();
+
+            logAdminAction($pdo, $admin['id'], 'open_attendance_window', null, "Opened attendance window #{$winId} for {$duration} minutes (Expires at {$newWin['expires_at']}).");
+
+            sendResponse(true, [
+                'message' => "Attendance window opened for {$duration} minutes!",
+                'is_open' => true,
+                'window' => [
+                    'id' => (int) $winId,
+                    'title' => $title,
+                    'opened_at' => $newWin['opened_at'],
+                    'expires_at' => $newWin['expires_at'],
+                    'duration_minutes' => $duration,
+                    'seconds_remaining' => max(0, (int) $newWin['diff_sec'])
+                ]
+            ]);
+        }
+        break;
+
+    case 'mark_attendance':
+        // 1. Verify Active Attendance Window
+        $stmtWin = $pdo->query("SELECT * FROM attendance_windows WHERE is_active = 1 AND expires_at > NOW() ORDER BY id DESC LIMIT 1");
+        $activeWindow = $stmtWin->fetch();
+
+        if (!$activeWindow) {
+            sendResponse(false, [
+                'message' => 'Attendance window is currently closed. Administrator allows attendance for designated time windows (e.g. 10 minutes at shift start). Please wait for the admin to open the window.',
+                'window_closed' => true
+            ], 422);
+        }
+
+        // 2. Validate Physical GPS Coordinates & Reverse-Geocoded Location
+        $lat = isset($input['latitude']) && is_numeric($input['latitude']) ? floatval($input['latitude']) : null;
+        $lng = isset($input['longitude']) && is_numeric($input['longitude']) ? floatval($input['longitude']) : null;
+        $accuracy = isset($input['accuracy_meters']) && is_numeric($input['accuracy_meters']) ? floatval($input['accuracy_meters']) : 15.0;
+        $locName = trim($input['location_name'] ?? '');
+
+        if ($lat === null || $lng === null || ($lat == 0 && $lng == 0)) {
+            sendResponse(false, [
+                'message' => 'Physical GPS location is required to mark attendance. Please enable device location and tap Acquire Location.',
+                'gps_required' => true
+            ], 400);
+        }
+
+        if (!$locName) {
+            $locName = "GPS Verified Location (±" . round($accuracy) . "m)";
+        }
+
+        // 3. Verify Onboarding Identity Data
+        $inputEmail = strtolower(trim($input['email'] ?? ''));
+        $inputPhone = trim($input['phone'] ?? '');
+        $inputName = trim($input['name'] ?? '');
+        $inputDept = trim($input['department'] ?? '');
+        $inputNotes = trim($input['notes'] ?? '');
+        $deviceFingerprint = trim($input['device_fingerprint'] ?? '');
+        $ip = getClientIp();
+        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+
+        if (!$inputEmail && !$inputPhone) {
+            sendResponse(false, [
+                'message' => 'Please provide your registered work email or phone number to match your onboarding profile.'
+            ], 400);
+        }
+
+        // Find active employee record in database
+        $userRecord = null;
+        if ($inputEmail) {
+            $stmtU = $pdo->prepare("SELECT * FROM users WHERE LOWER(email) = ? AND role = 'employee' LIMIT 1");
+            $stmtU->execute([$inputEmail]);
+            $userRecord = $stmtU->fetch();
+        }
+        if (!$userRecord && $inputPhone) {
+            $cleanPhone = preg_replace('/[^0-9]/', '', $inputPhone);
+            $stmtU = $pdo->prepare("SELECT * FROM users WHERE REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', '') LIKE ? AND role = 'employee' LIMIT 1");
+            $stmtU->execute(['%' . substr($cleanPhone, -10)]);
+            $userRecord = $stmtU->fetch();
+        }
+
+        if (!$userRecord) {
+            sendResponse(false, [
+                'message' => 'No employee onboarding profile found matching "' . ($inputEmail ?: $inputPhone) . '". Please enter your registered employee credentials.'
+            ], 404);
+        }
+
+        if ($userRecord['status'] !== 'active') {
+            sendResponse(false, [
+                'message' => 'Your employee account status is currently "' . $userRecord['status'] . '". Only approved active employees can punch attendance.'
+            ], 403);
+        }
+
+        // Verify if currently logged-in user matches the employee
+        $sessionUser = getCurrentUser($pdo);
+        if ($sessionUser && $sessionUser['role'] === 'employee' && (int)$sessionUser['id'] !== (int)$userRecord['id']) {
+            sendResponse(false, [
+                'message' => 'Identity conflict: You are currently logged in as ' . $sessionUser['name'] . ' but entered details for ' . $userRecord['name'] . '.'
+            ], 403);
+        }
+
+        // Name verification against onboarding data (if name provided)
+        if ($inputName) {
+            similar_text(strtolower($inputName), strtolower($userRecord['name']), $similarity);
+            if ($similarity < 55 && stripos($userRecord['name'], $inputName) === false && stripos($inputName, $userRecord['name']) === false) {
+                sendResponse(false, [
+                    'message' => 'Verification failed: Entered name ("' . $inputName . '") does not match the registered onboarding name on file for this account.'
+                ], 422);
+            }
+        }
+
+        // Phone number verification if provided
+        if ($inputPhone && !empty($userRecord['phone'])) {
+            $cleanInput = preg_replace('/[^0-9]/', '', $inputPhone);
+            $cleanRecord = preg_replace('/[^0-9]/', '', $userRecord['phone']);
+            if (strlen($cleanInput) >= 10 && strlen($cleanRecord) >= 10) {
+                if (substr($cleanInput, -10) !== substr($cleanRecord, -10)) {
+                    sendResponse(false, [
+                        'message' => 'Verification failed: Entered phone number does not match your registered onboarding phone.'
+                    ], 422);
+                }
+            }
+        }
+
+        // 4. Check if Attendance is Already Marked Today
+        $today = date('Y-m-d');
+        $nowTime = date('H:i:s');
+
+        $stmtAtt = $pdo->prepare("SELECT * FROM attendances WHERE user_id = ? AND date = ?");
+        $stmtAtt->execute([$userRecord['id'], $today]);
+        $existing = $stmtAtt->fetch();
+
+        if ($existing && !empty($existing['check_in_time'])) {
+            sendResponse(false, [
+                'message' => 'Attendance check-in has already been marked for today at ' . substr($existing['check_in_time'], 0, 5) . '.',
+                'already_marked' => true,
+                'attendance' => $existing,
+                'check_in_time' => substr($existing['check_in_time'], 0, 5)
+            ], 422);
+        }
+
+        // 5. Determine Attendance Status & Notes
+        $status = (date('H:i') > '09:30') ? 'late' : 'present';
+        $fullNotes = 'Shift Window Verified: ' . $activeWindow['title'] . ' | Place: ' . $locName;
+        if ($inputNotes) {
+            $fullNotes .= ' | ' . $inputNotes;
+        }
+
+        if ($existing) {
+            $stmtUp = $pdo->prepare("
+                UPDATE attendances
+                SET check_in_time = ?, method = 'gps', latitude = ?, longitude = ?, accuracy_meters = ?,
+                    location_name = ?, ip_address = ?, user_agent = ?, device_fingerprint = ?, status = ?, notes = ?
+                WHERE id = ?
+            ");
+            $stmtUp->execute([
+                $nowTime, $lat, $lng, $accuracy, $locName, $ip, $userAgent, $deviceFingerprint, $status, $fullNotes, $existing['id']
+            ]);
+            $attendanceId = $existing['id'];
+        } else {
+            $stmtIn = $pdo->prepare("
+                INSERT INTO attendances (user_id, date, check_in_time, method, latitude, longitude, accuracy_meters, location_name, ip_address, user_agent, device_fingerprint, status, notes)
+                VALUES (?, ?, ?, 'gps', ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+            $stmtIn->execute([
+                $userRecord['id'], $today, $nowTime, $lat, $lng, $accuracy, $locName, $ip, $userAgent, $deviceFingerprint, $status, $fullNotes
+            ]);
+            $attendanceId = $pdo->lastInsertId();
+        }
+
+        $stmtFinal = $pdo->prepare("SELECT * FROM attendances WHERE id = ?");
+        $stmtFinal->execute([$attendanceId]);
+        $attendanceRecord = $stmtFinal->fetch();
+
+        sendResponse(true, [
+            'message' => 'Attendance check-in verified & recorded successfully! Welcome, ' . $userRecord['name'] . ' (' . ucfirst($status) . ')',
+            'employee_name' => $userRecord['name'],
+            'check_in_time' => substr($nowTime, 0, 5),
+            'date' => $today,
+            'status' => $status,
+            'location_name' => $locName,
+            'latitude' => $lat,
+            'longitude' => $lng,
+            'attendance' => $attendanceRecord,
+            'already_marked' => true
+        ]);
+        break;
+
     case 'qr_punch_in':
         $user = getCurrentUser($pdo);
         if (!$user) {
@@ -113,22 +363,60 @@ switch ($action) {
         break;
 
     case 'gps_punch':
-        $user = getCurrentUser($pdo);
-        if (!$user) {
-            sendResponse(false, ['message' => 'Please login to submit GPS attendance.'], 401);
-        }
-
+        $sessionUser = getCurrentUser($pdo);
         $token = trim($input['token'] ?? '');
         $lat = floatval($input['latitude'] ?? 0);
         $lng = floatval($input['longitude'] ?? 0);
         $accuracy = floatval($input['accuracy_meters'] ?? 0);
         $deviceFingerprint = trim($input['device_fingerprint'] ?? '');
-        $locName = trim($input['location_name'] ?? 'Verified GPS Coordinate');
+        $locName = trim($input['location_name'] ?? '');
+        if (!$locName) {
+            $locName = "GPS Punch (±{$accuracy}m)";
+        }
         $ip = getClientIp();
         $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
 
+        $name = trim($input['name'] ?? '');
+        $email = trim($input['email'] ?? '');
+        $phone = trim($input['phone'] ?? '');
+        $department = trim($input['department'] ?? '');
+        $userNotes = trim($input['notes'] ?? '');
+
         if (!$token || !$lat || !$lng) {
             sendResponse(false, ['message' => 'GPS coordinates and link token are required. Geolocation must be allowed.'], 400);
+        }
+
+        // Determine user identity
+        $user = $sessionUser;
+        if ($email) {
+            $stmtU = $pdo->prepare("SELECT * FROM users WHERE LOWER(email) = LOWER(?) AND status = 'active' LIMIT 1");
+            $stmtU->execute([$email]);
+            $foundUser = $stmtU->fetch();
+            if ($foundUser) {
+                $user = $foundUser;
+            }
+        }
+        if (!$user && $phone) {
+            $stmtU = $pdo->prepare("SELECT * FROM users WHERE phone = ? AND status = 'active' LIMIT 1");
+            $stmtU->execute([$phone]);
+            $foundUser = $stmtU->fetch();
+            if ($foundUser) {
+                $user = $foundUser;
+            }
+        }
+        if (!$user && $name) {
+            $stmtU = $pdo->prepare("SELECT * FROM users WHERE LOWER(name) = LOWER(?) AND status = 'active' LIMIT 1");
+            $stmtU->execute([$name]);
+            $foundUser = $stmtU->fetch();
+            if ($foundUser) {
+                $user = $foundUser;
+            }
+        }
+
+        if (!$user) {
+            sendResponse(false, [
+                'message' => 'No active employee account found for "' . ($email ?: $name) . '". Please enter your registered work email.'
+            ], 404);
         }
 
         // Verify Link Token
@@ -160,6 +448,15 @@ switch ($action) {
         $today = date('Y-m-d');
         $nowTime = date('H:i:s');
 
+        $noteParts = ['GPS Link: ' . $gpsLink['title']];
+        if ($dist !== null) {
+            $noteParts[] = round($dist) . 'm from hub';
+        }
+        if ($userNotes) {
+            $noteParts[] = $userNotes;
+        }
+        $fullNotes = implode(' | ', $noteParts);
+
         $stmt = $pdo->prepare("SELECT * FROM attendances WHERE user_id = ? AND date = ?");
         $stmt->execute([$user['id'], $today]);
         $attendance = $stmt->fetch();
@@ -172,7 +469,7 @@ switch ($action) {
             ");
             $stmtInsert->execute([
                 $user['id'], $today, $nowTime, $lat, $lng, $accuracy, $locName, $ip, $userAgent, $deviceFingerprint,
-                $status, 'GPS Link: ' . $gpsLink['title'] . ($dist !== null ? ' (' . round($dist) . 'm from hub)' : '')
+                $status, $fullNotes
             ]);
 
             $stmtAtt = $pdo->prepare("SELECT * FROM attendances WHERE id = ?");
@@ -180,29 +477,36 @@ switch ($action) {
 
             sendResponse(true, [
                 'type' => 'check_in',
-                'message' => 'GPS Attendance Check-In verified successfully!',
+                'message' => 'GPS Attendance Check-In verified successfully for ' . $user['name'] . '!',
+                'employee_name' => $user['name'],
+                'location_name' => $locName,
                 'attendance' => $stmtAtt->fetch(),
             ]);
         } else {
             if (empty($attendance['check_out_time'])) {
                 $stmtUpdate = $pdo->prepare("
                     UPDATE attendances
-                    SET check_out_time = ?, latitude = ?, longitude = ?, accuracy_meters = ?, ip_address = ?
+                    SET check_out_time = ?, latitude = ?, longitude = ?, accuracy_meters = ?, location_name = ?, ip_address = ?
                     WHERE id = ?
                 ");
-                $stmtUpdate->execute([$nowTime, $lat, $lng, $accuracy, $ip, $attendance['id']]);
+                $stmtUpdate->execute([$nowTime, $lat, $lng, $accuracy, $locName, $ip, $attendance['id']]);
                 $attendance['check_out_time'] = $nowTime;
+                $attendance['location_name'] = $locName;
 
                 sendResponse(true, [
                     'type' => 'check_out',
-                    'message' => 'GPS Attendance Check-Out marked successfully!',
+                    'message' => 'GPS Attendance Check-Out marked successfully for ' . $user['name'] . '!',
+                    'employee_name' => $user['name'],
+                    'location_name' => $locName,
                     'attendance' => $attendance,
                 ]);
             }
 
             sendResponse(true, [
                 'type' => 'already_marked',
-                'message' => 'You have already marked both Check-In and Check-Out today.',
+                'message' => $user['name'] . ' has already marked both Check-In and Check-Out today.',
+                'employee_name' => $user['name'],
+                'location_name' => $locName,
                 'attendance' => $attendance,
             ]);
         }
@@ -362,7 +666,7 @@ switch ($action) {
         $filterDate = $_GET['date'] ?? '';
         $sql = "
             SELECT a.date, u.name, u.email, u.department, u.job_profile, a.check_in_time, a.check_out_time,
-                   a.method, a.status, a.latitude, a.longitude, a.ip_address, a.notes
+                   a.method, a.status, a.location_name, a.latitude, a.longitude, a.ip_address, a.notes
             FROM attendances a
             JOIN users u ON a.user_id = u.id
             WHERE 1=1
@@ -382,14 +686,15 @@ switch ($action) {
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename=attendance_report_' . ($filterDate ?: 'all') . '.csv');
         $fp = fopen('php://output', 'w');
-        fputcsv($fp, ['Date', 'Employee Name', 'Email', 'Department', 'Role', 'Check-In', 'Check-Out', 'Method', 'Status', 'Latitude', 'Longitude', 'IP Address', 'Notes']);
+        fputcsv($fp, ['Date', 'Employee Name', 'Email', 'Department', 'Role', 'Check-In', 'Check-Out', 'Method', 'Status', 'Location', 'IP Address', 'Notes']);
 
         foreach ($rows as $r) {
+            $loc = $r['location_name'] ?: ($r['latitude'] ? "Lat: {$r['latitude']}, Lng: {$r['longitude']}" : '-');
             fputcsv($fp, [
                 $r['date'], $r['name'], $r['email'], $r['department'], $r['job_profile'],
                 $r['check_in_time'] ?: '-', $r['check_out_time'] ?: '-',
                 strtoupper($r['method']), ucfirst($r['status']),
-                $r['latitude'] ?: '-', $r['longitude'] ?: '-',
+                $loc,
                 $r['ip_address'] ?: '-', $r['notes'] ?: '-'
             ]);
         }
