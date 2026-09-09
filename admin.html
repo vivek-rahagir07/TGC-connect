@@ -139,6 +139,27 @@
                 </div>
             </div>
 
+            <!-- Pending Registrations Notification Alert Bar -->
+            <div id="pendingRegistrationsAlertBar" style="display: none; background: #f5f3ff; border: 1.5px solid #c4b5fd; border-radius: var(--radius-md); padding: 0.95rem 1.25rem; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.85rem; box-shadow: var(--shadow-sm);">
+                <div style="display: flex; align-items: center; gap: 0.85rem;">
+                    <div style="width: 38px; height: 38px; border-radius: 50%; background: #ede9fe; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                        🔔
+                    </div>
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 0.45rem;">
+                            <strong style="color: #5b21b6; font-size: 0.98rem;">New Employee Registration Pending Review</strong>
+                            <span id="pendingAlertCountBadge" class="badge badge-warning" style="font-size: 0.72rem; font-weight: 700;">1 Action Required</span>
+                        </div>
+                        <div style="font-size: 0.82rem; color: #6d28d9;" id="pendingAlertDescription">Candidate registration awaiting Administrator verification and quota setup.</div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button type="button" onclick="showAdminTab('approvals')" class="btn btn-primary btn-sm" style="background: #6366f1; border-color: #6366f1; font-weight: 700;">
+                        <i data-lucide="check-square" style="width: 15px;"></i> Review & Approve Now &rarr;
+                    </button>
+                </div>
+            </div>
+
             <!-- Interactive Leaflet Map & Analytics Charts Row -->
             <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 1.4rem;">
                 
@@ -294,35 +315,61 @@
                 </div>
             </div>
 
-            <!-- Tab 3: Daily Attendance Logs -->
+            <!-- Tab 3: Daily Attendance Logs & Comprehensive CSV Export -->
             <div id="sectionAttendance" class="card" style="display: none;">
-                <div class="card-header">
-                    <div class="card-title">
-                        <i data-lucide="calendar-check" style="color: var(--primary);"></i> Verified Attendance Records
+                <div class="card-header" style="flex-direction: column; align-items: stretch; gap: 0.85rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                        <div class="card-title">
+                            <i data-lucide="calendar-check" style="color: var(--primary);"></i> Verified Attendance Records (Date-Wise)
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                            <button type="button" onclick="exportAttendanceCsv('filtered')" class="btn btn-primary btn-sm" style="display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 700;">
+                                <i data-lucide="file-spreadsheet" style="width: 15px;"></i> Export Filtered CSV
+                            </button>
+                            <button type="button" onclick="exportAttendanceCsv('all')" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 600;">
+                                <i data-lucide="download" style="width: 15px;"></i> Export All Records (Full CSV)
+                            </button>
+                        </div>
                     </div>
-                    <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
-                        <label style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted);">Date Filter:</label>
-                        <input type="date" id="attendanceFilterDate" onchange="loadAttendanceLogs()" class="form-control" style="font-size: 0.88rem; padding: 0.45rem; width: 160px;">
-                        <button type="button" onclick="exportAttendanceCsv()" class="btn btn-secondary btn-sm">
-                            <i data-lucide="download" style="width: 16px;"></i> Export CSV
-                        </button>
+
+                    <!-- Date & Range Filtering Bar -->
+                    <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.75rem 0.95rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+                        <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 0.35rem;">
+                                <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted);">From:</span>
+                                <input type="date" id="attendanceStartDate" onchange="loadAttendanceLogs()" class="form-control" style="font-size: 0.82rem; padding: 0.35rem 0.6rem; width: 140px;">
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.35rem;">
+                                <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted);">To:</span>
+                                <input type="date" id="attendanceEndDate" onchange="loadAttendanceLogs()" class="form-control" style="font-size: 0.82rem; padding: 0.35rem 0.6rem; width: 140px;">
+                            </div>
+                            <button type="button" onclick="setAttendanceFilter('today')" class="btn btn-secondary btn-sm" style="font-size: 0.76rem; padding: 0.3rem 0.65rem;">Today</button>
+                            <button type="button" onclick="setAttendanceFilter('this_month')" class="btn btn-secondary btn-sm" style="font-size: 0.76rem; padding: 0.3rem 0.65rem;">This Month</button>
+                            <button type="button" onclick="setAttendanceFilter('all')" class="btn btn-secondary btn-sm" style="font-size: 0.76rem; padding: 0.3rem 0.65rem;">All Dates</button>
+                        </div>
+
+                        <div style="font-size: 0.78rem; color: var(--text-muted);" id="attendanceRecordCountBadge">
+                            Showing records
+                        </div>
                     </div>
                 </div>
+
                 <div class="table-responsive">
                     <table class="custom-table">
                         <thead>
                             <tr>
                                 <th>Employee</th>
                                 <th>Date</th>
-                                <th>Method</th>
                                 <th>Check-In</th>
                                 <th>Check-Out</th>
+                                <th>Work Hours</th>
+                                <th>Method</th>
                                 <th>Status</th>
-                                <th>Notes / Coordinates / IP</th>
+                                <th>Notes / Location / IP</th>
                             </tr>
                         </thead>
                         <tbody id="adminAttendanceTableBody">
-                            <tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Loading logs...</td></tr>
+                            <tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Loading logs...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -1261,10 +1308,22 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             const todayStr = new Date().toISOString().split('T')[0];
-            document.getElementById('attendanceFilterDate').value = todayStr;
-            document.getElementById('adminOnboardDoj').value = todayStr;
+            const startInput = document.getElementById('attendanceStartDate');
+            const endInput = document.getElementById('attendanceEndDate');
+            if (startInput) startInput.value = todayStr;
+            if (endInput) endInput.value = todayStr;
+            const onboardDoj = document.getElementById('adminOnboardDoj');
+            if (onboardDoj) onboardDoj.value = todayStr;
 
             initMonthYearSelectors();
+
+            // Guard: ensure user is authenticated as admin; redirect to login if not
+            const authRes = await apiRequest('auth.php?action=me');
+            if (!authRes.ok || !authRes.data.authenticated || authRes.data.user?.role !== 'admin') {
+                window.location.href = 'login.html';
+                return;
+            }
+
             await checkAuthNav();
             await loadStats();
             initLeafletMap();
@@ -1277,6 +1336,7 @@
             loadAdminHolidays();
             loadAdminLogs();
             loadInventoryData();
+            initAdminNotificationsPoller();
         });
 
         function initMonthYearSelectors() {
@@ -1319,6 +1379,8 @@
             if (tab === 'inventory') loadInventoryData();
         }
 
+        let previousPendingRegistrations = null;
+
         async function loadStats() {
             const res = await apiRequest('admin.php?action=stats');
             if (res.ok && res.data.success) {
@@ -1330,11 +1392,29 @@
                 animateValue(document.getElementById('statPendingApprovals'), 0, s.total_pending_approvals);
 
                 const navBadge = document.getElementById('navApprovalsCountBadge');
-                if (s.total_pending_approvals > 0) {
-                    navBadge.textContent = s.total_pending_approvals;
-                    navBadge.style.display = 'inline-flex';
-                } else {
-                    navBadge.style.display = 'none';
+                if (navBadge) {
+                    if (s.total_pending_approvals > 0) {
+                        navBadge.textContent = s.total_pending_approvals;
+                        navBadge.style.display = 'inline-flex';
+                    } else {
+                        navBadge.style.display = 'none';
+                    }
+                }
+
+                // Pending Registrations Alert Bar
+                const regAlertBar = document.getElementById('pendingRegistrationsAlertBar');
+                const regCountBadge = document.getElementById('pendingAlertCountBadge');
+                const regDesc = document.getElementById('pendingAlertDescription');
+                if (regAlertBar && (s.pending_registrations || 0) > 0) {
+                    regAlertBar.style.display = 'flex';
+                    if (regCountBadge) regCountBadge.textContent = `${s.pending_registrations} Action${s.pending_registrations === 1 ? '' : 's'} Required`;
+                    if (regDesc) regDesc.textContent = `${s.pending_registrations} candidate registration${s.pending_registrations === 1 ? '' : 's'} awaiting Administrator review & approval.`;
+                } else if (regAlertBar) {
+                    regAlertBar.style.display = 'none';
+                }
+
+                if (previousPendingRegistrations === null) {
+                    previousPendingRegistrations = s.pending_registrations || 0;
                 }
 
                 // Active GPS Link
@@ -1358,6 +1438,47 @@
                 // 7-day trend chart
                 initTrendChart(res.data.charts);
             }
+        }
+
+        // Periodic background poller for incoming registrations & approvals (every 12 seconds)
+        function initAdminNotificationsPoller() {
+            setInterval(async () => {
+                const res = await apiRequest('admin.php?action=stats');
+                if (res.ok && res.data.success) {
+                    const s = res.data.stats;
+                    const currentPendingReg = s.pending_registrations || 0;
+
+                    // If a new member registered while admin has dashboard open
+                    if (previousPendingRegistrations !== null && currentPendingReg > previousPendingRegistrations) {
+                        const newCount = currentPendingReg - previousPendingRegistrations;
+                        playSound('success');
+                        showToast(`🔔 ${newCount} new employee registration application received! Check Approvals Hub.`, 'info');
+                        loadPendingApprovals();
+                        loadEmployees();
+                    }
+                    previousPendingRegistrations = currentPendingReg;
+
+                    // Update Badge and KPI Counters
+                    const navBadge = document.getElementById('navApprovalsCountBadge');
+                    if (navBadge) {
+                        navBadge.textContent = s.total_pending_approvals;
+                        navBadge.style.display = s.total_pending_approvals > 0 ? 'inline-flex' : 'none';
+                    }
+                    const statEl = document.getElementById('statPendingApprovals');
+                    if (statEl) statEl.textContent = s.total_pending_approvals;
+
+                    const regAlertBar = document.getElementById('pendingRegistrationsAlertBar');
+                    const regCountBadge = document.getElementById('pendingAlertCountBadge');
+                    const regDesc = document.getElementById('pendingAlertDescription');
+                    if (regAlertBar && currentPendingReg > 0) {
+                        regAlertBar.style.display = 'flex';
+                        if (regCountBadge) regCountBadge.textContent = `${currentPendingReg} Action${currentPendingReg === 1 ? '' : 's'} Required`;
+                        if (regDesc) regDesc.textContent = `${currentPendingReg} candidate registration${currentPendingReg === 1 ? '' : 's'} awaiting Administrator review & approval.`;
+                    } else if (regAlertBar) {
+                        regAlertBar.style.display = 'none';
+                    }
+                }
+            }, 12000);
         }
 
         function initTrendChart(chartData) {
@@ -1409,13 +1530,14 @@
 
         async function loadAttendanceMap() {
             if (!leafletMap) initLeafletMap();
-            const date = document.getElementById('attendanceFilterDate').value || '';
+            const date = (document.getElementById('attendanceStartDate') ? document.getElementById('attendanceStartDate').value : '') || new Date().toISOString().split('T')[0];
             const res = await apiRequest(`admin.php?action=attendance_map&date=${date}`);
             
             if (res.ok && res.data.success) {
                 mapMarkersLayer.clearLayers();
                 const points = res.data.points;
-                document.getElementById('mapPointCountBadge').textContent = `${points.length} GPS Check-ins Today`;
+                const badge = document.getElementById('mapPointCountBadge');
+                if (badge) badge.textContent = `${points.length} GPS Check-ins Today`;
 
                 if (points.length > 0) {
                     const latLngs = [];
@@ -1432,26 +1554,13 @@
                         });
 
                         const popupHtml = `
-                            <div style="font-family: 'Plus Jakarta Sans', sans-serif; min-width: 200px;">
-                                <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.4rem;">
-                                    <div style="width: 28px; height: 28px; border-radius: 50%; background: #e0e7ff; overflow: hidden; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.8rem;">
-                                        ${p.photo_url ? `<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;">` : p.name.charAt(0)}
-                                    </div>
-                                    <div>
-                                        <strong>${p.name}</strong>
-                                        <div style="font-size: 0.72rem; color: #64748b;">${p.department || 'Operations'}</div>
-                                    </div>
-                                </div>
-                                <div style="font-size: 0.8rem; color: #334155; margin-bottom: 0.35rem;">
-                                    <strong>Check-in:</strong> ${p.check_in_time ? p.check_in_time.substring(0, 5) : '--'} (${p.status.toUpperCase()})
-                                </div>
-                                <div style="font-size: 0.78rem; color: #1e293b; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 0.35rem 0.5rem; margin-bottom: 0.35rem; line-height: 1.35;">
-                                    📍 <strong>Location:</strong> ${escapeHtml(p.location_name || 'Field GPS Punch')}
-                                </div>
-                                <div style="font-size: 0.72rem;">
-                                    <a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" rel="noopener noreferrer" style="color: var(--primary); text-decoration: underline;">
-                                        Open in Google Maps &rarr;
-                                    </a>
+                            <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.85rem; line-height: 1.4;">
+                                <strong style="color: #0f172a;">${escapeHtml(p.user_name || '')}</strong>
+                                <div style="color: #64748b; font-size: 0.78rem;">${escapeHtml(p.department || '')} &bull; ${escapeHtml(p.job_profile || '')}</div>
+                                <div style="margin-top: 0.4rem; padding-top: 0.35rem; border-top: 1px solid #e2e8f0; font-size: 0.76rem;">
+                                    <div><strong>Status:</strong> ${escapeHtml(p.status || '')}</div>
+                                    <div><strong>Check-In:</strong> ${p.check_in_time || '—'}</div>
+                                    <div><strong>Loc:</strong> ${escapeHtml(p.location_name || 'Office')}</div>
                                 </div>
                             </div>
                         `;
@@ -1468,75 +1577,86 @@
 
         // Approvals Hub
         async function loadPendingApprovals() {
-            // 1. Pending Registrations
-            const resReg = await apiRequest('admin.php?action=pending_registrations');
-            const tbodyReg = document.getElementById('pendingRegistrationsTableBody');
-            if (resReg.ok && resReg.data.success) {
-                const pending = resReg.data.pending;
-                document.getElementById('countPendingReg').textContent = `${pending.length} Pending`;
-                if (pending.length === 0) {
-                    tbodyReg.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No pending onboarding registrations.</td></tr>';
-                } else {
-                    tbodyReg.innerHTML = pending.map(p => `
-                        <tr>
-                            <td>
-                                <div class="avatar-sm">
-                                    ${p.photo_url ? `<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;">` : p.name.charAt(0)}
-                                </div>
-                            </td>
-                            <td><strong>${p.name}</strong></td>
-                            <td>${p.email}</td>
-                            <td>${p.department} &bull; <span style="color: var(--text-muted);">${p.job_profile}</span></td>
-                            <td>DOB: ${p.dob || '-'} &bull; DOJ: ${p.date_of_joining}</td>
-                            <td>₹${parseFloat(p.base_salary).toLocaleString()}</td>
-                            <td>
-                                <div style="display: flex; gap: 0.4rem;">
-                                    <button onclick="reviewRegistration(${p.id}, 'approve')" class="btn btn-success btn-sm">Approve</button>
-                                    <button onclick="reviewRegistration(${p.id}, 'reject')" class="btn btn-danger btn-sm">Reject</button>
-                                </div>
-                            </td>
-                        </tr>
-                    `).join('');
+            try {
+                // 1. Pending Registrations
+                const resReg = await apiRequest('admin.php?action=pending_registrations');
+                const tbodyReg = document.getElementById('pendingRegistrationsTableBody');
+                if (resReg.ok && resReg.data.success) {
+                    const pending = resReg.data.pending || [];
+                    const countBadge = document.getElementById('countPendingReg');
+                    if (countBadge) countBadge.textContent = `${pending.length} Pending`;
+                    if (tbodyReg) {
+                        if (pending.length === 0) {
+                            tbodyReg.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No pending onboarding registrations.</td></tr>';
+                        } else {
+                            tbodyReg.innerHTML = pending.map(p => `
+                                <tr>
+                                    <td>
+                                        <div class="avatar-sm">
+                                            ${p.photo_url ? `<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;">` : (p.name ? p.name.charAt(0) : 'E')}
+                                        </div>
+                                    </td>
+                                    <td><strong>${escapeHtml(p.name || '')}</strong></td>
+                                    <td>${escapeHtml(p.email || '')}</td>
+                                    <td>${escapeHtml(p.department || '')} &bull; <span style="color: var(--text-muted);">${escapeHtml(p.job_profile || '')}</span></td>
+                                    <td>DOB: ${p.dob || '-'} &bull; DOJ: ${p.date_of_joining || '-'}</td>
+                                    <td>₹${parseFloat(p.base_salary || 0).toLocaleString()}</td>
+                                    <td>
+                                        <div style="display: flex; gap: 0.4rem;">
+                                            <button onclick="reviewRegistration(${p.id}, 'approve')" class="btn btn-success btn-sm">Approve</button>
+                                            <button onclick="reviewRegistration(${p.id}, 'reject')" class="btn btn-danger btn-sm">Reject</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `).join('');
+                        }
+                    }
                 }
-            }
 
-            // 2. Pending Profile Changes
-            const resProf = await apiRequest('admin.php?action=pending_profile_changes');
-            const tbodyProf = document.getElementById('pendingProfileTableBody');
-            if (resProf.ok && resProf.data.success) {
-                const requests = resProf.data.requests;
-                document.getElementById('countPendingProfile').textContent = `${requests.length} Requests`;
-                if (requests.length === 0) {
-                    tbodyProf.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No pending profile update requests.</td></tr>';
-                } else {
-                    tbodyProf.innerHTML = requests.map(r => {
-                        const diffHtml = Object.entries(r.changes).map(([k, v]) => `
-                            <div style="margin-bottom: 0.25rem;">
-                                <strong>${k.toUpperCase()}:</strong>
-                                <span class="diff-badge-old">${v.old || 'empty'}</span> → 
-                                <span class="diff-badge-new">${v.new}</span>
-                            </div>
-                        `).join('');
-
-                        return `
-                            <tr>
-                                <td>
-                                    <strong>${r.user_name}</strong>
-                                    <div style="font-size: 0.78rem; color: var(--text-muted);">${r.user_email}</div>
-                                </td>
-                                <td>${diffHtml}</td>
-                                <td style="color: var(--text-muted); font-size: 0.88rem;">${r.reason || '-'}</td>
-                                <td style="font-size: 0.85rem;">${r.created_at}</td>
-                                <td>
-                                    <div style="display: flex; gap: 0.4rem;">
-                                        <button onclick="reviewProfileChange(${r.id}, 'approve')" class="btn btn-success btn-sm">Approve</button>
-                                        <button onclick="reviewProfileChange(${r.id}, 'reject')" class="btn btn-danger btn-sm">Reject</button>
+                // 2. Pending Profile Changes
+                const resProf = await apiRequest('admin.php?action=pending_profile_changes');
+                const tbodyProf = document.getElementById('pendingProfileTableBody');
+                if (resProf.ok && resProf.data.success) {
+                    const requests = resProf.data.requests || [];
+                    const countProfBadge = document.getElementById('countPendingProfile');
+                    if (countProfBadge) countProfBadge.textContent = `${requests.length} Requests`;
+                    if (tbodyProf) {
+                        if (requests.length === 0) {
+                            tbodyProf.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No pending profile update requests.</td></tr>';
+                        } else {
+                            tbodyProf.innerHTML = requests.map(r => {
+                                const changesObj = (r.changes && typeof r.changes === 'object') ? r.changes : {};
+                                const diffHtml = Object.entries(changesObj).map(([k, v]) => `
+                                    <div style="margin-bottom: 0.25rem;">
+                                        <strong>${escapeHtml(k.toUpperCase())}:</strong>
+                                        <span class="diff-badge-old">${escapeHtml(v?.old || 'empty')}</span> → 
+                                        <span class="diff-badge-new">${escapeHtml(v?.new || '')}</span>
                                     </div>
-                                </td>
-                            </tr>
-                        `;
-                    }).join('');
+                                `).join('');
+
+                                return `
+                                    <tr>
+                                        <td>
+                                            <strong>${escapeHtml(r.user_name || '')}</strong>
+                                            <div style="font-size: 0.78rem; color: var(--text-muted);">${escapeHtml(r.user_email || '')}</div>
+                                        </td>
+                                        <td>${diffHtml || '—'}</td>
+                                        <td style="color: var(--text-muted); font-size: 0.88rem;">${escapeHtml(r.reason || '-')}</td>
+                                        <td style="font-size: 0.85rem;">${r.created_at || '-'}</td>
+                                        <td>
+                                            <div style="display: flex; gap: 0.4rem;">
+                                                <button onclick="reviewProfileChange(${r.id}, 'approve')" class="btn btn-success btn-sm">Approve</button>
+                                                <button onclick="reviewProfileChange(${r.id}, 'reject')" class="btn btn-danger btn-sm">Reject</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                `;
+                            }).join('');
+                        }
+                    }
                 }
+            } catch (err) {
+                console.error('Error in loadPendingApprovals:', err);
             }
         }
 
@@ -1748,30 +1868,86 @@
             }
         }
 
-        // Attendance Logs & CSV Export
+        // Attendance Logs & Date-Wise CSV Export
+        function setAttendanceFilter(preset) {
+            const today = new Date();
+            const y = today.getFullYear();
+            const m = String(today.getMonth() + 1).padStart(2, '0');
+            const d = String(today.getDate()).padStart(2, '0');
+            const todayStr = `${y}-${m}-${d}`;
+
+            const startInp = document.getElementById('attendanceStartDate');
+            const endInp = document.getElementById('attendanceEndDate');
+
+            if (preset === 'today') {
+                if (startInp) startInp.value = todayStr;
+                if (endInp) endInp.value = todayStr;
+            } else if (preset === 'this_month') {
+                if (startInp) startInp.value = `${y}-${m}-01`;
+                if (endInp) endInp.value = todayStr;
+            } else if (preset === 'all') {
+                if (startInp) startInp.value = '';
+                if (endInp) endInp.value = '';
+            }
+            loadAttendanceLogs();
+        }
+
         async function loadAttendanceLogs() {
-            const date = document.getElementById('attendanceFilterDate').value || '';
-            const res = await apiRequest(`attendance.php?action=history&date=${date}`);
+            const startDate = document.getElementById('attendanceStartDate') ? document.getElementById('attendanceStartDate').value : '';
+            const endDate = document.getElementById('attendanceEndDate') ? document.getElementById('attendanceEndDate').value : '';
+
+            let query = 'attendance.php?action=history';
+            if (startDate && endDate) {
+                query += `&start_date=${startDate}&end_date=${endDate}`;
+            } else if (startDate) {
+                query += `&start_date=${startDate}`;
+            } else if (endDate) {
+                query += `&end_date=${endDate}`;
+            }
+
+            const res = await apiRequest(query);
             const tbody = document.getElementById('adminAttendanceTableBody');
+            const countBadge = document.getElementById('attendanceRecordCountBadge');
 
             if (res.ok && res.data.success) {
                 const history = res.data.history;
+                if (countBadge) {
+                    countBadge.textContent = `Showing ${history.length} attendance record${history.length === 1 ? '' : 's'}`;
+                }
+
                 if (history.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">No attendance logged for this date.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">No attendance records found for this period.</td></tr>';
                     return;
                 }
 
-                tbody.innerHTML = history.map(h => `
+                tbody.innerHTML = history.map(h => {
+                    // Calculate work duration
+                    let durationStr = '-';
+                    if (h.check_in_time && h.check_out_time) {
+                        const inParts = h.check_in_time.split(':');
+                        const outParts = h.check_out_time.split(':');
+                        const inMins = parseInt(inParts[0]) * 60 + parseInt(inParts[1]);
+                        const outMins = parseInt(outParts[0]) * 60 + parseInt(outParts[1]);
+                        if (outMins >= inMins) {
+                            const diff = outMins - inMins;
+                            durationStr = `${Math.floor(diff / 60)}h ${diff % 60}m`;
+                        }
+                    } else if (h.check_in_time) {
+                        durationStr = '<span style="color: #b45309; font-size: 0.76rem; font-weight: 700;">In Progress</span>';
+                    }
+
+                    return `
                     <tr>
                         <td>
-                            <strong>${h.user_name}</strong>
-                            <div style="font-size: 0.78rem; color: var(--text-muted);">${h.user_dept || 'Operations'}</div>
+                            <strong>${escapeHtml(h.user_name)}</strong>
+                            <div style="font-size: 0.76rem; color: var(--text-muted);">${escapeHtml(h.user_dept || 'General')}</div>
                         </td>
-                        <td>${h.date}</td>
-                        <td><span class="badge badge-primary">${h.method.toUpperCase()}</span></td>
-                        <td><strong style="font-family: var(--font-mono);">${h.check_in_time ? h.check_in_time.substring(0, 5) : '--'}</strong></td>
-                        <td><strong style="font-family: var(--font-mono);">${h.check_out_time ? h.check_out_time.substring(0, 5) : '--'}</strong></td>
-                        <td><span class="badge badge-${h.status}">${h.status}</span></td>
+                        <td><strong>${h.date}</strong></td>
+                        <td><strong style="font-family: var(--font-mono); color: #047857;">${h.check_in_time ? h.check_in_time.substring(0, 5) : '--'}</strong></td>
+                        <td><strong style="font-family: var(--font-mono); color: ${h.check_out_time ? '#4338ca' : '#94a3b8'};">${h.check_out_time ? h.check_out_time.substring(0, 5) : '--'}</strong></td>
+                        <td><span style="font-weight: 700; font-family: var(--font-mono);">${durationStr}</span></td>
+                        <td><span class="badge badge-primary">${(h.method || 'GPS').toUpperCase()}</span></td>
+                        <td><span class="badge badge-${h.status}">${(h.status || 'present').toUpperCase()}</span></td>
                         <td style="font-size: 0.82rem; color: var(--text-muted);">
                             ${h.notes ? `<div>${escapeHtml(h.notes)}</div>` : ''}
                             ${(h.location_name || h.latitude) ? `
@@ -1790,13 +1966,29 @@
                             ` : (!h.notes ? '-' : '')}
                         </td>
                     </tr>
-                `).join('');
+                    `;
+                }).join('');
             }
         }
 
-        function exportAttendanceCsv() {
-            const date = document.getElementById('attendanceFilterDate').value || '';
-            window.location.href = `api/attendance.php?action=export_csv&date=${date}`;
+        function exportAttendanceCsv(scope = 'filtered') {
+            playSound('click');
+            let query = 'api/attendance.php?action=export_csv';
+
+            if (scope === 'filtered') {
+                const startDate = document.getElementById('attendanceStartDate') ? document.getElementById('attendanceStartDate').value : '';
+                const endDate = document.getElementById('attendanceEndDate') ? document.getElementById('attendanceEndDate').value : '';
+                if (startDate && endDate) {
+                    query += `&start_date=${startDate}&end_date=${endDate}`;
+                } else if (startDate) {
+                    query += `&start_date=${startDate}`;
+                } else if (endDate) {
+                    query += `&end_date=${endDate}`;
+                }
+            }
+
+            showToast('Generating official date-wise attendance CSV...', 'info');
+            window.location.href = query;
         }
 
         // Leave Reviews

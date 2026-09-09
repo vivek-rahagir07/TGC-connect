@@ -56,5 +56,5 @@ Access the app in your browser at `http://127.0.0.1:8001/index.html`.
 
 ## Default Access Credentials
 
-- **Admin Account**: `admin@tgcconnect.com` / `admin123`
+- **Admin Account**: `gettingroots@gmail.com` (password set privately)
 - **Employee Accounts**: Register via `register.html` or through Admin Dashboard

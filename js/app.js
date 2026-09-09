@@ -60,7 +60,7 @@ function playSound(type = 'click') {
       osc.stop(now + 0.25);
     } else if (type === 'shutter') {
       // Camera shutter snap
-      osc.type = 'noise';
+      osc.type = 'square';
       osc.frequency.setValueAtTime(800, now);
       osc.frequency.exponentialRampToValueAtTime(120, now + 0.08);
       gain.gain.setValueAtTime(0.18, now);
@@ -397,3 +397,15 @@ function takeSnapshot(videoElementId, canvasElementId) {
   playSound('shutter');
   return canvas.toDataURL('image/jpeg', 0.88);
 }
+
+// 11. String HTML escaping utility
+function escapeHtml(text) {
+  if (text === null || text === undefined) return '';
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+

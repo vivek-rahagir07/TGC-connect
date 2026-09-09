@@ -24,7 +24,7 @@ Open [http://127.0.0.1:8001/index.html](http://127.0.0.1:8001/index.html) in you
   ```bash
   php api/setup_mysql.php
   ```
-- Default Admin Account: `admin@tgcconnect.com` / `admin123`.
+- Default Admin Account: `gettingroots@gmail.com` (password set privately).
 - Employees can self-onboard at `register.html` (pending admin approval) or be directly created by Admin with first-login password & webcam setup.
 
 ## Hostinger Deployment Structure

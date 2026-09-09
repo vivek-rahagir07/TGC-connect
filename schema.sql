@@ -233,17 +233,17 @@ CREATE TABLE IF NOT EXISTS `inventory_issuances` (
 -- SEED INITIAL SYSTEM DATA
 -- ==========================================================
 
--- 1. Default Administrator Account (Email: admin@tgcconnect.com / Pass: admin123)
+-- 1. Default Administrator Account (Email: gettingroots@gmail.com)
 INSERT INTO `users` (`id`, `name`, `email`, `password`, `phone`, `department`, `job_profile`, `date_of_joining`, `role`, `status`, `base_salary`, `first_login_required`)
-VALUES (1, 'Administrator', 'admin@tgcconnect.com', '$2y$12$08ZpiGMmqeZ7epSau2LS2.poqT3ZHa0OLEwbRcXDZ8CG7vVMNyQ.e', '+91 98765 43210', 'Executive Management', 'Lead Systems Administrator', '2025-01-01', 'admin', 'active', 95000.00, 0)
+VALUES (1, 'Administrator', 'gettingroots@gmail.com', '$2y$12$lIMxxbjDStUjEBHYyGV5X.knBCAYHFizV04Xzd.FY6q8olNQJy/au', '+91 98765 43210', 'Executive Management', 'Lead Systems Administrator', '2025-01-01', 'admin', 'active', 95000.00, 0)
 ON DUPLICATE KEY UPDATE `password` = VALUES(`password`);
 
--- 2. Real Active Employee: Rohan Verma (Senior Frontend Engineer) (Email: rohan.verma@tgcconnect.com / Pass: employee123)
+-- 2. Real Active Employee: Rohan Verma (Senior Frontend Engineer) (Email: rohan.verma@tgcconnect.com)
 INSERT INTO `users` (`id`, `name`, `email`, `password`, `phone`, `dob`, `address`, `department`, `job_profile`, `date_of_joining`, `role`, `status`, `base_salary`, `first_login_required`)
 VALUES (2, 'Rohan Verma', 'rohan.verma@tgcconnect.com', '$2y$12$txkT4GZGUwWa8UZ.Mfv31eRruPjtnTVLeRmMDn.I.BoNf/bDgZNSC', '+91 98112 34567', '1996-05-14', 'Tower 4, Cyber City, Gurugram', 'Engineering', 'Senior Frontend Engineer', '2025-02-15', 'employee', 'active', 65000.00, 0)
 ON DUPLICATE KEY UPDATE `password` = VALUES(`password`);
 
--- 3. Real Active Employee: Priya Sharma (Product Designer) (Email: priya.sharma@tgcconnect.com / Pass: employee123)
+-- 3. Real Active Employee: Priya Sharma (Product Designer) (Email: priya.sharma@tgcconnect.com)
 INSERT INTO `users` (`id`, `name`, `email`, `password`, `phone`, `dob`, `address`, `department`, `job_profile`, `date_of_joining`, `role`, `status`, `base_salary`, `first_login_required`)
 VALUES (3, 'Priya Sharma', 'priya.sharma@tgcconnect.com', '$2y$12$txkT4GZGUwWa8UZ.Mfv31eRruPjtnTVLeRmMDn.I.BoNf/bDgZNSC', '+91 98223 45678', '1998-08-22', 'Indiranagar 100ft Road, Bengaluru', 'Design & UX', 'Lead Product Designer', '2025-04-01', 'employee', 'active', 55000.00, 0)
 ON DUPLICATE KEY UPDATE `password` = VALUES(`password`);

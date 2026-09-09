@@ -232,7 +232,9 @@ switch ($action) {
         header('Content-Type: text/csv; charset=utf-8');
         header("Content-Disposition: attachment; filename=payroll_{$month}_{$year}.csv");
         $fp = fopen('php://output', 'w');
-        fputcsv($fp, ['Month', 'Year', 'Employee Name', 'Email', 'Department', 'Job Profile', 'Base Salary (INR)', 'Working Days', 'Present Days', 'Paid Leaves', 'Unpaid Days', 'Daily Rate', 'Deductions (INR)', 'Net Payable (INR)', 'Status', 'Payment Date', 'Remarks']);
+        // UTF-8 BOM for Microsoft Excel / Sheets compatibility
+        fprintf($fp, chr(0xEF).chr(0xBB).chr(0xBF));
+        fputcsv($fp, ['Month', 'Year', 'Employee Name', 'Email', 'Department', 'Job Profile', 'Base Salary (INR)', 'Working Days', 'Present Days', 'Paid Leaves', 'Unpaid Days', 'Daily Rate', 'Deductions (INR)', 'Net Payable (INR)', 'Status', 'Payment Date', 'Remarks'], ',', '"', "\\");
 
         foreach ($rows as $r) {
             fputcsv($fp, [
@@ -240,7 +242,7 @@ switch ($action) {
                 $r['base_salary'], $r['total_working_days'], $r['present_days'], $r['paid_leaves'],
                 $r['unpaid_days'], $r['daily_rate'], $r['deduction_amount'], $r['net_salary'],
                 ucfirst($r['status']), $r['payment_date'] ?: '-', $r['remarks']
-            ]);
+            ], ',', '"', "\\");
         }
         fclose($fp);
         exit;

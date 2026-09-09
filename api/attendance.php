@@ -144,7 +144,14 @@ switch ($action) {
             sendResponse(false, ['message' => 'Unauthorized. Administrator access required.'], 403);
         }
 
-        $cmd = trim($input['command'] ?? ($input['status'] ?? 'open'));
+        $cmd = 'open';
+        if (isset($input['open']) && ($input['open'] === false || $input['open'] === 0 || $input['open'] === 'false')) {
+            $cmd = 'close';
+        } elseif (isset($input['command'])) {
+            $cmd = trim($input['command']);
+        } elseif (isset($input['status'])) {
+            $cmd = trim($input['status']);
+        }
         $duration = max(1, min(1440, intval($input['duration_minutes'] ?? 10)));
         $title = trim($input['title'] ?? 'Shift Attendance Window');
 
@@ -236,19 +243,29 @@ switch ($action) {
         $userRecord = null;
         $sessionUser = getCurrentUser($pdo);
 
-        if ($inputEmail) {
-            $stmtU = $pdo->prepare("SELECT * FROM users WHERE LOWER(email) = ? AND role = 'employee' LIMIT 1");
-            $stmtU->execute([$inputEmail]);
-            $userRecord = $stmtU->fetch();
-        }
-        if (!$userRecord && $inputPhone) {
-            $cleanPhone = preg_replace('/[^0-9]/', '', $inputPhone);
-            $stmtU = $pdo->prepare("SELECT * FROM users WHERE REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', '') LIKE ? AND role = 'employee' LIMIT 1");
-            $stmtU->execute(['%' . substr($cleanPhone, -10)]);
-            $userRecord = $stmtU->fetch();
-        }
-        if (!$userRecord && $sessionUser && $sessionUser['role'] === 'employee') {
+        if ($sessionUser && $sessionUser['role'] === 'employee') {
+            // Anti-proxy safeguard: Logged-in employee cannot submit attendance for another user
+            if ($inputEmail && strtolower($sessionUser['email']) !== $inputEmail) {
+                sendResponse(false, [
+                    'message' => 'Security Violation: You are logged in as ' . $sessionUser['name'] . ' and cannot submit attendance for another employee.'
+                ], 403);
+            }
             $userRecord = $sessionUser;
+        } else {
+            if ($inputEmail) {
+                $stmtU = $pdo->prepare("SELECT * FROM users WHERE LOWER(email) = ? AND role = 'employee' LIMIT 1");
+                $stmtU->execute([$inputEmail]);
+                $userRecord = $stmtU->fetch();
+            }
+            if (!$userRecord && $inputPhone) {
+                $cleanPhone = preg_replace('/[^0-9]/', '', $inputPhone);
+                $stmtU = $pdo->prepare("SELECT * FROM users WHERE REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', '') LIKE ? AND role = 'employee' LIMIT 1");
+                $stmtU->execute(['%' . substr($cleanPhone, -10)]);
+                $userRecord = $stmtU->fetch();
+            }
+            if (!$userRecord && $sessionUser) {
+                $userRecord = $sessionUser;
+            }
         }
 
         if (!$userRecord) {
@@ -602,29 +619,43 @@ switch ($action) {
         }
 
         // Determine user identity
-        $user = $sessionUser;
-        if ($email) {
-            $stmtU = $pdo->prepare("SELECT * FROM users WHERE LOWER(email) = LOWER(?) AND status = 'active' LIMIT 1");
-            $stmtU->execute([$email]);
-            $foundUser = $stmtU->fetch();
-            if ($foundUser) {
-                $user = $foundUser;
+        $user = null;
+        if ($sessionUser && $sessionUser['role'] === 'employee') {
+            // Anti-proxy safeguard: Logged-in employee cannot submit GPS punch for another user
+            if ($email && strtolower($sessionUser['email']) !== strtolower($email)) {
+                sendResponse(false, [
+                    'message' => 'Security Violation: You are logged in as ' . $sessionUser['name'] . ' and cannot submit GPS punch for another employee.'
+                ], 403);
             }
-        }
-        if (!$user && $phone) {
-            $stmtU = $pdo->prepare("SELECT * FROM users WHERE phone = ? AND status = 'active' LIMIT 1");
-            $stmtU->execute([$phone]);
-            $foundUser = $stmtU->fetch();
-            if ($foundUser) {
-                $user = $foundUser;
+            $user = $sessionUser;
+        } else {
+            if ($email) {
+                $stmtU = $pdo->prepare("SELECT * FROM users WHERE LOWER(email) = LOWER(?) AND status = 'active' LIMIT 1");
+                $stmtU->execute([$email]);
+                $foundUser = $stmtU->fetch();
+                if ($foundUser) {
+                    $user = $foundUser;
+                }
             }
-        }
-        if (!$user && $name) {
-            $stmtU = $pdo->prepare("SELECT * FROM users WHERE LOWER(name) = LOWER(?) AND status = 'active' LIMIT 1");
-            $stmtU->execute([$name]);
-            $foundUser = $stmtU->fetch();
-            if ($foundUser) {
-                $user = $foundUser;
+            if (!$user && $phone) {
+                $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
+                $stmtU = $pdo->prepare("SELECT * FROM users WHERE REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', '') LIKE ? AND status = 'active' LIMIT 1");
+                $stmtU->execute(['%' . substr($cleanPhone, -10)]);
+                $foundUser = $stmtU->fetch();
+                if ($foundUser) {
+                    $user = $foundUser;
+                }
+            }
+            if (!$user && $name) {
+                $stmtU = $pdo->prepare("SELECT * FROM users WHERE LOWER(name) = LOWER(?) AND status = 'active' LIMIT 1");
+                $stmtU->execute([$name]);
+                $foundUser = $stmtU->fetch();
+                if ($foundUser) {
+                    $user = $foundUser;
+                }
+            }
+            if (!$user && $sessionUser) {
+                $user = $sessionUser;
             }
         }
 
@@ -796,8 +827,10 @@ switch ($action) {
 
         if (!$qr) {
             $token = 'TGC-OFFICE-' . strtoupper(substr(md5(uniqid()), 0, 8));
-            $pdo->exec("INSERT INTO qr_codes (token, title, is_active) VALUES ('{$token}', 'TGC Corporate Main QR', 1)");
-            $stmt = $pdo->query("SELECT * FROM qr_codes WHERE token = '{$token}'");
+            $stmt = $pdo->prepare("INSERT INTO qr_codes (token, title, is_active) VALUES (?, 'TGC Corporate Main QR', 1)");
+            $stmt->execute([$token]);
+            $stmt = $pdo->prepare("SELECT * FROM qr_codes WHERE token = ?");
+            $stmt->execute([$token]);
             $qr = $stmt->fetch();
         }
 
@@ -837,6 +870,9 @@ switch ($action) {
         $myOnly = isset($_GET['my_only']) || $user['role'] !== 'admin';
         $filterDate = $_GET['date'] ?? '';
 
+        $startDate = trim($_GET['start_date'] ?? '');
+        $endDate = trim($_GET['end_date'] ?? '');
+
         $sql = "
             SELECT a.*, u.name as user_name, u.email as user_email, u.department as user_dept, u.photo_path
             FROM attendances a
@@ -853,9 +889,19 @@ switch ($action) {
         if ($filterDate) {
             $sql .= " AND a.date = ?";
             $params[] = $filterDate;
+        } elseif ($startDate && $endDate) {
+            $sql .= " AND a.date BETWEEN ? AND ?";
+            $params[] = $startDate;
+            $params[] = $endDate;
+        } elseif ($startDate) {
+            $sql .= " AND a.date >= ?";
+            $params[] = $startDate;
+        } elseif ($endDate) {
+            $sql .= " AND a.date <= ?";
+            $params[] = $endDate;
         }
 
-        $sql .= " ORDER BY a.date DESC, a.check_in_time DESC LIMIT 150";
+        $sql .= " ORDER BY a.date DESC, a.check_in_time DESC LIMIT 300";
 
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
@@ -875,43 +921,140 @@ switch ($action) {
     case 'export_csv':
         $user = getCurrentUser($pdo);
         if (!$user || $user['role'] !== 'admin') {
-            sendResponse(false, ['message' => 'Unauthorized'], 403);
+            sendResponse(false, ['message' => 'Unauthorized. Administrator privileges required.'], 403);
         }
 
-        $filterDate = $_GET['date'] ?? '';
+        $filterDate = trim($_GET['date'] ?? '');
+        $startDate  = trim($_GET['start_date'] ?? '');
+        $endDate    = trim($_GET['end_date'] ?? '');
+        $filterDept = trim($_GET['department'] ?? '');
+
         $sql = "
-            SELECT a.date, u.name, u.email, u.department, u.job_profile, a.check_in_time, a.check_out_time,
-                   a.method, a.status, a.location_name, a.latitude, a.longitude, a.ip_address, a.notes
+            SELECT a.id as attendance_id, a.date, a.check_in_time, a.check_out_time, a.method, a.status,
+                   a.location_name, a.latitude, a.longitude, a.accuracy_meters, a.ip_address, a.notes,
+                   u.id as employee_id, u.name as employee_name, u.email as employee_email,
+                   u.phone as employee_phone, u.department as employee_department, u.job_profile
             FROM attendances a
             JOIN users u ON a.user_id = u.id
             WHERE 1=1
         ";
         $params = [];
+
         if ($filterDate) {
             $sql .= " AND a.date = ?";
             $params[] = $filterDate;
+            $filenameSuffix = $filterDate;
+        } elseif ($startDate && $endDate) {
+            $sql .= " AND a.date BETWEEN ? AND ?";
+            $params[] = $startDate;
+            $params[] = $endDate;
+            $filenameSuffix = "{$startDate}_to_{$endDate}";
+        } elseif ($startDate) {
+            $sql .= " AND a.date >= ?";
+            $params[] = $startDate;
+            $filenameSuffix = "from_{$startDate}";
+        } elseif ($endDate) {
+            $sql .= " AND a.date <= ?";
+            $params[] = $endDate;
+            $filenameSuffix = "up_to_{$endDate}";
+        } else {
+            $filenameSuffix = "all_records_" . date('Y-m-d');
         }
-        $sql .= " ORDER BY a.date DESC, a.check_in_time DESC";
+
+        if ($filterDept) {
+            $sql .= " AND u.department = ?";
+            $params[] = $filterDept;
+        }
+
+        $sql .= " ORDER BY a.date DESC, u.name ASC, a.check_in_time ASC";
 
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         $rows = $stmt->fetchAll();
 
-        // Stream as CSV
+        // Stream as CSV with RFC-4180 headers & UTF-8 BOM
         header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=attendance_report_' . ($filterDate ?: 'all') . '.csv');
+        header('Content-Disposition: attachment; filename="tgc_attendance_' . $filenameSuffix . '.csv"');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+
         $fp = fopen('php://output', 'w');
-        fputcsv($fp, ['Date', 'Employee Name', 'Email', 'Department', 'Role', 'Check-In', 'Check-Out', 'Method', 'Status', 'Location', 'IP Address', 'Notes']);
+
+        // UTF-8 BOM for Microsoft Excel compatibility
+        fprintf($fp, chr(0xEF).chr(0xBB).chr(0xBF));
+
+        fputcsv($fp, [
+            'Date',
+            'Day of Week',
+            'Employee ID',
+            'Employee Name',
+            'Work Email',
+            'Phone',
+            'Department',
+            'Designation / Role',
+            'Check-In Time',
+            'Check-Out Time',
+            'Duration Worked',
+            'Duration (Decimal Hours)',
+            'Attendance Status',
+            'Punch Method',
+            'Verified Location',
+            'GPS Coordinates',
+            'Accuracy (±Meters)',
+            'IP Address',
+            'Notes & Verification'
+        ], ',', '"', "\\");
 
         foreach ($rows as $r) {
-            $loc = $r['location_name'] ?: ($r['latitude'] ? "Lat: {$r['latitude']}, Lng: {$r['longitude']}" : '-');
+            $dayOfWeek = date('l', strtotime($r['date']));
+
+            // Work Duration Calculation
+            $durationText = '-';
+            $durationHours = 0.0;
+            if (!empty($r['check_in_time']) && !empty($r['check_out_time'])) {
+                $tIn = strtotime($r['date'] . ' ' . $r['check_in_time']);
+                $tOut = strtotime($r['date'] . ' ' . $r['check_out_time']);
+                if ($tOut >= $tIn) {
+                    $diffSec = $tOut - $tIn;
+                    $hrs = floor($diffSec / 3600);
+                    $mins = floor(($diffSec % 3600) / 60);
+                    $durationText = sprintf('%dh %02dm', $hrs, $mins);
+                    $durationHours = round($diffSec / 3600, 2);
+                }
+            } elseif (!empty($r['check_in_time'])) {
+                $durationText = 'In Progress (Check-Out Pending)';
+            }
+
+            // Coordinates & Location Formatting
+            $coords = ($r['latitude'] && $r['longitude']) ? "{$r['latitude']}, {$r['longitude']}" : '-';
+            $loc = $r['location_name'] ?: '-';
+            $acc = $r['accuracy_meters'] ? "±" . round($r['accuracy_meters']) . "m" : '-';
+
+            // Check In & Check Out Formats
+            $checkInFormatted = $r['check_in_time'] ? date('h:i:s A', strtotime($r['check_in_time'])) : '-';
+            $checkOutFormatted = $r['check_out_time'] ? date('h:i:s A', strtotime($r['check_out_time'])) : '-';
+
             fputcsv($fp, [
-                $r['date'], $r['name'], $r['email'], $r['department'], $r['job_profile'],
-                $r['check_in_time'] ?: '-', $r['check_out_time'] ?: '-',
-                strtoupper($r['method']), ucfirst($r['status']),
+                $r['date'],
+                $dayOfWeek,
+                'EMP-' . str_pad($r['employee_id'], 4, '0', STR_PAD_LEFT),
+                $r['employee_name'],
+                $r['employee_email'],
+                $r['employee_phone'] ?: '-',
+                $r['employee_department'] ?: '-',
+                $r['job_profile'] ?: '-',
+                $checkInFormatted,
+                $checkOutFormatted,
+                $durationText,
+                $durationHours > 0 ? $durationHours : '-',
+                strtoupper($r['status'] ?: 'PRESENT'),
+                strtoupper($r['method'] ?: 'GPS'),
                 $loc,
-                $r['ip_address'] ?: '-', $r['notes'] ?: '-'
-            ]);
+                $coords,
+                $acc,
+                $r['ip_address'] ?: '-',
+                $r['notes'] ?: '-'
+            ], ',', '"', "\\");
         }
         fclose($fp);
         exit;

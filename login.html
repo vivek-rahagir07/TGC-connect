@@ -357,7 +357,7 @@
                     <div class="form-group">
                         <label class="form-label" id="emailLabel">Official Admin Email</label>
                         <div class="password-input-group">
-                            <input type="email" id="loginEmail" class="form-control" placeholder="admin@tgcconnect.com" value="admin@tgcconnect.com" required autofocus autocomplete="email">
+                            <input type="email" id="loginEmail" class="form-control" placeholder="Enter your email" value="" required autofocus autocomplete="email">
                         </div>
                     </div>
 
@@ -367,7 +367,7 @@
                             <span id="roleNotice" style="font-size: 0.74rem; color: var(--primary); font-weight: 600;">Encrypted</span>
                         </div>
                         <div class="password-input-group">
-                            <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" value="admin123" required autocomplete="current-password">
+                            <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" value="" required autocomplete="current-password">
                             <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('loginPassword', this)" title="Toggle password visibility">
                                 <i data-lucide="eye" style="width: 15px;"></i>
                             </button>
@@ -380,44 +380,7 @@
                     </button>
                 </form>
 
-                <!-- Quick Access Credentials Drawer -->
-                <div style="margin-top: 1.15rem; padding: 0.85rem 0.95rem; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-md);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.55rem;">
-                        <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
-                            Quick Credentials
-                        </span>
-                        <span style="font-size: 0.7rem; color: var(--primary); font-weight: 600;">Tap to fill</span>
-                    </div>
 
-                    <!-- Admin Chips -->
-                    <div id="adminChips" style="display: flex; gap: 0.45rem; flex-wrap: wrap;">
-                        <button type="button" onclick="fillCreds('admin@tgcconnect.com', 'admin123', 'admin')" class="quick-cred-chip" style="width: 100%; justify-content: space-between;">
-                            <span style="display: flex; align-items: center; gap: 0.45rem;">
-                                <span>🛡️</span>
-                                <span>Master Administrator</span>
-                            </span>
-                            <code style="font-size: 0.74rem; color: var(--text-muted);">admin123</code>
-                        </button>
-                    </div>
-
-                    <!-- Employee Chips -->
-                    <div id="employeeChips" style="display: none; flex-direction: column; gap: 0.45rem;">
-                        <button type="button" onclick="fillCreds('rohan.verma@tgcconnect.com', 'employee123', 'employee')" class="quick-cred-chip" style="width: 100%; justify-content: space-between;">
-                            <span style="display: flex; align-items: center; gap: 0.45rem;">
-                                <span>💻</span>
-                                <span>Rohan Verma (Engineering)</span>
-                            </span>
-                            <code style="font-size: 0.74rem; color: var(--text-muted);">employee123</code>
-                        </button>
-                        <button type="button" onclick="fillCreds('priya.sharma@tgcconnect.com', 'employee123', 'employee')" class="quick-cred-chip" style="width: 100%; justify-content: space-between;">
-                            <span style="display: flex; align-items: center; gap: 0.45rem;">
-                                <span>🎨</span>
-                                <span>Priya Sharma (Product Design)</span>
-                            </span>
-                            <code style="font-size: 0.74rem; color: var(--text-muted);">employee123</code>
-                        </button>
-                    </div>
-                </div>
 
                 <!-- Footer Links -->
                 <div style="text-align: center; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border-color); font-size: 0.86rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.45rem;">
@@ -454,8 +417,6 @@
             const loginEmail = document.getElementById('loginEmail');
             const loginPassword = document.getElementById('loginPassword');
             const loginBtnText = document.getElementById('loginBtnText');
-            const adminChips = document.getElementById('adminChips');
-            const employeeChips = document.getElementById('employeeChips');
             const alertBox = document.getElementById('loginStatusAlert');
             alertBox.style.display = 'none';
 
@@ -470,13 +431,12 @@
                 portalTitle.textContent = 'Management Sign In';
                 portalSubtitle.textContent = 'Executive command center & workforce management.';
                 emailLabel.textContent = 'Official Admin Email';
-                loginEmail.placeholder = 'admin@tgcconnect.com';
-                loginEmail.value = 'admin@tgcconnect.com';
-                loginPassword.value = 'admin123';
+                loginEmail.placeholder = 'Enter admin email';
+                loginEmail.value = '';
+                loginPassword.value = '';
                 loginBtnText.textContent = 'Sign In as Administrator';
 
-                adminChips.style.display = 'flex';
-                employeeChips.style.display = 'none';
+
             } else {
                 empBtn.className = 'role-segment-btn active employee-mode';
                 adminBtn.className = 'role-segment-btn';
@@ -488,25 +448,14 @@
                 portalTitle.textContent = 'Employee Sign In';
                 portalSubtitle.textContent = 'Punch attendance, manage leaves, view payslips & profile.';
                 emailLabel.textContent = 'Official Work Email';
-                loginEmail.placeholder = 'name@tgcconnect.com';
-                loginEmail.value = 'rohan.verma@tgcconnect.com';
-                loginPassword.value = 'employee123';
+                loginEmail.placeholder = 'Enter your work email';
+                loginEmail.value = '';
+                loginPassword.value = '';
                 loginBtnText.textContent = 'Sign In to Employee Portal';
 
-                adminChips.style.display = 'none';
-                employeeChips.style.display = 'flex';
+
             }
             lucide.createIcons();
-        }
-
-        function fillCreds(email, pass, role) {
-            playSound('click');
-            if (role && role !== currentRole) {
-                switchRole(role);
-            }
-            document.getElementById('loginEmail').value = email;
-            document.getElementById('loginPassword').value = pass;
-            showToast(`Filled credentials for ${email}`, 'info');
         }
 
         function togglePasswordVisibility(inputId, btn) {

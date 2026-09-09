@@ -79,6 +79,6 @@ Open [http://127.0.0.1:8001/index.html](http://127.0.0.1:8001/index.html) in you
 
 | Role | Email | Password | Access |
 |---|---|---|---|
-| **Admin** | `admin@tgcconnect.com` | `admin123` | Full HR, QR standees, GPS links, Inventory & Payroll |
+| **Admin** | `gettingroots@gmail.com` | *(set privately)* | Full HR, QR standees, GPS links, Inventory & Payroll |
 
 Employees can register directly via **[register.html](register.html)** or be onboarded by Admin.
