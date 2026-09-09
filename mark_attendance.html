@@ -91,6 +91,16 @@
             border: 1px solid #a7f3d0;
             color: #065f46;
         }
+        .window-banner.open-evening {
+            background: #eef2ff;
+            border: 1px solid #c7d2fe;
+            color: #3730a3;
+        }
+        .window-banner.waiting {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            color: #92400e;
+        }
         .window-banner.closed {
             background: #fff1f2;
             border: 1px solid #fecdd3;
@@ -140,26 +150,36 @@
                     <h1 style="font-size: 1.65rem; font-weight: 800; letter-spacing: -0.4px; margin: 0.2rem 0; color: var(--text-main);">
                         Mark Your Attendance Now
                     </h1>
-                    <p style="color: var(--text-muted); font-size: 0.88rem;">
+                    <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 0.75rem;">
                         Physical location is automatically resolved via GPS satellite coordinates and verified against your employee onboarding profile.
                     </p>
+
+                    <!-- Automated Schedule Badge & Shareable Link Action -->
+                    <div style="display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 0.55rem;">
+                        <span style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.76rem; font-weight: 700; color: #1e40af; background: #eff6ff; border: 1px solid #bfdbfe; padding: 0.28rem 0.8rem; border-radius: 9999px;">
+                            <i data-lucide="clock" style="width: 13px;"></i> Check-In: 09:00 - 09:20 AM • Check-Out: 05:30 - 05:50 PM
+                        </span>
+                        <button type="button" onclick="copyAttendanceLink()" class="btn btn-secondary btn-sm" style="font-size: 0.74rem; font-weight: 700; padding: 0.26rem 0.75rem; border-radius: 9999px; display: inline-flex; align-items: center; gap: 0.35rem;">
+                            <i data-lucide="share-2" style="width: 13px;"></i> Share Link
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Live Attendance Window Status Banner -->
                 <div id="attendanceWindowBanner" class="window-banner closed">
                     <div style="display: flex; align-items: center; gap: 0.75rem; text-align: left;">
-                        <div id="windowIndicatorDot" style="width: 12px; height: 12px; border-radius: 50%; background: #e11d48;"></div>
+                        <div id="windowIndicatorDot" style="width: 12px; height: 12px; border-radius: 50%; background: #e11d48; flex-shrink: 0;"></div>
                         <div>
-                            <div style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px;" id="windowStatusTitle">
+                            <div style="font-size: 0.74rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px;" id="windowStatusTitle">
                                 Checking Attendance Window...
                             </div>
-                            <div style="font-size: 0.85rem; font-weight: 500;" id="windowStatusSubtext">
+                            <div style="font-size: 0.84rem; font-weight: 500; line-height: 1.35;" id="windowStatusSubtext">
                                 Verifying shift status with administration engine...
                             </div>
                         </div>
                     </div>
                     <div style="text-align: right;" id="windowTimerBox">
-                        <div style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.8;">Window Timer</div>
+                        <div style="font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.85;" id="windowTimerLabel">Window Timer</div>
                         <div id="windowCountdown" style="font-size: 1.45rem; font-weight: 800; font-family: var(--font-mono); line-height: 1.1;">
                             --:--
                         </div>
@@ -323,7 +343,7 @@
                         <div style="width: 56px; height: 56px; border-radius: 50%; background: #dcfce7; color: #16a34a; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 0.5rem;">
                             <i data-lucide="check" style="width: 32px; height: 32px;"></i>
                         </div>
-                        <h2 style="font-size: 1.4rem; font-weight: 800; color: #065f46; margin-bottom: 0.25rem;">
+                        <h2 id="receiptCardTitle" style="font-size: 1.4rem; font-weight: 800; color: #065f46; margin-bottom: 0.25rem;">
                             Attendance Verified & Marked!
                         </h2>
                         <p style="font-size: 0.86rem; color: #047857;" id="successMsgText">
@@ -337,7 +357,7 @@
                             <strong id="receiptEmpName">-</strong>
                         </div>
                         <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; border-bottom: 1px dashed #e2e8f0; padding-bottom: 0.4rem;">
-                            <span style="color: var(--text-muted);">Check-In Time:</span>
+                            <span id="receiptTimeLabel" style="color: var(--text-muted);">Check-In Time:</span>
                             <strong id="receiptCheckInTime" style="font-family: var(--font-mono); color: var(--primary); font-size: 1.05rem;">--:--</strong>
                         </div>
                         <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; border-bottom: 1px dashed #e2e8f0; padding-bottom: 0.4rem;">
@@ -371,6 +391,7 @@
         let isWindowOpen = false;
         let windowRemainingSeconds = 0;
         let windowTimerInterval = null;
+        let currentWindowType = 'check_in'; // 'check_in' or 'check_out'
 
         let capturedLat = null;
         let capturedLng = null;
@@ -388,6 +409,32 @@
             // Auto-refresh window status every 20 seconds
             setInterval(checkAttendanceWindowStatus, 20000);
         });
+
+        // Copy Shareable Attendance Link
+        function copyAttendanceLink() {
+            const url = window.location.href.split('?')[0];
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(() => {
+                    showToast('Universal Attendance Link copied to clipboard!', 'success');
+                    playSound('click');
+                }).catch(() => {
+                    fallbackCopy(url);
+                });
+            } else {
+                fallbackCopy(url);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const inp = document.createElement('input');
+            inp.value = text;
+            document.body.appendChild(inp);
+            inp.select();
+            document.execCommand('copy');
+            document.body.removeChild(inp);
+            showToast('Universal Attendance Link copied to clipboard!', 'success');
+            playSound('click');
+        }
 
         // Load Current Logged In User
         async function loadCurrentUserProfile() {
@@ -455,12 +502,28 @@
             badge.className = record.status === 'late' ? 'badge badge-warning' : 'badge badge-success';
 
             if (currentUser && currentUser.name) {
-                document.getElementById('alreadyMarkedEmpName').textContent = `Welcome, ${currentUser.name}!`;
+                document.getElementById('alreadyMarkedEmpName').textContent = `Welcome back, ${currentUser.name}!`;
             }
 
             const checkOutBtn = document.getElementById('alreadyMarkedCheckOutBtn');
             if (record.check_in_time && !record.check_out_time) {
                 checkOutBtn.style.display = 'inline-flex';
+                if (isWindowOpen && currentWindowType === 'check_out') {
+                    checkOutBtn.disabled = false;
+                    checkOutBtn.innerHTML = '<i data-lucide="log-out" style="width: 16px;"></i> Mark Evening Check-Out (Window Live)';
+                    checkOutBtn.className = 'btn btn-primary';
+                } else {
+                    checkOutBtn.disabled = true;
+                    checkOutBtn.innerHTML = '<i data-lucide="clock" style="width: 16px;"></i> Check-Out Opens at 05:30 PM';
+                    checkOutBtn.className = 'btn btn-secondary';
+                }
+                if (window.lucide) lucide.createIcons();
+            } else if (record.check_out_time) {
+                checkOutBtn.style.display = 'inline-flex';
+                checkOutBtn.disabled = true;
+                checkOutBtn.className = 'btn btn-secondary';
+                checkOutBtn.innerHTML = `<i data-lucide="check-check" style="width: 16px;"></i> Checked Out at ${record.check_out_time.substring(0, 5)}`;
+                if (window.lucide) lucide.createIcons();
             } else {
                 checkOutBtn.style.display = 'none';
             }
@@ -469,7 +532,8 @@
         async function handlePortalCheckOut() {
             const btn = document.getElementById('alreadyMarkedCheckOutBtn');
             btn.disabled = true;
-            btn.textContent = 'Checking Out...';
+            btn.innerHTML = '<i data-lucide="loader-2" class="spin" style="width: 16px;"></i> Marking Check-Out...';
+            if (window.lucide) lucide.createIcons();
 
             const res = await apiRequest('attendance.php?action=punch_out', 'POST');
             if (res.ok && res.data.success) {
@@ -482,11 +546,12 @@
                 playSound('error');
                 showToast(res.data.message || 'Error marking check-out', 'error');
                 btn.disabled = false;
-                btn.textContent = 'Mark Check-Out';
+                btn.innerHTML = '<i data-lucide="log-out" style="width: 16px;"></i> Mark Evening Check-Out';
+                if (window.lucide) lucide.createIcons();
             }
         }
 
-        // Check Attendance Window Status
+        // Check Attendance Window Status (Supports 09:00-09:20 AM and 05:30-05:50 PM)
         async function checkAttendanceWindowStatus() {
             try {
                 const res = await apiRequest('attendance.php?action=attendance_window_status');
@@ -495,48 +560,99 @@
                 const title = document.getElementById('windowStatusTitle');
                 const subtext = document.getElementById('windowStatusSubtext');
                 const timerEl = document.getElementById('windowCountdown');
+                const timerLabel = document.getElementById('windowTimerLabel');
                 const submitBtn = document.getElementById('submitPunchBtn');
+                const checkOutBtn = document.getElementById('alreadyMarkedCheckOutBtn');
 
                 if (res.ok && res.data.is_open && res.data.window) {
                     isWindowOpen = true;
+                    currentWindowType = res.data.window.type || 'check_in';
                     windowRemainingSeconds = res.data.window.seconds_remaining;
 
-                    banner.className = 'window-banner open';
-                    dot.style.background = '#10b981';
-                    title.textContent = 'Active Attendance Window (Admin Authorized)';
-                    title.style.color = '#065f46';
-                    subtext.textContent = res.data.window.title || 'Shift Attendance Window is Open';
-                    subtext.style.color = '#047857';
+                    if (currentWindowType === 'check_out') {
+                        banner.className = 'window-banner open-evening';
+                        dot.style.background = '#6366f1';
+                        title.textContent = '🌆 Evening Check-Out Window (05:30 PM - 05:50 PM)';
+                        title.style.color = '#3730a3';
+                        subtext.textContent = res.data.window.subtitle || 'Official shift check-out window is live. Tap to punch out.';
+                        subtext.style.color = '#4338ca';
 
-                    startWindowCountdown();
+                        if (submitBtn) {
+                            submitBtn.innerHTML = '<i data-lucide="log-out" style="width: 20px;"></i> Verify Details & Mark Check-Out';
+                        }
+                        if (checkOutBtn && checkOutBtn.style.display !== 'none') {
+                            checkOutBtn.disabled = false;
+                            checkOutBtn.className = 'btn btn-primary';
+                            checkOutBtn.innerHTML = '<i data-lucide="log-out" style="width: 16px;"></i> Mark Evening Check-Out (Window Live)';
+                        }
+                    } else {
+                        banner.className = 'window-banner open';
+                        dot.style.background = '#10b981';
+                        title.textContent = '🌅 Morning Attendance Window (09:00 AM - 09:20 AM)';
+                        title.style.color = '#065f46';
+                        subtext.textContent = res.data.window.subtitle || 'Official shift check-in window is live. Tap to punch in.';
+                        subtext.style.color = '#047857';
+
+                        if (submitBtn) {
+                            submitBtn.innerHTML = '<i data-lucide="check-circle-2" style="width: 20px;"></i> Verify Onboarding Details & Mark Attendance';
+                        }
+                    }
+
+                    if (timerLabel) timerLabel.textContent = 'CLOSES IN';
+                    startWindowCountdown(true);
 
                     if (submitBtn && capturedLat !== null) {
                         submitBtn.disabled = false;
                     }
+                    if (window.lucide) lucide.createIcons();
                 } else {
                     isWindowOpen = false;
-                    clearInterval(windowTimerInterval);
-                    windowTimerInterval = null;
+                    banner.className = 'window-banner waiting';
+                    dot.style.background = '#f59e0b';
+                    title.textContent = '🔒 Attendance Window is Closed';
+                    title.style.color = '#92400e';
 
-                    banner.className = 'window-banner closed';
-                    dot.style.background = '#e11d48';
-                    title.textContent = 'Attendance Window is Closed';
-                    title.style.color = '#9f1239';
-                    subtext.textContent = 'Administrator enables attendance during shift start (e.g. 10-minute window).';
-                    subtext.style.color = '#be123c';
-                    timerEl.textContent = 'CLOSED';
-                    timerEl.style.color = '#e11d48';
+                    if (timerLabel) timerLabel.textContent = 'OPENS IN';
+
+                    if (res.data && res.data.next_window) {
+                        const nw = res.data.next_window;
+                        subtext.textContent = `Next: ${nw.title} starts at ${nw.opens_at_label}.`;
+                        subtext.style.color = '#78350f';
+                        windowRemainingSeconds = nw.seconds_until_open || 0;
+                        startWindowCountdown(false);
+                    } else {
+                        subtext.textContent = 'Attendance punches are open daily from 09:00-09:20 AM and 05:30-05:50 PM.';
+                        subtext.style.color = '#78350f';
+                        timerEl.textContent = 'CLOSED';
+                        timerEl.style.color = '#d97706';
+                    }
 
                     if (submitBtn) {
                         submitBtn.disabled = true;
                     }
+                    if (checkOutBtn && checkOutBtn.style.display !== 'none' && !checkOutBtn.innerHTML.includes('Checked Out')) {
+                        checkOutBtn.disabled = true;
+                        checkOutBtn.className = 'btn btn-secondary';
+                        checkOutBtn.innerHTML = '<i data-lucide="clock" style="width: 16px;"></i> Check-Out Opens at 05:30 PM';
+                    }
+                    if (window.lucide) lucide.createIcons();
                 }
             } catch (e) {
                 console.warn('Window status error:', e);
             }
         }
 
-        function startWindowCountdown() {
+        function formatDuration(totalSec) {
+            const h = Math.floor(totalSec / 3600);
+            const m = Math.floor((totalSec % 3600) / 60);
+            const s = totalSec % 60;
+            if (h > 0) {
+                return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+            }
+            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+
+        function startWindowCountdown(isOpen) {
             if (windowTimerInterval) clearInterval(windowTimerInterval);
 
             const timerEl = document.getElementById('windowCountdown');
@@ -549,10 +665,12 @@
                     return;
                 }
 
-                const mins = Math.floor(windowRemainingSeconds / 60);
-                const secs = windowRemainingSeconds % 60;
-                timerEl.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-                timerEl.style.color = windowRemainingSeconds < 120 ? '#dc2626' : '#047857';
+                timerEl.textContent = formatDuration(windowRemainingSeconds);
+                if (isOpen) {
+                    timerEl.style.color = windowRemainingSeconds < 120 ? '#dc2626' : (currentWindowType === 'check_out' ? '#4338ca' : '#047857');
+                } else {
+                    timerEl.style.color = '#b45309';
+                }
 
                 windowRemainingSeconds--;
             }
@@ -753,6 +871,7 @@
                 phone: phone,
                 department: department,
                 notes: notes,
+                punch_type: currentWindowType || 'auto',
                 latitude: capturedLat,
                 longitude: capturedLng,
                 accuracy_meters: capturedAccuracy,
@@ -771,20 +890,38 @@
                 const successCard = document.getElementById('punchSuccessCard');
                 successCard.style.display = 'block';
 
+                const isCheckOut = res.data.action_type === 'check_out' || res.data.type === 'check_out';
+                const titleEl = document.getElementById('receiptCardTitle');
+                const msgEl = document.getElementById('successMsgText');
+                const timeLabelEl = document.getElementById('receiptTimeLabel');
+
+                if (isCheckOut) {
+                    if (titleEl) titleEl.textContent = 'Evening Check-Out Marked!';
+                    if (msgEl) msgEl.textContent = 'Your evening shift departure has been logged into the TGC Connect HRMS engine. Have a wonderful evening!';
+                    if (timeLabelEl) timeLabelEl.textContent = 'Check-Out Time:';
+                    document.getElementById('receiptCheckInTime').textContent = res.data.check_out_time || res.data.check_in_time;
+                } else {
+                    if (titleEl) titleEl.textContent = 'Attendance Verified & Marked!';
+                    if (msgEl) msgEl.textContent = 'Your morning check-in has been logged into the TGC Connect HRMS engine.';
+                    if (timeLabelEl) timeLabelEl.textContent = 'Check-In Time:';
+                    document.getElementById('receiptCheckInTime').textContent = res.data.check_in_time;
+                }
+
                 document.getElementById('receiptEmpName').textContent = res.data.employee_name;
-                document.getElementById('receiptCheckInTime').textContent = res.data.check_in_time;
                 document.getElementById('receiptLocation').textContent = res.data.location_name;
 
                 const badge = document.getElementById('receiptStatusBadge');
                 badge.textContent = (res.data.status || 'present').toUpperCase();
                 badge.className = res.data.status === 'late' ? 'badge badge-warning' : 'badge badge-success';
 
-                showToast(res.data.message || 'Attendance check-in recorded successfully!', 'success');
+                showToast(res.data.message || (isCheckOut ? 'Check-out recorded successfully!' : 'Attendance check-in recorded successfully!'), 'success');
                 lucide.createIcons();
             } else {
                 playSound('error');
                 btn.disabled = false;
-                btn.innerHTML = '<i data-lucide="check-circle-2" style="width: 20px;"></i> Verify Onboarding Details & Mark Attendance';
+                btn.innerHTML = currentWindowType === 'check_out'
+                    ? '<i data-lucide="log-out" style="width: 20px;"></i> Verify Onboarding Details & Mark Check-Out'
+                    : '<i data-lucide="check-circle-2" style="width: 20px;"></i> Verify Onboarding Details & Mark Attendance';
                 lucide.createIcons();
 
                 showToast(res.data.message || 'Attendance verification failed.', 'error');

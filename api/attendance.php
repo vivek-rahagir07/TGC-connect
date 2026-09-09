@@ -9,36 +9,133 @@ if ($reqMethod === 'POST' && empty($action)) {
     $action = $input['action'] ?? '';
 }
 
+/**
+ * Calculate automated attendance window schedule and return status
+ * Official Automated Schedule:
+ * - Morning Check-In:  09:00:00 to 09:20:00 (20 minutes)
+ * - Evening Check-Out: 17:30:00 to 17:50:00 (20 minutes)
+ * - Or active manual admin override window from attendance_windows
+ */
+function getAutomatedWindowStatus($pdo) {
+    $now = time();
+    $today = date('Y-m-d');
+
+    // Morning window bounds (09:00 - 09:20 AM)
+    $morningStart = strtotime($today . ' 09:00:00');
+    $morningEnd   = strtotime($today . ' 09:20:00');
+
+    // Evening window bounds (05:30 - 05:50 PM / 17:30 - 17:50)
+    $eveningStart = strtotime($today . ' 17:30:00');
+    $eveningEnd   = strtotime($today . ' 17:50:00');
+
+    // 1. Check if inside scheduled Morning Check-In Window (09:00 - 09:20 AM)
+    if ($now >= $morningStart && $now < $morningEnd) {
+        $secondsRemaining = $morningEnd - $now;
+        return [
+            'is_open' => true,
+            'is_automated' => true,
+            'window' => [
+                'id' => 'auto_morning',
+                'type' => 'check_in',
+                'title' => 'Morning Attendance Window (09:00 AM - 09:20 AM)',
+                'subtitle' => 'Official shift check-in window is active.',
+                'opened_at' => date('Y-m-d H:i:s', $morningStart),
+                'expires_at' => date('Y-m-d H:i:s', $morningEnd),
+                'duration_minutes' => 20,
+                'seconds_remaining' => $secondsRemaining,
+            ],
+            'next_window' => null
+        ];
+    }
+
+    // 2. Check if inside scheduled Evening Check-Out Window (05:30 - 05:50 PM)
+    if ($now >= $eveningStart && $now < $eveningEnd) {
+        $secondsRemaining = $eveningEnd - $now;
+        return [
+            'is_open' => true,
+            'is_automated' => true,
+            'window' => [
+                'id' => 'auto_evening',
+                'type' => 'check_out',
+                'title' => 'Evening Check-Out Window (05:30 PM - 05:50 PM)',
+                'subtitle' => 'Official shift check-out window is active.',
+                'opened_at' => date('Y-m-d H:i:s', $eveningStart),
+                'expires_at' => date('Y-m-d H:i:s', $eveningEnd),
+                'duration_minutes' => 20,
+                'seconds_remaining' => $secondsRemaining,
+            ],
+            'next_window' => null
+        ];
+    }
+
+    // 3. Check for Admin Manual Override Window in database
+    $stmtWin = $pdo->query("
+        SELECT *, TIMESTAMPDIFF(SECOND, NOW(), expires_at) as diff_sec
+        FROM attendance_windows
+        WHERE is_active = 1 AND expires_at > NOW()
+        ORDER BY id DESC LIMIT 1
+    ");
+    $activeWindow = $stmtWin->fetch();
+    if ($activeWindow && (int)$activeWindow['diff_sec'] > 0) {
+        $secondsRemaining = (int) $activeWindow['diff_sec'];
+        $winType = (date('H') >= 16) ? 'check_out' : 'check_in';
+        return [
+            'is_open' => true,
+            'is_automated' => false,
+            'window' => [
+                'id' => (int) $activeWindow['id'],
+                'type' => $winType,
+                'title' => $activeWindow['title'] ?: 'Shift Attendance Window (Admin Opened)',
+                'subtitle' => 'Temporary attendance window opened by Administration.',
+                'opened_at' => $activeWindow['opened_at'],
+                'expires_at' => $activeWindow['expires_at'],
+                'duration_minutes' => (int) $activeWindow['duration_minutes'],
+                'seconds_remaining' => $secondsRemaining,
+            ],
+            'next_window' => null
+        ];
+    }
+
+    // 4. Closed: Calculate Next Scheduled Window & Countdown
+    if ($now < $morningStart) {
+        $nextType = 'check_in';
+        $nextTitle = 'Morning Check-In Window (09:00 AM - 09:20 AM)';
+        $nextOpensAt = $morningStart;
+        $nextLabel = '09:00 AM Today';
+    } elseif ($now < $eveningStart) {
+        $nextType = 'check_out';
+        $nextTitle = 'Evening Check-Out Window (05:30 PM - 05:50 PM)';
+        $nextOpensAt = $eveningStart;
+        $nextLabel = '05:30 PM Today';
+    } else {
+        $tomorrowMorning = strtotime('+1 day', $morningStart);
+        $nextType = 'check_in';
+        $nextTitle = 'Morning Check-In Window (09:00 AM - 09:20 AM)';
+        $nextOpensAt = $tomorrowMorning;
+        $nextLabel = '09:00 AM Tomorrow (' . date('D, M j', $tomorrowMorning) . ')';
+    }
+
+    $secondsUntilOpen = max(0, $nextOpensAt - $now);
+
+    return [
+        'is_open' => false,
+        'is_automated' => true,
+        'message' => "Attendance window is currently closed. Next window ({$nextTitle}) opens at {$nextLabel}.",
+        'window' => null,
+        'next_window' => [
+            'type' => $nextType,
+            'title' => $nextTitle,
+            'opens_at' => date('Y-m-d H:i:s', $nextOpensAt),
+            'opens_at_label' => $nextLabel,
+            'seconds_until_open' => $secondsUntilOpen,
+        ]
+    ];
+}
+
 switch ($action) {
     case 'attendance_window_status':
-        $stmtWin = $pdo->query("
-            SELECT *, TIMESTAMPDIFF(SECOND, NOW(), expires_at) as diff_sec
-            FROM attendance_windows
-            WHERE is_active = 1 AND expires_at > NOW()
-            ORDER BY id DESC LIMIT 1
-        ");
-        $activeWindow = $stmtWin->fetch();
-
-        if ($activeWindow && (int)$activeWindow['diff_sec'] > 0) {
-            $secondsRemaining = (int) $activeWindow['diff_sec'];
-            sendResponse(true, [
-                'is_open' => true,
-                'window' => [
-                    'id' => (int) $activeWindow['id'],
-                    'title' => $activeWindow['title'],
-                    'opened_at' => $activeWindow['opened_at'],
-                    'expires_at' => $activeWindow['expires_at'],
-                    'duration_minutes' => (int) $activeWindow['duration_minutes'],
-                    'seconds_remaining' => $secondsRemaining,
-                ]
-            ]);
-        } else {
-            sendResponse(true, [
-                'is_open' => false,
-                'message' => 'Attendance window is currently closed. Administrator must open the window to accept punches.',
-                'window' => null
-            ]);
-        }
+        $winStatus = getAutomatedWindowStatus($pdo);
+        sendResponse(true, $winStatus);
         break;
 
     case 'toggle_attendance_window':
@@ -94,16 +191,18 @@ switch ($action) {
         break;
 
     case 'mark_attendance':
-        // 1. Verify Active Attendance Window
-        $stmtWin = $pdo->query("SELECT * FROM attendance_windows WHERE is_active = 1 AND expires_at > NOW() ORDER BY id DESC LIMIT 1");
-        $activeWindow = $stmtWin->fetch();
+        // 1. Verify Active Attendance Window (Automated 09:00-09:20 / 17:30-17:50 or Admin Override)
+        $windowStatus = getAutomatedWindowStatus($pdo);
 
-        if (!$activeWindow) {
+        if (!$windowStatus['is_open']) {
             sendResponse(false, [
-                'message' => 'Attendance window is currently closed. Administrator allows attendance for designated time windows (e.g. 10 minutes at shift start). Please wait for the admin to open the window.',
-                'window_closed' => true
+                'message' => $windowStatus['message'],
+                'window_closed' => true,
+                'next_window' => $windowStatus['next_window'] ?? null
             ], 422);
         }
+        $activeWindow = $windowStatus['window'];
+        $winType = $activeWindow['type'] ?? 'check_in';
 
         // 2. Validate Physical GPS Coordinates & Reverse-Geocoded Location
         $lat = isset($input['latitude']) && is_numeric($input['latitude']) ? floatval($input['latitude']) : null;
@@ -128,18 +227,15 @@ switch ($action) {
         $inputName = trim($input['name'] ?? '');
         $inputDept = trim($input['department'] ?? '');
         $inputNotes = trim($input['notes'] ?? '');
+        $punchType = trim($input['punch_type'] ?? 'auto'); // 'auto', 'check_in', 'check_out'
         $deviceFingerprint = trim($input['device_fingerprint'] ?? '');
         $ip = getClientIp();
         $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
 
-        if (!$inputEmail && !$inputPhone) {
-            sendResponse(false, [
-                'message' => 'Please provide your registered work email or phone number to match your onboarding profile.'
-            ], 400);
-        }
-
         // Find active employee record in database
         $userRecord = null;
+        $sessionUser = getCurrentUser($pdo);
+
         if ($inputEmail) {
             $stmtU = $pdo->prepare("SELECT * FROM users WHERE LOWER(email) = ? AND role = 'employee' LIMIT 1");
             $stmtU->execute([$inputEmail]);
@@ -151,10 +247,13 @@ switch ($action) {
             $stmtU->execute(['%' . substr($cleanPhone, -10)]);
             $userRecord = $stmtU->fetch();
         }
+        if (!$userRecord && $sessionUser && $sessionUser['role'] === 'employee') {
+            $userRecord = $sessionUser;
+        }
 
         if (!$userRecord) {
             sendResponse(false, [
-                'message' => 'No employee onboarding profile found matching "' . ($inputEmail ?: $inputPhone) . '". Please enter your registered employee credentials.'
+                'message' => 'No employee onboarding profile found matching "' . ($inputEmail ?: $inputPhone ?: $inputName) . '". Please enter your registered employee credentials.'
             ], 404);
         }
 
@@ -165,7 +264,6 @@ switch ($action) {
         }
 
         // Verify if currently logged-in user matches the employee
-        $sessionUser = getCurrentUser($pdo);
         if ($sessionUser && $sessionUser['role'] === 'employee' && (int)$sessionUser['id'] !== (int)$userRecord['id']) {
             sendResponse(false, [
                 'message' => 'Identity conflict: You are currently logged in as ' . $sessionUser['name'] . ' but entered details for ' . $userRecord['name'] . '.'
@@ -195,7 +293,7 @@ switch ($action) {
             }
         }
 
-        // 4. Check if Attendance is Already Marked Today
+        // 4. Check Today's Attendance Record for this Employee
         $today = date('Y-m-d');
         $nowTime = date('H:i:s');
 
@@ -203,60 +301,140 @@ switch ($action) {
         $stmtAtt->execute([$userRecord['id'], $today]);
         $existing = $stmtAtt->fetch();
 
-        if ($existing && !empty($existing['check_in_time'])) {
-            sendResponse(false, [
-                'message' => 'Attendance check-in has already been marked for today at ' . substr($existing['check_in_time'], 0, 5) . '.',
-                'already_marked' => true,
-                'attendance' => $existing,
-                'check_in_time' => substr($existing['check_in_time'], 0, 5)
-            ], 422);
-        }
+        // 5. Determine Action: Check-Out vs Check-In
+        $isCheckOutAction = ($winType === 'check_out') ||
+                            ($punchType === 'check_out') ||
+                            ($existing && !empty($existing['check_in_time']) && empty($existing['check_out_time']) && (date('H') >= 16 || $punchType === 'auto'));
 
-        // 5. Determine Attendance Status & Notes
-        $status = (date('H:i') > '09:30') ? 'late' : 'present';
-        $fullNotes = 'Shift Window Verified: ' . $activeWindow['title'] . ' | Place: ' . $locName;
-        if ($inputNotes) {
-            $fullNotes .= ' | ' . $inputNotes;
-        }
+        if ($isCheckOutAction) {
+            // === CHECK-OUT FLOW ===
+            if ($existing && !empty($existing['check_out_time'])) {
+                sendResponse(false, [
+                    'message' => 'Attendance check-out has already been marked today at ' . substr($existing['check_out_time'], 0, 5) . '.',
+                    'already_checked_out' => true,
+                    'attendance' => $existing
+                ], 422);
+            }
 
-        if ($existing) {
-            $stmtUp = $pdo->prepare("
-                UPDATE attendances
-                SET check_in_time = ?, method = 'gps', latitude = ?, longitude = ?, accuracy_meters = ?,
-                    location_name = ?, ip_address = ?, user_agent = ?, device_fingerprint = ?, status = ?, notes = ?
-                WHERE id = ?
-            ");
-            $stmtUp->execute([
-                $nowTime, $lat, $lng, $accuracy, $locName, $ip, $userAgent, $deviceFingerprint, $status, $fullNotes, $existing['id']
-            ]);
-            $attendanceId = $existing['id'];
+            if ($existing && !empty($existing['check_in_time'])) {
+                $stmtUp = $pdo->prepare("
+                    UPDATE attendances
+                    SET check_out_time = ?, latitude = COALESCE(?, latitude), longitude = COALESCE(?, longitude),
+                        accuracy_meters = COALESCE(?, accuracy_meters), location_name = ?, ip_address = ?, user_agent = ?,
+                        notes = CONCAT(COALESCE(notes, ''), ' | Check-Out: ', ?)
+                    WHERE id = ?
+                ");
+                $checkoutNote = $activeWindow['title'] . ($inputNotes ? " ({$inputNotes})" : '');
+                $stmtUp->execute([
+                    $nowTime, $lat, $lng, $accuracy, $locName, $ip, $userAgent, $checkoutNote, $existing['id']
+                ]);
+
+                $existing['check_out_time'] = $nowTime;
+                $existing['location_name'] = $locName;
+
+                sendResponse(true, [
+                    'type' => 'check_out',
+                    'action_type' => 'check_out',
+                    'message' => 'Evening check-out recorded successfully! Have a great evening, ' . $userRecord['name'] . '.',
+                    'employee_name' => $userRecord['name'],
+                    'check_in_time' => substr($existing['check_in_time'], 0, 5),
+                    'check_out_time' => substr($nowTime, 0, 5),
+                    'date' => $today,
+                    'status' => $existing['status'] ?? 'present',
+                    'location_name' => $locName,
+                    'attendance' => $existing,
+                    'already_marked' => true
+                ]);
+            } else {
+                // Direct Evening Punch (employee missed morning punch but is marking attendance in evening window)
+                $status = 'present';
+                $fullNotes = 'Direct Evening Check-Out: ' . $activeWindow['title'] . ' | ' . $locName;
+                if ($inputNotes) $fullNotes .= ' | ' . $inputNotes;
+
+                $stmtIn = $pdo->prepare("
+                    INSERT INTO attendances (user_id, date, check_in_time, check_out_time, method, latitude, longitude, accuracy_meters, location_name, ip_address, user_agent, device_fingerprint, status, notes)
+                    VALUES (?, ?, ?, ?, 'gps', ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ");
+                $stmtIn->execute([
+                    $userRecord['id'], $today, $nowTime, $nowTime, $lat, $lng, $accuracy, $locName, $ip, $userAgent, $deviceFingerprint, $status, $fullNotes
+                ]);
+                $attendanceId = $pdo->lastInsertId();
+
+                $stmtFinal = $pdo->prepare("SELECT * FROM attendances WHERE id = ?");
+                $stmtFinal->execute([$attendanceId]);
+
+                sendResponse(true, [
+                    'type' => 'check_out',
+                    'action_type' => 'check_out',
+                    'message' => 'Evening check-out recorded successfully! Have a great evening, ' . $userRecord['name'] . '.',
+                    'employee_name' => $userRecord['name'],
+                    'check_out_time' => substr($nowTime, 0, 5),
+                    'date' => $today,
+                    'status' => $status,
+                    'location_name' => $locName,
+                    'attendance' => $stmtFinal->fetch(),
+                    'already_marked' => true
+                ]);
+            }
         } else {
-            $stmtIn = $pdo->prepare("
-                INSERT INTO attendances (user_id, date, check_in_time, method, latitude, longitude, accuracy_meters, location_name, ip_address, user_agent, device_fingerprint, status, notes)
-                VALUES (?, ?, ?, 'gps', ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ");
-            $stmtIn->execute([
-                $userRecord['id'], $today, $nowTime, $lat, $lng, $accuracy, $locName, $ip, $userAgent, $deviceFingerprint, $status, $fullNotes
+            // === CHECK-IN FLOW ===
+            if ($existing && !empty($existing['check_in_time'])) {
+                sendResponse(false, [
+                    'message' => 'Attendance check-in has already been marked for today at ' . substr($existing['check_in_time'], 0, 5) . '.',
+                    'already_marked' => true,
+                    'attendance' => $existing,
+                    'check_in_time' => substr($existing['check_in_time'], 0, 5)
+                ], 422);
+            }
+
+            // Morning window punches are on-time
+            $status = (date('H:i') > '09:25') ? 'late' : 'present';
+            $fullNotes = 'Shift Window Verified: ' . $activeWindow['title'] . ' | ' . $locName;
+            if ($inputNotes) {
+                $fullNotes .= ' | ' . $inputNotes;
+            }
+
+            if ($existing) {
+                $stmtUp = $pdo->prepare("
+                    UPDATE attendances
+                    SET check_in_time = ?, method = 'gps', latitude = ?, longitude = ?, accuracy_meters = ?,
+                        location_name = ?, ip_address = ?, user_agent = ?, device_fingerprint = ?, status = ?, notes = ?
+                    WHERE id = ?
+                ");
+                $stmtUp->execute([
+                    $nowTime, $lat, $lng, $accuracy, $locName, $ip, $userAgent, $deviceFingerprint, $status, $fullNotes, $existing['id']
+                ]);
+                $attendanceId = $existing['id'];
+            } else {
+                $stmtIn = $pdo->prepare("
+                    INSERT INTO attendances (user_id, date, check_in_time, method, latitude, longitude, accuracy_meters, location_name, ip_address, user_agent, device_fingerprint, status, notes)
+                    VALUES (?, ?, ?, 'gps', ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ");
+                $stmtIn->execute([
+                    $userRecord['id'], $today, $nowTime, $lat, $lng, $accuracy, $locName, $ip, $userAgent, $deviceFingerprint, $status, $fullNotes
+                ]);
+                $attendanceId = $pdo->lastInsertId();
+            }
+
+            $stmtFinal = $pdo->prepare("SELECT * FROM attendances WHERE id = ?");
+            $stmtFinal->execute([$attendanceId]);
+            $attendanceRecord = $stmtFinal->fetch();
+
+            sendResponse(true, [
+                'type' => 'check_in',
+                'action_type' => 'check_in',
+                'message' => 'Attendance check-in verified & recorded successfully! Welcome, ' . $userRecord['name'] . ' (' . ucfirst($status) . ')',
+                'employee_name' => $userRecord['name'],
+                'check_in_time' => substr($nowTime, 0, 5),
+                'date' => $today,
+                'status' => $status,
+                'location_name' => $locName,
+                'latitude' => $lat,
+                'longitude' => $lng,
+                'attendance' => $attendanceRecord,
+                'already_marked' => true
             ]);
-            $attendanceId = $pdo->lastInsertId();
         }
-
-        $stmtFinal = $pdo->prepare("SELECT * FROM attendances WHERE id = ?");
-        $stmtFinal->execute([$attendanceId]);
-        $attendanceRecord = $stmtFinal->fetch();
-
-        sendResponse(true, [
-            'message' => 'Attendance check-in verified & recorded successfully! Welcome, ' . $userRecord['name'] . ' (' . ucfirst($status) . ')',
-            'employee_name' => $userRecord['name'],
-            'check_in_time' => substr($nowTime, 0, 5),
-            'date' => $today,
-            'status' => $status,
-            'location_name' => $locName,
-            'latitude' => $lat,
-            'longitude' => $lng,
-            'attendance' => $attendanceRecord,
-            'already_marked' => true
-        ]);
         break;
 
     case 'qr_punch_in':
@@ -332,7 +510,31 @@ switch ($action) {
     case 'punch_out':
         $user = getCurrentUser($pdo);
         if (!$user) {
-            sendResponse(false, ['message' => 'Please login first.'], 401);
+            $inputEmail = strtolower(trim($input['email'] ?? ''));
+            $inputPhone = trim($input['phone'] ?? '');
+            if ($inputEmail) {
+                $stmtU = $pdo->prepare("SELECT * FROM users WHERE LOWER(email) = ? AND role = 'employee' LIMIT 1");
+                $stmtU->execute([$inputEmail]);
+                $user = $stmtU->fetch();
+            } elseif ($inputPhone) {
+                $cleanPhone = preg_replace('/[^0-9]/', '', $inputPhone);
+                $stmtU = $pdo->prepare("SELECT * FROM users WHERE REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', '') LIKE ? AND role = 'employee' LIMIT 1");
+                $stmtU->execute(['%' . substr($cleanPhone, -10)]);
+                $user = $stmtU->fetch();
+            }
+        }
+        if (!$user) {
+            sendResponse(false, ['message' => 'Please login or provide your registered credentials to check out.'], 401);
+        }
+
+        // Verify Window Status
+        $windowStatus = getAutomatedWindowStatus($pdo);
+        if (!$windowStatus['is_open']) {
+            sendResponse(false, [
+                'message' => 'Evening check-out window is currently closed. Official check-out window is 05:30 PM to 05:50 PM.',
+                'window_closed' => true,
+                'next_window' => $windowStatus['next_window'] ?? null
+            ], 422);
         }
 
         $today = date('Y-m-d');
@@ -344,20 +546,33 @@ switch ($action) {
         $attendance = $stmt->fetch();
 
         if (!$attendance || empty($attendance['check_in_time'])) {
-            sendResponse(false, ['message' => 'You have not checked in today yet.'], 422);
+            // Direct Evening Punch if employee didn't punch in earlier
+            $stmtInsert = $pdo->prepare("
+                INSERT INTO attendances (user_id, date, check_in_time, check_out_time, method, status, notes, ip_address)
+                VALUES (?, ?, ?, ?, 'gps', 'present', 'Direct Evening Check-Out Punch', ?)
+            ");
+            $stmtInsert->execute([$user['id'], $today, $nowTime, $nowTime, $ip]);
+            $attId = $pdo->lastInsertId();
+
+            $stmtFetch = $pdo->prepare("SELECT * FROM attendances WHERE id = ?");
+            $stmtFetch->execute([$attId]);
+            $attendance = $stmtFetch->fetch();
+        } else {
+            if (!empty($attendance['check_out_time'])) {
+                sendResponse(false, ['message' => 'You have already checked out today at ' . substr($attendance['check_out_time'], 0, 5)], 422);
+            }
+
+            $stmtUpdate = $pdo->prepare("UPDATE attendances SET check_out_time = ? WHERE id = ?");
+            $stmtUpdate->execute([$nowTime, $attendance['id']]);
+
+            $attendance['check_out_time'] = $nowTime;
         }
-
-        if (!empty($attendance['check_out_time'])) {
-            sendResponse(false, ['message' => 'You have already checked out today at ' . substr($attendance['check_out_time'], 0, 5)], 422);
-        }
-
-        $stmtUpdate = $pdo->prepare("UPDATE attendances SET check_out_time = ? WHERE id = ?");
-        $stmtUpdate->execute([$nowTime, $attendance['id']]);
-
-        $attendance['check_out_time'] = $nowTime;
 
         sendResponse(true, [
+            'type' => 'check_out',
+            'action_type' => 'check_out',
             'message' => 'Check-out marked successfully! Have a great evening, ' . $user['name'],
+            'check_out_time' => substr($nowTime, 0, 5),
             'attendance' => $attendance,
         ]);
         break;

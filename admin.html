@@ -587,6 +587,23 @@
                 <button class="close-btn" onclick="closeModal('attendanceWindowModal')">&times;</button>
             </div>
             <div class="modal-body" style="padding: 1.25rem 1.5rem;">
+
+                <!-- Automated Daily Schedule & Universal Link Widget -->
+                <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-sm); padding: 0.85rem 1rem; margin-bottom: 1.15rem; text-align: left; font-size: 0.82rem;">
+                    <div style="font-weight: 800; color: #1e40af; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.4rem;">
+                        <i data-lucide="calendar-clock" style="width: 16px;"></i> Automated Daily Attendance Schedule
+                    </div>
+                    <div style="color: #1e3a8a; line-height: 1.45; font-size: 0.8rem;">
+                        <div>🌅 <strong>Morning Check-In:</strong> 09:00 AM – 09:20 AM (20 mins daily)</div>
+                        <div>🌆 <strong>Evening Check-Out:</strong> 05:30 PM – 05:50 PM (20 mins daily)</div>
+                    </div>
+                    <div style="margin-top: 0.65rem; padding-top: 0.65rem; border-top: 1px dashed #bfdbfe; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                        <span style="color: #2563eb; font-size: 0.76rem; font-weight: 700;">Permanent Staff Punch Link:</span>
+                        <button type="button" onclick="copyStaffAttendanceLink()" class="btn btn-primary btn-sm" style="font-size: 0.74rem; font-weight: 700; padding: 0.24rem 0.7rem; display: inline-flex; align-items: center; gap: 0.35rem;">
+                            <i data-lucide="copy" style="width: 12px;"></i> Copy Link
+                        </button>
+                    </div>
+                </div>
                 
                 <!-- Window Live Status Card -->
                 <div id="adminModalWindowCard" style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.25rem; text-align: center;">
@@ -604,6 +621,13 @@
                     <div id="adminWindowSubtext" style="font-size: 0.82rem; color: var(--text-muted);">
                         Employees currently cannot mark attendance. Click below to open a 10-minute window.
                     </div>
+                </div>
+
+                <!-- Manual Override Notice -->
+                <div style="text-align: left; margin-bottom: 0.5rem;">
+                    <span style="font-size: 0.74rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">
+                        Emergency Manual Override (Optional)
+                    </span>
                 </div>
 
                 <!-- Duration Configuration -->
@@ -2071,18 +2095,43 @@
             await refreshAdminAttendanceWindowStatus();
         }
 
+        function copyStaffAttendanceLink() {
+            const url = window.location.origin + window.location.pathname.replace('admin.html', 'mark_attendance.html');
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(() => {
+                    showToast('Permanent Staff Attendance Link copied to clipboard!', 'success');
+                    playSound('click');
+                }).catch(() => {
+                    fallbackCopyStaff(url);
+                });
+            } else {
+                fallbackCopyStaff(url);
+            }
+        }
+
+        function fallbackCopyStaff(text) {
+            const inp = document.createElement('input');
+            inp.value = text;
+            document.body.appendChild(inp);
+            inp.select();
+            document.execCommand('copy');
+            document.body.removeChild(inp);
+            showToast('Permanent Staff Attendance Link copied to clipboard!', 'success');
+            playSound('click');
+        }
+
         async function refreshAdminAttendanceWindowStatus() {
             try {
                 const res = await apiRequest('attendance.php?action=attendance_window_status');
                 if (res.ok) {
-                    renderAdminWindowModalState(res.data.is_open ? res.data.window : null);
+                    renderAdminWindowModalState(res.data);
                 }
             } catch (e) {
                 console.warn('Error fetching window status:', e);
             }
         }
 
-        function renderAdminWindowModalState(win) {
+        function renderAdminWindowModalState(data) {
             const card = document.getElementById('adminModalWindowCard');
             const dot = document.getElementById('adminWindowPulseDot');
             const statusLabel = document.getElementById('adminWindowStatusLabel');
@@ -2091,17 +2140,21 @@
             const btnOpen = document.getElementById('btnOpenAttendanceWindow');
             const btnClose = document.getElementById('btnCloseAttendanceWindow');
 
+            const isOpen = data && data.is_open;
+            const win = isOpen ? data.window : null;
+
             if (win && win.seconds_remaining > 0) {
                 adminWindowSecondsRemaining = win.seconds_remaining;
-                card.style.background = '#ecfdf5';
-                card.style.borderColor = '#a7f3d0';
-                dot.style.background = '#10b981';
-                statusLabel.textContent = 'Attendance Window Active';
-                statusLabel.style.color = '#065f46';
-                subtext.innerHTML = `Employees can punch attendance until <strong>${win.expires_at}</strong>.`;
-                subtext.style.color = '#047857';
+                const isEvening = win.type === 'check_out';
+                card.style.background = isEvening ? '#eef2ff' : '#ecfdf5';
+                card.style.borderColor = isEvening ? '#c7d2fe' : '#a7f3d0';
+                dot.style.background = isEvening ? '#6366f1' : '#10b981';
+                statusLabel.textContent = isEvening ? '🌆 Evening Check-Out Window Active' : '🌅 Morning Check-In Window Active';
+                statusLabel.style.color = isEvening ? '#3730a3' : '#065f46';
+                subtext.innerHTML = `<strong>${win.title}</strong> is active until <strong>${win.expires_at}</strong>.`;
+                subtext.style.color = isEvening ? '#4338ca' : '#047857';
 
-                btnOpen.innerHTML = '<i data-lucide="refresh-cw" style="width: 16px;"></i> Extend Window';
+                btnOpen.innerHTML = '<i data-lucide="refresh-cw" style="width: 16px;"></i> Extend / Override Window';
                 btnClose.style.display = 'inline-flex';
 
                 startAdminWindowCountdown();
@@ -2112,20 +2165,25 @@
 
                 card.style.background = '#f8fafc';
                 card.style.borderColor = 'var(--border-color)';
-                dot.style.background = '#94a3b8';
-                statusLabel.textContent = 'Window Closed';
-                statusLabel.style.color = 'var(--text-muted)';
+                dot.style.background = '#f59e0b';
+                statusLabel.textContent = 'Window Currently Closed';
+                statusLabel.style.color = '#b45309';
                 timerDisplay.textContent = '00:00';
                 timerDisplay.style.color = 'var(--text-main)';
-                subtext.textContent = 'Employees currently cannot mark attendance. Select duration and start the window.';
+
+                if (data && data.next_window) {
+                    subtext.innerHTML = `Next automatic window: <strong>${data.next_window.title}</strong> opens at <strong>${data.next_window.opens_at_label}</strong>.`;
+                } else {
+                    subtext.textContent = 'Employees can mark attendance during automated daily windows (09:00-09:20 AM and 05:30-05:50 PM).';
+                }
                 subtext.style.color = 'var(--text-muted)';
 
-                btnOpen.innerHTML = `<i data-lucide="play" style="width: 16px;"></i> Start ${selectedDurationMinutes}-Min Window`;
+                btnOpen.innerHTML = `<i data-lucide="play" style="width: 16px;"></i> Start Manual ${selectedDurationMinutes}-Min Override`;
                 btnClose.style.display = 'none';
             }
 
-            updateAdminWindowHeaderState(win ? { is_open: true, seconds_remaining: adminWindowSecondsRemaining } : null);
-            lucide.createIcons();
+            updateAdminWindowHeaderState(isOpen ? { is_open: true, seconds_remaining: adminWindowSecondsRemaining } : null);
+            if (window.lucide) lucide.createIcons();
         }
 
         function startAdminWindowCountdown() {
