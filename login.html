@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Sign In - TGC Connect HRMS</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -353,11 +356,11 @@
                 <div id="loginStatusAlert" style="display: none; padding: 0.85rem 1rem; border-radius: var(--radius-sm); margin-bottom: 1.15rem; font-size: 0.85rem; line-height: 1.45;"></div>
 
                 <!-- Login Form -->
-                <form id="loginForm" onsubmit="handleLogin(event)">
+                <form id="loginForm" onsubmit="handleLogin(event)" autocomplete="off">
                     <div class="form-group">
                         <label class="form-label" id="emailLabel">Official Admin Email</label>
                         <div class="password-input-group">
-                            <input type="email" id="loginEmail" class="form-control" placeholder="Enter your email" value="" required autofocus autocomplete="email">
+                            <input type="email" id="loginEmail" class="form-control" placeholder="Enter admin email" value="" required autofocus autocomplete="off">
                         </div>
                     </div>
 
@@ -367,7 +370,7 @@
                             <span id="roleNotice" style="font-size: 0.74rem; color: var(--primary); font-weight: 600;">Encrypted</span>
                         </div>
                         <div class="password-input-group">
-                            <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" value="" required autocomplete="current-password">
+                            <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" value="" required autocomplete="new-password">
                             <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('loginPassword', this)" title="Toggle password visibility">
                                 <i data-lucide="eye" style="width: 15px;"></i>
                             </button>
