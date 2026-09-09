@@ -6,6 +6,7 @@
 .idea
 .vscode
 api/data/*.db
+api/config.local.php
 uploads/*
 !uploads/.gitkeep
 !uploads/.htaccess

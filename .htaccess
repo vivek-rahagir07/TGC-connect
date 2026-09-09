@@ -7,7 +7,7 @@
 Options -Indexes
 
 # 2. Block Public HTTP Access to Sensitive Files & Documentation
-<FilesMatch "(^#.*#|\.(bak|conf|dist|fla|in[ci]|log|psd|sh|sql|sw[op]|md|git.*)|schema\.sql|CLAUDE\.md|AGENTS\.md|README\.md|config\.php|setup_mysql\.php)$">
+<FilesMatch "(^#.*#|\.(bak|conf|dist|fla|in[ci]|log|psd|sh|sql|sw[op]|md|git.*|env.*)|schema\.sql|CLAUDE\.md|AGENTS\.md|README\.md|config\.php|config\.local\.php|setup_mysql\.php)$">
     <IfModule mod_authz_core.c>
         Require all denied
     </IfModule>
