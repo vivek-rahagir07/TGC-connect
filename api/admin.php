@@ -482,6 +482,17 @@ switch ($action) {
         sendResponse(true, ['logs' => $stmt->fetchAll()]);
         break;
 
+    case 'notification_logs':
+        $stmt = $pdo->query("
+            SELECT n.*, u.name as employee_name, u.email as employee_email
+            FROM notification_logs n
+            LEFT JOIN users u ON n.user_id = u.id
+            ORDER BY n.created_at DESC
+            LIMIT 100
+        ");
+        sendResponse(true, ['logs' => $stmt->fetchAll()]);
+        break;
+
     default:
         sendResponse(false, ['message' => 'Invalid admin action.'], 400);
         break;

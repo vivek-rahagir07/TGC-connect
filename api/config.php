@@ -5,13 +5,8 @@
  * Configured for Hostinger Deployment (Domain: tgcconnect.in)
  */
 
-// 1. Check for private local configuration file (ignored from Git)
-if (file_exists(__DIR__ . '/config.local.php')) {
-    return require __DIR__ . '/config.local.php';
-}
-
-// 2. Default configuration using environment variables or safe placeholders
-return [
+// 1. Base Configuration Defaults
+$defaultConfig = [
     // Database Host (Hostinger uses 'localhost' or '127.0.0.1')
     'host'        => getenv('DB_HOST') ?: '127.0.0.1',
     
@@ -29,4 +24,27 @@ return [
     
     // Character Set
     'charset'     => 'utf8mb4',
+
+    // Attendance Notification Settings
+    'notifications' => [
+        'admin_whatsapp'         => '+91 87430 88888',
+        'admin_email'            => 'Tgcconnectglobal@gmail.com',
+        'company_name'           => 'TGCConnect Team',
+        'send_whatsapp'          => true,
+        'send_email'             => true,
+        // Optional webhook or automated gateway integration (UltraMsg / Twilio / Meta / Webhook)
+        'whatsapp_provider'      => getenv('WHATSAPP_PROVIDER') ?: 'direct',
+        'whatsapp_gateway_url'   => getenv('WHATSAPP_GATEWAY_URL') ?: '',
+        'whatsapp_gateway_token' => getenv('WHATSAPP_GATEWAY_TOKEN') ?: '',
+    ],
 ];
+
+// 2. Merge private local configuration file if present (ignored from Git)
+if (file_exists(__DIR__ . '/config.local.php')) {
+    $localConfig = require __DIR__ . '/config.local.php';
+    if (is_array($localConfig)) {
+        return array_replace_recursive($defaultConfig, $localConfig);
+    }
+}
+
+return $defaultConfig;

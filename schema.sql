@@ -231,6 +231,24 @@ CREATE TABLE IF NOT EXISTS `inventory_issuances` (
     FOREIGN KEY (`issued_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 13. Automated Notifications Log Table (WhatsApp & Email)
+CREATE TABLE IF NOT EXISTS `notification_logs` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT DEFAULT NULL,
+    `recipient_phone` VARCHAR(50) DEFAULT NULL,
+    `recipient_email` VARCHAR(191) DEFAULT NULL,
+    `type` VARCHAR(50) DEFAULT 'attendance_marked',
+    `channel` VARCHAR(50) DEFAULT 'whatsapp_and_email',
+    `message` TEXT NOT NULL,
+    `location_name` VARCHAR(255) DEFAULT NULL,
+    `status` VARCHAR(50) DEFAULT 'sent',
+    `error_details` TEXT DEFAULT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_notif_user` (`user_id`),
+    INDEX `idx_notif_created` (`created_at`),
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ==========================================================
 -- SEED INITIAL SYSTEM DATA
 -- ==========================================================

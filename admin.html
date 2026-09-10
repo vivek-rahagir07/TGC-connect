@@ -54,6 +54,9 @@
                         <span id="adminAttendanceWindowHeaderLabel">Attendance Window</span>
                         <span id="adminAttendanceWindowHeaderBadge" class="badge badge-sm badge-secondary" style="margin-left: 4px; font-size: 0.7rem;">Closed</span>
                     </button>
+                    <button type="button" onclick="openAdminMarkAttendanceModal()" class="btn btn-primary btn-sm" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; color: #fff;">
+                        <i data-lucide="check-circle-2" style="width: 15px;"></i> Punch Attendance (Anytime)
+                    </button>
                     <button type="button" onclick="openModal('adminOnboardModal')" class="btn btn-secondary btn-sm">
                         <i data-lucide="user-plus" style="width: 15px; color: var(--success);"></i> + Direct Onboard
                     </button>
@@ -718,6 +721,111 @@
                 </div>
 
             </div>
+        </div>
+    </div>
+
+    <!-- Admin Direct Attendance Punch Modal (Full Access Anytime) -->
+    <div class="modal-overlay" id="adminMarkAttendanceModal">
+        <div class="modal-content" style="max-width: 580px;">
+            <div class="modal-header">
+                <div>
+                    <div style="font-size: 0.72rem; font-weight: 700; color: #059669; text-transform: uppercase; letter-spacing: 0.5px;">Executive Privilege</div>
+                    <h3 style="font-size: 1.25rem; font-weight: 800; margin: 0; color: var(--text-main);">Mark Employee Attendance (Anytime)</h3>
+                </div>
+                <button class="close-btn" onclick="closeModal('adminMarkAttendanceModal')">&times;</button>
+            </div>
+            <form id="adminMarkAttendanceForm" onsubmit="handleAdminMarkAttendance(event)">
+                <div class="modal-body" style="padding: 1.25rem 1.5rem;">
+                    <div class="form-group">
+                        <label class="form-label" style="font-weight: 700;">Select Employee *</label>
+                        <select id="adminPunchEmployeeSelect" class="form-control" required style="font-weight: 600;">
+                            <option value="">-- Choose Employee --</option>
+                        </select>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem;">
+                        <div class="form-group">
+                            <label class="form-label">Attendance Date *</label>
+                            <input type="date" id="adminPunchDate" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Punch Type *</label>
+                            <select id="adminPunchActionType" class="form-control" onchange="toggleAdminPunchTimeInputs()" required>
+                                <option value="check_in">Check-In (Morning / Shift Start)</option>
+                                <option value="check_out">Check-Out (Evening / Shift End)</option>
+                                <option value="both">Both (Check-In & Check-Out)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem;">
+                        <div class="form-group" id="adminPunchInTimeWrap">
+                            <label class="form-label">Check-In Time *</label>
+                            <input type="time" id="adminPunchInTime" class="form-control" required>
+                        </div>
+                        <div class="form-group" id="adminPunchOutTimeWrap" style="display: none;">
+                            <label class="form-label">Check-Out Time</label>
+                            <input type="time" id="adminPunchOutTime" class="form-control">
+                        </div>
+                        <div class="form-group" id="adminPunchStatusWrap">
+                            <label class="form-label">Status *</label>
+                            <select id="adminPunchStatus" class="form-control">
+                                <option value="present">Present (On-Time)</option>
+                                <option value="late">Late Arrival</option>
+                                <option value="half_day">Half Day</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Location Name *</label>
+                        <input type="text" id="adminPunchLocation" class="form-control" value="Office Hub (Admin Authorized)" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Remarks / Notes</label>
+                        <input type="text" id="adminPunchNotes" class="form-control" placeholder="e.g. Executive authorization, client site, on-duty" value="Executive Authorized Punch">
+                    </div>
+
+                    <!-- WhatsApp & Email Notification Notice -->
+                    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); padding: 0.85rem 1rem; margin-top: 0.5rem; font-size: 0.8rem; color: #166534;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
+                            <strong style="display: flex; align-items: center; gap: 0.35rem;">
+                                <i data-lucide="send" style="width: 14px; color: #25d366;"></i> WhatsApp & Email Notification
+                            </strong>
+                            <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer; font-size: 0.76rem;">
+                                <input type="checkbox" id="adminPunchSendNotif" checked> Send Alerts
+                            </label>
+                        </div>
+                        <div style="color: #15803d; line-height: 1.4; font-size: 0.76rem;">
+                            Alert will be dispatched to <strong>+91 87430 88888</strong> & <strong>Tgcconnectglobal@gmail.com</strong> + Employee.
+                        </div>
+                    </div>
+
+                    <!-- Success / Confirmation Result Card -->
+                    <div id="adminPunchResultBox" style="display: none; background: #ffffff; border: 1.5px solid #10b981; border-radius: var(--radius-sm); padding: 1rem; margin-top: 1rem;">
+                        <div style="display: flex; align-items: center; gap: 0.4rem; color: #065f46; font-weight: 700; font-size: 0.88rem; margin-bottom: 0.45rem;">
+                            <i data-lucide="check-circle" style="width: 18px; color: #10b981;"></i> Attendance Recorded Successfully!
+                        </div>
+                        <div id="adminPunchResultMsg" style="font-size: 0.8rem; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 4px; padding: 0.6rem; color: #334155; white-space: pre-wrap; margin-bottom: 0.6rem;"></div>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <a id="adminPunchWhatsAppAdminBtn" href="#" target="_blank" class="btn btn-sm" style="background: #25d366; color: #fff; text-decoration: none; font-weight: 700; border-radius: 4px; display: inline-flex; align-items: center; gap: 0.35rem;">
+                                📲 Open WhatsApp (+91 87430 88888)
+                            </a>
+                            <a id="adminPunchWhatsAppEmpBtn" href="#" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration: none; display: none;">
+                                📲 Open Employee WhatsApp
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer" style="padding: 0.85rem 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 0.5rem;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('adminMarkAttendanceModal')">Cancel</button>
+                    <button type="submit" id="adminPunchSubmitBtn" class="btn btn-primary" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none;">
+                        <i data-lucide="check" style="width: 16px;"></i> Record & Notify
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -1737,6 +1845,8 @@
         }
 
         // Employee Directory
+        let allEmployeesCache = [];
+
         async function loadEmployees() {
             const q = document.getElementById('employeeSearchInput').value.trim();
             const res = await apiRequest(`admin.php?action=employees&search=${encodeURIComponent(q)}`);
@@ -1744,6 +1854,7 @@
 
             if (res.ok && res.data.success) {
                 const emps = res.data.employees;
+                allEmployeesCache = emps;
                 if (emps.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">No matching employees found.</td></tr>';
                     return;
@@ -1780,6 +1891,9 @@
                         <td><span class="badge badge-${emp.status === 'active' ? 'success' : (emp.status === 'pending_approval' ? 'warning' : 'danger')}">${emp.status}</span></td>
                         <td>
                             <div style="display: flex; gap: 0.4rem;">
+                                <button onclick="openAdminMarkForEmployee(${emp.id}, '${emp.name.replace(/'/g, "\\'")}')" class="btn btn-secondary btn-sm" title="Punch Attendance (Anytime)" style="color: #059669; border-color: #a7f3d0;">
+                                    <i data-lucide="check-circle-2" style="width: 14px;"></i>
+                                </button>
                                 <button onclick="openEditEmployeeModal(${JSON.stringify(emp).replace(/"/g, '&quot;')})" class="btn btn-secondary btn-sm" title="Edit">
                                     <i data-lucide="edit" style="width: 14px;"></i>
                                 </button>
@@ -1790,6 +1904,158 @@
                         </td>
                     </tr>
                 `).join('');
+                lucide.createIcons();
+            }
+        }
+
+        // Admin Direct Attendance Punch Handlers (Full Access Anytime)
+        function openAdminMarkAttendanceModal(preselectEmpId = null) {
+            const select = document.getElementById('adminPunchEmployeeSelect');
+            select.innerHTML = '<option value="">-- Choose Employee --</option>';
+
+            if (allEmployeesCache && allEmployeesCache.length > 0) {
+                allEmployeesCache.forEach(emp => {
+                    const opt = document.createElement('option');
+                    opt.value = emp.id;
+                    opt.textContent = `${emp.name} (${emp.department || 'Operations'} - ${emp.email})`;
+                    if (preselectEmpId && emp.id == preselectEmpId) {
+                        opt.selected = true;
+                    }
+                    select.appendChild(opt);
+                });
+            } else {
+                // Fetch fresh if cache is empty
+                apiRequest('admin.php?action=employees').then(res => {
+                    if (res.ok && res.data.success) {
+                        allEmployeesCache = res.data.employees;
+                        res.data.employees.forEach(emp => {
+                            const opt = document.createElement('option');
+                            opt.value = emp.id;
+                            opt.textContent = `${emp.name} (${emp.department || 'Operations'} - ${emp.email})`;
+                            if (preselectEmpId && emp.id == preselectEmpId) {
+                                opt.selected = true;
+                            }
+                            select.appendChild(opt);
+                        });
+                    }
+                });
+            }
+
+            // Set default date & times
+            document.getElementById('adminPunchDate').value = new Date().toISOString().split('T')[0];
+            const now = new Date();
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('adminPunchInTime').value = `${hh}:${mm}`;
+            document.getElementById('adminPunchOutTime').value = `${hh}:${mm}`;
+            document.getElementById('adminPunchActionType').value = 'check_in';
+            toggleAdminPunchTimeInputs();
+
+            document.getElementById('adminPunchResultBox').style.display = 'none';
+            const submitBtn = document.getElementById('adminPunchSubmitBtn');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i data-lucide="check" style="width: 16px;"></i> Record & Notify';
+
+            openModal('adminMarkAttendanceModal');
+            lucide.createIcons();
+        }
+
+        function openAdminMarkForEmployee(empId, empName) {
+            openAdminMarkAttendanceModal(empId);
+        }
+
+        function toggleAdminPunchTimeInputs() {
+            const type = document.getElementById('adminPunchActionType').value;
+            const inWrap = document.getElementById('adminPunchInTimeWrap');
+            const outWrap = document.getElementById('adminPunchOutTimeWrap');
+            const statusWrap = document.getElementById('adminPunchStatusWrap');
+
+            if (type === 'check_in') {
+                inWrap.style.display = 'block';
+                outWrap.style.display = 'none';
+                statusWrap.style.display = 'block';
+            } else if (type === 'check_out') {
+                inWrap.style.display = 'none';
+                outWrap.style.display = 'block';
+                statusWrap.style.display = 'none';
+            } else { // both
+                inWrap.style.display = 'block';
+                outWrap.style.display = 'block';
+                statusWrap.style.display = 'block';
+            }
+        }
+
+        async function handleAdminMarkAttendance(e) {
+            e.preventDefault();
+            const btn = document.getElementById('adminPunchSubmitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-sm"></span> Processing...';
+
+            const userId = document.getElementById('adminPunchEmployeeSelect').value;
+            const date = document.getElementById('adminPunchDate').value;
+            const actionType = document.getElementById('adminPunchActionType').value;
+            const inTime = document.getElementById('adminPunchInTime').value;
+            const outTime = document.getElementById('adminPunchOutTime').value;
+            const status = document.getElementById('adminPunchStatus').value;
+            const locName = document.getElementById('adminPunchLocation').value.trim();
+            const notes = document.getElementById('adminPunchNotes').value.trim();
+            const sendNotif = document.getElementById('adminPunchSendNotif').checked;
+
+            const payload = {
+                user_id: userId,
+                date: date,
+                action_type: actionType,
+                check_in_time: inTime,
+                check_out_time: outTime,
+                status: status,
+                location_name: locName,
+                notes: notes,
+                send_notification: sendNotif
+            };
+
+            const res = await apiRequest('attendance.php?action=admin_mark_attendance', 'POST', payload);
+
+            if (res.ok && res.data.success) {
+                playSound('success');
+                showToast(res.data.message || 'Attendance recorded successfully!', 'success');
+
+                const resultBox = document.getElementById('adminPunchResultBox');
+                const resultMsg = document.getElementById('adminPunchResultMsg');
+                const adminWaBtn = document.getElementById('adminPunchWhatsAppAdminBtn');
+                const empWaBtn = document.getElementById('adminPunchWhatsAppEmpBtn');
+
+                const notif = res.data.notification;
+                if (notif) {
+                    resultMsg.textContent = notif.message_text || 'Attendance confirmation logged.';
+                    if (notif.whatsapp_url_admin) {
+                        adminWaBtn.href = notif.whatsapp_url_admin;
+                        adminWaBtn.style.display = 'inline-flex';
+                    }
+                    if (notif.whatsapp_url_emp) {
+                        empWaBtn.href = notif.whatsapp_url_emp;
+                        empWaBtn.style.display = 'inline-flex';
+                    } else {
+                        empWaBtn.style.display = 'none';
+                    }
+                } else {
+                    resultMsg.textContent = 'Attendance recorded successfully without external notification.';
+                    adminWaBtn.style.display = 'none';
+                    empWaBtn.style.display = 'none';
+                }
+
+                resultBox.style.display = 'block';
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="check" style="width: 16px;"></i> Punch Again';
+
+                // Refresh attendance table & metrics
+                loadAttendanceHistory();
+                loadAttendanceStats();
+                lucide.createIcons();
+            } else {
+                playSound('error');
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="check" style="width: 16px;"></i> Record & Notify';
+                showToast(res.data.message || 'Failed to record attendance.', 'error');
                 lucide.createIcons();
             }
         }

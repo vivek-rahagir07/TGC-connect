@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/notification.php';
 
 $action = $_GET['action'] ?? ($_POST['action'] ?? '');
 $input = getJsonInput();
@@ -197,18 +198,149 @@ switch ($action) {
         }
         break;
 
+    case 'admin_mark_attendance':
+        $admin = getCurrentUser($pdo);
+        if (!$admin || $admin['role'] !== 'admin') {
+            sendResponse(false, ['message' => 'Unauthorized. Administrator access required.'], 403);
+        }
+
+        $userId = intval($input['user_id'] ?? 0);
+        $targetEmail = strtolower(trim($input['email'] ?? ''));
+
+        $stmtTarget = null;
+        if ($userId > 0) {
+            $stmtTarget = $pdo->prepare("SELECT * FROM users WHERE id = ?");
+            $stmtTarget->execute([$userId]);
+        } elseif (!empty($targetEmail)) {
+            $stmtTarget = $pdo->prepare("SELECT * FROM users WHERE LOWER(email) = ?");
+            $stmtTarget->execute([$targetEmail]);
+        }
+
+        $targetUser = $stmtTarget ? $stmtTarget->fetch() : null;
+        if (!$targetUser) {
+            sendResponse(false, ['message' => 'Employee not found. Please select a valid employee.'], 404);
+        }
+
+        $attDate = trim($input['date'] ?? date('Y-m-d'));
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $attDate)) {
+            $attDate = date('Y-m-d');
+        }
+
+        $actionType = trim($input['action_type'] ?? 'check_in'); // 'check_in', 'check_out', 'both'
+        $checkInTime = trim($input['check_in_time'] ?? date('H:i:s'));
+        $checkOutTime = trim($input['check_out_time'] ?? '');
+        $status = trim($input['status'] ?? 'present'); // 'present', 'late', 'half_day'
+        $locName = trim($input['location_name'] ?? 'Office Hub (Admin Authorized)');
+        $notes = trim($input['notes'] ?? 'Admin Manual Punch');
+        $sendNotif = isset($input['send_notification']) ? (bool)$input['send_notification'] : true;
+
+        if (strlen($checkInTime) === 5) {
+            $checkInTime .= ':00';
+        }
+        if (!empty($checkOutTime) && strlen($checkOutTime) === 5) {
+            $checkOutTime .= ':00';
+        }
+
+        // Check if attendance row exists for this user and date
+        $stmtExist = $pdo->prepare("SELECT * FROM attendances WHERE user_id = ? AND date = ?");
+        $stmtExist->execute([$targetUser['id'], $attDate]);
+        $existing = $stmtExist->fetch();
+
+        $attendanceId = null;
+
+        if ($existing) {
+            $attendanceId = $existing['id'];
+            if ($actionType === 'check_out') {
+                $actualOut = $checkOutTime ?: date('H:i:s');
+                $stmtUp = $pdo->prepare("
+                    UPDATE attendances
+                    SET check_out_time = ?, location_name = COALESCE(?, location_name),
+                        notes = CONCAT(COALESCE(notes, ''), ' | ', ?)
+                    WHERE id = ?
+                ");
+                $stmtUp->execute([$actualOut, $locName, "Admin Check-Out: {$notes}", $attendanceId]);
+            } elseif ($actionType === 'both') {
+                $actualOut = $checkOutTime ?: date('H:i:s');
+                $stmtUp = $pdo->prepare("
+                    UPDATE attendances
+                    SET check_in_time = ?, check_out_time = ?, status = ?, location_name = ?,
+                        notes = CONCAT(COALESCE(notes, ''), ' | ', ?)
+                    WHERE id = ?
+                ");
+                $stmtUp->execute([$checkInTime, $actualOut, $status, $locName, "Admin Override: {$notes}", $attendanceId]);
+            } else {
+                // check_in
+                $stmtUp = $pdo->prepare("
+                    UPDATE attendances
+                    SET check_in_time = ?, status = ?, location_name = ?,
+                        notes = CONCAT(COALESCE(notes, ''), ' | ', ?)
+                    WHERE id = ?
+                ");
+                $stmtUp->execute([$checkInTime, $status, $locName, "Admin Check-In: {$notes}", $attendanceId]);
+            }
+        } else {
+            $actualOut = ($actionType === 'both' || $actionType === 'check_out') ? ($checkOutTime ?: date('H:i:s')) : null;
+            $actualIn = ($actionType === 'check_out') ? ($checkInTime ?: date('H:i:s')) : $checkInTime;
+
+            $stmtIns = $pdo->prepare("
+                INSERT INTO attendances (user_id, date, check_in_time, check_out_time, method, status, location_name, notes)
+                VALUES (?, ?, ?, ?, 'gps', ?, ?, ?)
+            ");
+            $stmtIns->execute([
+                $targetUser['id'], $attDate, $actualIn, $actualOut, $status, $locName, "Admin Punch: {$notes}"
+            ]);
+            $attendanceId = $pdo->lastInsertId();
+        }
+
+        // Fetch updated record
+        $stmtFinal = $pdo->prepare("SELECT * FROM attendances WHERE id = ?");
+        $stmtFinal->execute([$attendanceId]);
+        $finalRecord = $stmtFinal->fetch();
+
+        // Audit Log
+        logAdminAction(
+            $pdo,
+            $admin['id'],
+            'admin_mark_attendance',
+            $targetUser['id'],
+            "Admin marked {$actionType} for {$targetUser['name']} on {$attDate} [Status: {$status}, Loc: {$locName}]."
+        );
+
+        // Send WhatsApp & Email notification
+        $notifResult = null;
+        if ($sendNotif) {
+            $notifResult = sendAttendanceNotification($pdo, $finalRecord, $targetUser);
+        }
+
+        sendResponse(true, [
+            'message' => "Attendance for {$targetUser['name']} successfully recorded by Admin!",
+            'attendance' => $finalRecord,
+            'employee' => [
+                'id' => $targetUser['id'],
+                'name' => $targetUser['name'],
+                'email' => $targetUser['email'],
+                'phone' => $targetUser['phone']
+            ],
+            'notification' => $notifResult
+        ]);
+        break;
+
     case 'mark_attendance':
+        $sessionUser = getCurrentUser($pdo);
+        $isAdmin = ($sessionUser && $sessionUser['role'] === 'admin');
+
         // 1. Verify Active Attendance Window (Automated 09:00-09:20 / 17:30-17:50 or Admin Override)
+        // Admin has full access to mark attendance anytime in the day!
         $windowStatus = getAutomatedWindowStatus($pdo);
 
-        if (!$windowStatus['is_open']) {
+        if (!$windowStatus['is_open'] && !$isAdmin) {
             sendResponse(false, [
                 'message' => $windowStatus['message'],
                 'window_closed' => true,
                 'next_window' => $windowStatus['next_window'] ?? null
             ], 422);
         }
-        $activeWindow = $windowStatus['window'];
+        $activeWindow = $windowStatus['window'] ?? ['title' => 'Admin Direct Shift', 'type' => 'check_in'];
         $winType = $activeWindow['type'] ?? 'check_in';
 
         // 2. Validate Physical GPS Coordinates & Reverse-Geocoded Location
@@ -379,6 +511,9 @@ switch ($action) {
 
                 $stmtFinal = $pdo->prepare("SELECT * FROM attendances WHERE id = ?");
                 $stmtFinal->execute([$attendanceId]);
+                $finalAtt = $stmtFinal->fetch();
+
+                $notifResult = sendAttendanceNotification($pdo, $finalAtt, $userRecord);
 
                 sendResponse(true, [
                     'type' => 'check_out',
@@ -389,7 +524,8 @@ switch ($action) {
                     'date' => $today,
                     'status' => $status,
                     'location_name' => $locName,
-                    'attendance' => $stmtFinal->fetch(),
+                    'attendance' => $finalAtt,
+                    'notification' => $notifResult,
                     'already_marked' => true
                 ]);
             }
@@ -437,6 +573,8 @@ switch ($action) {
             $stmtFinal->execute([$attendanceId]);
             $attendanceRecord = $stmtFinal->fetch();
 
+            $notifResult = sendAttendanceNotification($pdo, $attendanceRecord, $userRecord);
+
             sendResponse(true, [
                 'type' => 'check_in',
                 'action_type' => 'check_in',
@@ -449,6 +587,7 @@ switch ($action) {
                 'latitude' => $lat,
                 'longitude' => $lng,
                 'attendance' => $attendanceRecord,
+                'notification' => $notifResult,
                 'already_marked' => true
             ]);
         }
@@ -518,9 +657,12 @@ switch ($action) {
         $stmtAtt->execute([$attendanceId]);
         $attRecord = $stmtAtt->fetch();
 
+        $notifResult = sendAttendanceNotification($pdo, $attRecord, $user);
+
         sendResponse(true, [
             'message' => 'Attendance punched in successfully! Welcome, ' . $user['name'] . ' (' . ucfirst($status) . ')',
             'attendance' => $attRecord,
+            'notification' => $notifResult,
         ]);
         break;
 
@@ -720,13 +862,17 @@ switch ($action) {
 
             $stmtAtt = $pdo->prepare("SELECT * FROM attendances WHERE id = ?");
             $stmtAtt->execute([$pdo->lastInsertId()]);
+            $attRecord = $stmtAtt->fetch();
+
+            $notifResult = sendAttendanceNotification($pdo, $attRecord, $user);
 
             sendResponse(true, [
                 'type' => 'check_in',
                 'message' => 'GPS Attendance Check-In verified successfully for ' . $user['name'] . '!',
                 'employee_name' => $user['name'],
                 'location_name' => $locName,
-                'attendance' => $stmtAtt->fetch(),
+                'attendance' => $attRecord,
+                'notification' => $notifResult,
             ]);
         } else {
             if (empty($attendance['check_out_time'])) {

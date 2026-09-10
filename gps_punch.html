@@ -562,11 +562,18 @@
                 
                 const att = res.data.attendance || {};
                 const locDisplay = res.data.location_name || capturedLocationName;
+                const notif = res.data.notification;
                 resDetails.innerHTML = `
                     <div style="margin-top: 0.35rem; line-height: 1.5;">
                         <div>Employee: <strong>${res.data.employee_name || name}</strong></div>
                         <div>Date: <strong>${att.date || new Date().toISOString().split('T')[0]}</strong> &bull; Check-in: <strong>${att.check_in_time || '--'}</strong></div>
                         <div style="margin-top: 0.2rem; color: #047857;">📍 <strong>Location:</strong> ${locDisplay}</div>
+                        ${notif && notif.whatsapp_url_admin ? `
+                        <div style="margin-top: 0.6rem;">
+                            <a href="${notif.whatsapp_url_admin}" target="_blank" class="btn" style="background: #25d366; color: #fff; padding: 0.45rem 0.85rem; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.35rem; border-radius: 6px; text-decoration: none;">
+                                📲 WhatsApp Confirmation (+91 87430 88888)
+                            </a>
+                        </div>` : ''}
                     </div>
                 `;
 
@@ -581,7 +588,7 @@
 
                 setTimeout(() => {
                     window.location.href = 'portal.html';
-                }, 2800);
+                }, 4000);
             } else {
                 playSound('error');
                 showToast(res.data.message || 'GPS Verification failed', 'error');
