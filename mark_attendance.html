@@ -370,44 +370,32 @@
                         </div>
                     </div>
 
-                    <!-- WhatsApp & Email Notification Card -->
-                    <div id="receiptNotifSection" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: var(--radius-sm); padding: 1.15rem; margin-bottom: 1.15rem; text-align: left;">
+                    <!-- Automated Email Confirmation Card (Zero action needed) -->
+                    <div id="receiptNotifSection" style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: var(--radius-sm); padding: 1.15rem; margin-bottom: 1.15rem; text-align: left;">
                         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.65rem;">
-                            <span style="font-weight: 700; color: #0f172a; font-size: 0.85rem; display: flex; align-items: center; gap: 0.45rem;">
-                                <i data-lucide="message-circle" style="width: 17px; color: #25d366;"></i> Attendance Confirmation
+                            <span style="font-weight: 700; color: #166534; font-size: 0.88rem; display: flex; align-items: center; gap: 0.45rem;">
+                                <i data-lucide="mail-check" style="width: 18px; color: #16a34a;"></i> Attendance Email Sent Automatically
                             </span>
-                            <span class="badge" style="background: #dcfce7; color: #166534; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.2rem;">
-                                <i data-lucide="check" style="width: 12px;"></i> Logged & Ready
+                            <span class="badge" style="background: #dcfce7; color: #166534; font-size: 0.74rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;">
+                                <i data-lucide="check" style="width: 12px;"></i> Auto-Dispatched
                             </span>
                         </div>
 
                         <!-- Message Preview Box -->
-                        <div id="receiptNotifMessagePreview" style="background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 6px; padding: 0.75rem; font-size: 0.82rem; color: #334155; line-height: 1.45; white-space: pre-wrap; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin-bottom: 0.75rem;">Dear [Name],
+                        <div id="receiptNotifMessagePreview" style="background: #ffffff; border: 1px solid #bbf7d0; border-radius: 6px; padding: 0.85rem; font-size: 0.83rem; color: #1e293b; line-height: 1.5; white-space: pre-wrap; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin-bottom: 0.75rem;">Attendance of [Name] has been marked at [Time] at location [Location].
 
-This is to confirm that you have been marked present at [Location] for today’s attendance.
+- Regards,
+TGC Connect</div>
 
-Regards,
-TGCConnect Team</div>
-
-                        <!-- Delivery Targets -->
-                        <div style="display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.76rem; color: #64748b; margin-bottom: 0.85rem;">
-                            <div style="display: flex; align-items: center; gap: 0.45rem;">
-                                <i data-lucide="smartphone" style="width: 14px; color: #25d366;"></i>
-                                <span>WhatsApp Target: <strong style="color: #0f172a;">+91 87430 88888</strong></span>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 0.45rem;">
-                                <i data-lucide="mail" style="width: 14px; color: #3b82f6;"></i>
-                                <span>Confirmation Email: <strong style="color: #0f172a;">Tgcconnectglobal@gmail.com</strong></span>
-                            </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.78rem; color: #15803d; line-height: 1.4;">
+                            <i data-lucide="check" style="width: 15px; color: #16a34a; flex-shrink: 0;"></i>
+                            <span>Sent automatically to <strong>Tgcconnectglobal@gmail.com</strong> (no action needed).</span>
                         </div>
 
-                        <!-- WhatsApp Action Buttons -->
-                        <div style="display: flex; flex-direction: column; gap: 0.45rem;">
-                            <a id="receiptWhatsAppAdminBtn" href="#" target="_blank" class="btn" style="background: #25d366; color: #ffffff; width: 100%; padding: 0.7rem; font-size: 0.88rem; font-weight: 700; border-radius: 6px; justify-content: center; gap: 0.5rem; text-decoration: none; box-shadow: 0 2px 4px rgba(37,211,102,0.25);">
-                                <i data-lucide="send" style="width: 16px;"></i> Send via WhatsApp (+91 87430 88888)
-                            </a>
-                            <a id="receiptWhatsAppEmpBtn" href="#" target="_blank" class="btn btn-secondary btn-sm" style="width: 100%; justify-content: center; gap: 0.4rem; display: none;">
-                                <i data-lucide="smartphone" style="width: 15px;"></i> Send to My Registered Mobile
+                        <div id="optionalWhatsAppWrap" style="margin-top: 0.75rem; border-top: 1px dashed #bbf7d0; padding-top: 0.65rem; display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 0.74rem; color: #64748b;">Target WhatsApp: +91 87430 88888</span>
+                            <a id="receiptWhatsAppAdminBtn" href="#" target="_blank" style="font-size: 0.75rem; color: #059669; font-weight: 700; text-decoration: underline; display: inline-flex; align-items: center; gap: 0.25rem;">
+                                Optional: Open WhatsApp &rarr;
                             </a>
                         </div>
                     </div>

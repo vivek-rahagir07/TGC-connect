@@ -39,16 +39,12 @@ function ensureNotificationTable($pdo) {
 
 /**
  * Format the official attendance confirmation message
- * Exact user specification:
- * 
- * Dear [Name],
- * 
- * This is to confirm that you have been marked present at [Location] for today’s attendance.
- * 
- * Regards,
- * TGCConnect Team
+ * User specification:
+ * Attendance of (name) has been marked at (time) at location (location).
+ * - Regards,
+ * TGC Connect
  */
-function formatAttendanceMessage($name, $location = '') {
+function formatAttendanceMessage($name, $location = '', $time = '') {
     $cleanName = trim($name ?: 'Employee');
     $cleanLoc = trim($location ?: 'Office Location');
     
@@ -57,10 +53,9 @@ function formatAttendanceMessage($name, $location = '') {
         $cleanLoc = "Verified Work Location";
     }
 
-    return "Dear " . $cleanName . ",\n\n" .
-           "This is to confirm that you have been marked present at " . $cleanLoc . " for today’s attendance.\n\n" .
-           "Regards,\n" .
-           "TGCConnect Team";
+    $cleanTime = trim($time ?: date('h:i A'));
+
+    return "Attendance of " . $cleanName . " has been marked at " . $cleanTime . " at location " . $cleanLoc . ".\n\n- Regards,\nTGC Connect";
 }
 
 /**
@@ -102,6 +97,10 @@ function sendAttendanceEmail($toEmail, $employeeName, $locationName, $messageBod
     $safeName = htmlspecialchars($employeeName, ENT_QUOTES, 'UTF-8');
     $safeBody = nl2br(htmlspecialchars($messageBody, ENT_QUOTES, 'UTF-8'));
 
+    $boundary = "==Multipart_Boundary_x" . md5(time()) . "x";
+
+    $plainText = $messageBody . "\n\n---\nEmployee: {$employeeName}\nLocation: {$safeLoc}\nDate: " . date('d M Y') . "\nTime: " . date('h:i A') . " IST\nStatus: PRESENT\n\nAutomated notification from TGC Connect Global.";
+
     $htmlContent = "
     <!DOCTYPE html>
     <html>
@@ -114,7 +113,7 @@ function sendAttendanceEmail($toEmail, $employeeName, $locationName, $messageBod
             .header h1 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
             .header p { margin: 6px 0 0 0; font-size: 13px; opacity: 0.9; }
             .content { padding: 28px 24px; }
-            .msg-card { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 18px; margin: 18px 0; font-size: 15px; line-height: 1.6; color: #166534; }
+            .msg-card { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 18px; margin: 18px 0; font-size: 15px; line-height: 1.6; color: #166534; font-family: inherit; }
             .details { background: #f8fafc; border-radius: 8px; padding: 16px; margin-top: 20px; font-size: 13px; }
             .details table { width: 100%; border-collapse: collapse; }
             .details td { padding: 6px 0; }
@@ -152,12 +151,23 @@ function sendAttendanceEmail($toEmail, $employeeName, $locationName, $messageBod
     </html>";
 
     $headers  = "MIME-Version: 1.0\r\n";
-    $headers .= "Content-type: text/html; charset=UTF-8\r\n";
     $headers .= "From: TGCConnect Team <{$fromEmail}>\r\n";
     $headers .= "Reply-To: {$fromEmail}\r\n";
-    $headers .= "X-Mailer: PHP/" . phpversion();
+    $headers .= "Return-Path: {$fromEmail}\r\n";
+    $headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
+    $headers .= "Content-Type: multipart/alternative; boundary=\"{$boundary}\"\r\n";
 
-    return @mail($toEmail, $subject, $htmlContent, $headers);
+    $body  = "--{$boundary}\r\n";
+    $body .= "Content-Type: text/plain; charset=UTF-8\r\n";
+    $body .= "Content-Transfer-Encoding: 8bit\r\n\r\n";
+    $body .= $plainText . "\r\n\r\n";
+    $body .= "--{$boundary}\r\n";
+    $body .= "Content-Type: text/html; charset=UTF-8\r\n";
+    $body .= "Content-Transfer-Encoding: 8bit\r\n\r\n";
+    $body .= $htmlContent . "\r\n\r\n";
+    $body .= "--{$boundary}--";
+
+    return @mail($toEmail, $subject, $body, $headers, "-f {$fromEmail}");
 }
 
 /**
@@ -215,8 +225,18 @@ function sendAttendanceNotification($pdo, $attendance, $user) {
     $empEmail = $user['email'] ?? '';
     $locName = $attendance['location_name'] ?? 'Verified Location';
 
-    // 1. Generate the exact required message template
-    $messageText = formatAttendanceMessage($empName, $locName);
+    // 1. Determine Punch Time
+    $punchTime = date('h:i A');
+    if (!empty($attendance['check_out_time']) && !empty($attendance['check_in_time']) && $attendance['check_out_time'] === $attendance['check_in_time']) {
+        $punchTime = date('h:i A', strtotime($attendance['check_out_time']));
+    } elseif (!empty($attendance['check_in_time'])) {
+        $punchTime = date('h:i A', strtotime($attendance['check_in_time']));
+    } elseif (!empty($attendance['check_out_time'])) {
+        $punchTime = date('h:i A', strtotime($attendance['check_out_time']));
+    }
+
+    // 2. Generate the exact required message template
+    $messageText = formatAttendanceMessage($empName, $locName, $punchTime);
 
     // 2. Build WhatsApp Click-to-Send URLs
     $adminWhatsAppUrl = buildWhatsAppUrl($adminWhatsApp, $messageText);

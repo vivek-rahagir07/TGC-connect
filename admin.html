@@ -787,33 +787,31 @@
                         <input type="text" id="adminPunchNotes" class="form-control" placeholder="e.g. Executive authorization, client site, on-duty" value="Executive Authorized Punch">
                     </div>
 
-                    <!-- WhatsApp & Email Notification Notice -->
-                    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); padding: 0.85rem 1rem; margin-top: 0.5rem; font-size: 0.8rem; color: #166534;">
+                    <!-- Automated Email Notice -->
+                    <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: var(--radius-sm); padding: 0.85rem 1rem; margin-top: 0.5rem; font-size: 0.8rem; color: #166534;">
                         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
                             <strong style="display: flex; align-items: center; gap: 0.35rem;">
-                                <i data-lucide="send" style="width: 14px; color: #25d366;"></i> WhatsApp & Email Notification
+                                <i data-lucide="mail" style="width: 14px; color: #16a34a;"></i> Automatic Email Notification
                             </strong>
                             <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer; font-size: 0.76rem;">
-                                <input type="checkbox" id="adminPunchSendNotif" checked> Send Alerts
+                                <input type="checkbox" id="adminPunchSendNotif" checked> Auto Send Email
                             </label>
                         </div>
                         <div style="color: #15803d; line-height: 1.4; font-size: 0.76rem;">
-                            Alert will be dispatched to <strong>+91 87430 88888</strong> & <strong>Tgcconnectglobal@gmail.com</strong> + Employee.
+                            Email is sent automatically to <strong>Tgcconnectglobal@gmail.com</strong> (no manual action needed).
                         </div>
                     </div>
 
-                    <!-- Success / Confirmation Result Card -->
+                    <!-- Success Confirmation Result Card -->
                     <div id="adminPunchResultBox" style="display: none; background: #ffffff; border: 1.5px solid #10b981; border-radius: var(--radius-sm); padding: 1rem; margin-top: 1rem;">
                         <div style="display: flex; align-items: center; gap: 0.4rem; color: #065f46; font-weight: 700; font-size: 0.88rem; margin-bottom: 0.45rem;">
-                            <i data-lucide="check-circle" style="width: 18px; color: #10b981;"></i> Attendance Recorded Successfully!
+                            <i data-lucide="check-circle" style="width: 18px; color: #10b981;"></i> Attendance Recorded & Email Sent!
                         </div>
                         <div id="adminPunchResultMsg" style="font-size: 0.8rem; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 4px; padding: 0.6rem; color: #334155; white-space: pre-wrap; margin-bottom: 0.6rem;"></div>
-                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                            <a id="adminPunchWhatsAppAdminBtn" href="#" target="_blank" class="btn btn-sm" style="background: #25d366; color: #fff; text-decoration: none; font-weight: 700; border-radius: 4px; display: inline-flex; align-items: center; gap: 0.35rem;">
-                                📲 Open WhatsApp (+91 87430 88888)
-                            </a>
-                            <a id="adminPunchWhatsAppEmpBtn" href="#" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration: none; display: none;">
-                                📲 Open Employee WhatsApp
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem;">
+                            <span style="color: #16a34a; font-weight: 600;">✓ Email dispatched to Tgcconnectglobal@gmail.com</span>
+                            <a id="adminPunchWhatsAppAdminBtn" href="#" target="_blank" style="color: #059669; font-weight: 700; text-decoration: underline;">
+                                Optional: View in WhatsApp &rarr;
                             </a>
                         </div>
                     </div>
@@ -2022,25 +2020,17 @@
                 const resultBox = document.getElementById('adminPunchResultBox');
                 const resultMsg = document.getElementById('adminPunchResultMsg');
                 const adminWaBtn = document.getElementById('adminPunchWhatsAppAdminBtn');
-                const empWaBtn = document.getElementById('adminPunchWhatsAppEmpBtn');
 
                 const notif = res.data.notification;
                 if (notif) {
-                    resultMsg.textContent = notif.message_text || 'Attendance confirmation logged.';
-                    if (notif.whatsapp_url_admin) {
+                    resultMsg.textContent = notif.message_text || 'Attendance confirmation email dispatched.';
+                    if (adminWaBtn && notif.whatsapp_url_admin) {
                         adminWaBtn.href = notif.whatsapp_url_admin;
                         adminWaBtn.style.display = 'inline-flex';
                     }
-                    if (notif.whatsapp_url_emp) {
-                        empWaBtn.href = notif.whatsapp_url_emp;
-                        empWaBtn.style.display = 'inline-flex';
-                    } else {
-                        empWaBtn.style.display = 'none';
-                    }
                 } else {
-                    resultMsg.textContent = 'Attendance recorded successfully without external notification.';
-                    adminWaBtn.style.display = 'none';
-                    empWaBtn.style.display = 'none';
+                    resultMsg.textContent = 'Attendance recorded successfully.';
+                    if (adminWaBtn) adminWaBtn.style.display = 'none';
                 }
 
                 resultBox.style.display = 'block';
