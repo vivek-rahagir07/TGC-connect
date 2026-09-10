@@ -61,10 +61,10 @@ switch ($action) {
                 }
             }
 
-            // 2. Calculate Approved Paid Leaves (Casual, Sick)
+            // 2. Calculate Approved Paid Leaves (Casual, Sick, Earned)
             $stmtL = $pdo->prepare("
                 SELECT SUM(total_days) as total_paid_leaves FROM leaves
-                WHERE user_id = ? AND status = 'approved' AND leave_type IN ('casual', 'sick')
+                WHERE user_id = ? AND status = 'approved' AND leave_type IN ('casual', 'sick', 'earned')
                 AND ((start_date BETWEEN ? AND ?) OR (end_date BETWEEN ? AND ?))
             ");
             $stmtL->execute([$emp['id'], $startDate, $endDate, $startDate, $endDate]);

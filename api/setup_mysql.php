@@ -55,6 +55,27 @@ try {
     }
 
 
+    // Safe Column / Schema Migrations for existing setups prior to schema execution
+    try {
+        $tableCheck = $pdo->query("SHOW TABLES LIKE 'leave_quotas'")->fetchAll();
+        if (!empty($tableCheck)) {
+            $cols = $pdo->query("SHOW COLUMNS FROM `leave_quotas` LIKE 'earned_leave_total'")->fetchAll();
+            if (empty($cols)) {
+                $pdo->exec("ALTER TABLE `leave_quotas` ADD COLUMN `earned_leave_total` DECIMAL(5,1) DEFAULT 12.0 AFTER `sick_leave_total`");
+                $pdo->exec("ALTER TABLE `leave_quotas` ADD COLUMN `earned_leave_used` DECIMAL(5,1) DEFAULT 0.0 AFTER `sick_leave_used`");
+                $pdo->exec("ALTER TABLE `leave_quotas` MODIFY COLUMN `sick_leave_total` DECIMAL(5,1) DEFAULT 12.0");
+                logMsg($report, "Migrated `leave_quotas` table: Added `earned_leave_total` & `earned_leave_used`.", $isCli);
+            }
+        }
+        $leavesCheck = $pdo->query("SHOW TABLES LIKE 'leaves'")->fetchAll();
+        if (!empty($leavesCheck)) {
+            $pdo->exec("ALTER TABLE `leaves` MODIFY COLUMN `leave_type` ENUM('casual', 'sick', 'earned') NOT NULL");
+            logMsg($report, "Migrated `leaves` table: Enabled `earned` leave type.", $isCli);
+        }
+    } catch (Exception $migEx) {
+        logMsg($report, "Migration note: " . $migEx->getMessage(), $isCli);
+    }
+
     // Read and execute schema.sql
     if (!file_exists($schemaFile)) {
         throw new Exception("Schema file not found at: {$schemaFile}");

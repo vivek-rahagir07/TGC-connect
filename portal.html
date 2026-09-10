@@ -117,20 +117,46 @@
                         </button>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
                         <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-sm); padding: 1.1rem;">
-                            <div style="font-size: 0.74rem; font-weight: 700; color: #1e40af; text-transform: uppercase; letter-spacing: 0.5px;">Casual Leave (CL)</div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="font-size: 0.74rem; font-weight: 700; color: #1e40af; text-transform: uppercase; letter-spacing: 0.5px;">Casual Leave (CL)</div>
+                                <span style="font-size: 0.7rem; font-weight: 600; color: #3b82f6; background: #dbeafe; padding: 2px 6px; border-radius: 4px;">1/mo</span>
+                            </div>
                             <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 0.5rem;">
-                                <span id="clRemaining" style="font-size: 1.75rem; font-weight: 700; color: #1e3a8a; font-family: var(--font-mono);">--</span>
-                                <span id="clTotal" style="font-size: 0.82rem; color: #3b82f6; font-weight: 600;">/ 12 days left</span>
+                                <div>
+                                    <span id="clRemaining" style="font-size: 1.75rem; font-weight: 700; color: #1e3a8a; font-family: var(--font-mono);">--</span>
+                                    <span style="font-size: 0.74rem; color: #1e40af; font-weight: 600; margin-left: 2px;">avail</span>
+                                </div>
+                                <span id="clTotal" style="font-size: 0.78rem; color: #3b82f6; font-weight: 600;">/ -- accrued</span>
                             </div>
                         </div>
 
                         <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); padding: 1.1rem;">
-                            <div style="font-size: 0.74rem; font-weight: 700; color: #166534; text-transform: uppercase; letter-spacing: 0.5px;">Sick Leave (SL)</div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="font-size: 0.74rem; font-weight: 700; color: #166534; text-transform: uppercase; letter-spacing: 0.5px;">Sick Leave (SL)</div>
+                                <span style="font-size: 0.7rem; font-weight: 600; color: #16a34a; background: #dcfce7; padding: 2px 6px; border-radius: 4px;">1/mo</span>
+                            </div>
                             <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 0.5rem;">
-                                <span id="slRemaining" style="font-size: 1.75rem; font-weight: 700; color: #14532d; font-family: var(--font-mono);">--</span>
-                                <span id="slTotal" style="font-size: 0.82rem; color: #22c55e; font-weight: 600;">/ 6 days left</span>
+                                <div>
+                                    <span id="slRemaining" style="font-size: 1.75rem; font-weight: 700; color: #14532d; font-family: var(--font-mono);">--</span>
+                                    <span style="font-size: 0.74rem; color: #166534; font-weight: 600; margin-left: 2px;">avail</span>
+                                </div>
+                                <span id="slTotal" style="font-size: 0.78rem; color: #22c55e; font-weight: 600;">/ -- accrued</span>
+                            </div>
+                        </div>
+
+                        <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-sm); padding: 1.1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="font-size: 0.74rem; font-weight: 700; color: #92400e; text-transform: uppercase; letter-spacing: 0.5px;">Earned Leave (EL)</div>
+                                <span style="font-size: 0.7rem; font-weight: 600; color: #d97706; background: #fef3c7; padding: 2px 6px; border-radius: 4px;">1/mo</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 0.5rem;">
+                                <div>
+                                    <span id="elRemaining" style="font-size: 1.75rem; font-weight: 700; color: #78350f; font-family: var(--font-mono);">--</span>
+                                    <span style="font-size: 0.74rem; color: #92400e; font-weight: 600; margin-left: 2px;">avail</span>
+                                </div>
+                                <span id="elTotal" style="font-size: 0.78rem; color: #d97706; font-weight: 600;">/ -- accrued</span>
                             </div>
                         </div>
                     </div>
@@ -232,8 +258,9 @@
                     <div class="form-group">
                         <label class="form-label">Leave Category *</label>
                         <select id="leaveTypeInput" class="form-control" required>
-                            <option value="casual">Casual Leave (CL)</option>
-                            <option value="sick">Sick Leave (SL)</option>
+                            <option value="casual">Casual Leave (CL) — 1 day/mo</option>
+                            <option value="sick">Sick Leave (SL) — 1 day/mo</option>
+                            <option value="earned">Earned Leave (EL) — 1 day/mo</option>
                         </select>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
@@ -250,8 +277,8 @@
                         <label class="form-label">Reason for Leave *</label>
                         <textarea id="leaveReasonInput" class="form-control" rows="3" placeholder="Please mention the purpose of leave..." required></textarea>
                     </div>
-                    <div style="font-size: 0.82rem; color: var(--text-muted); background: var(--bg-main); padding: 0.75rem; border-radius: var(--radius-sm);">
-                        ℹ️ Sundays and official company holidays are automatically excluded from leave deductions.
+                    <div style="font-size: 0.82rem; color: var(--text-muted); background: var(--bg-main); padding: 0.75rem; border-radius: var(--radius-sm); line-height: 1.45;">
+                        ℹ️ <strong>1-Year Cycle Accrual:</strong> You earn 1 CL, 1 SL, and 1 EL each month. Unused leaves automatically shift and accumulate into future months. Sundays and official company holidays are excluded from leave deductions.
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -562,10 +589,18 @@
             const res = await apiRequest('leave.php?action=quotas');
             if (res.ok && res.data.success) {
                 const q = res.data.quota;
-                document.getElementById('clRemaining').textContent = q.casual_leave_remaining;
-                document.getElementById('clTotal').textContent = `/ ${q.casual_leave_total} days left`;
-                document.getElementById('slRemaining').textContent = q.sick_leave_remaining;
-                document.getElementById('slTotal').textContent = `/ ${q.sick_leave_total} days left`;
+                const clAvail = q.casual_leave_available !== undefined ? q.casual_leave_available : q.casual_leave_remaining;
+                const slAvail = q.sick_leave_available !== undefined ? q.sick_leave_available : q.sick_leave_remaining;
+                const elAvail = q.earned_leave_available !== undefined ? q.earned_leave_available : q.earned_leave_remaining;
+
+                document.getElementById('clRemaining').textContent = clAvail;
+                document.getElementById('clTotal').textContent = `/ ${q.casual_leave_accrued ?? q.casual_leave_total} accrued (${q.casual_leave_total} yr)`;
+
+                document.getElementById('slRemaining').textContent = slAvail;
+                document.getElementById('slTotal').textContent = `/ ${q.sick_leave_accrued ?? q.sick_leave_total} accrued (${q.sick_leave_total} yr)`;
+
+                document.getElementById('elRemaining').textContent = elAvail;
+                document.getElementById('elTotal').textContent = `/ ${q.earned_leave_accrued ?? q.earned_leave_total} accrued (${q.earned_leave_total} yr)`;
             }
         }
 

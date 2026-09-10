@@ -101,9 +101,11 @@ CREATE TABLE IF NOT EXISTS `leave_quotas` (
     `user_id` INT NOT NULL,
     `year` INT NOT NULL,
     `casual_leave_total` DECIMAL(5,1) DEFAULT 12.0,
-    `sick_leave_total` DECIMAL(5,1) DEFAULT 6.0,
+    `sick_leave_total` DECIMAL(5,1) DEFAULT 12.0,
+    `earned_leave_total` DECIMAL(5,1) DEFAULT 12.0,
     `casual_leave_used` DECIMAL(5,1) DEFAULT 0.0,
     `sick_leave_used` DECIMAL(5,1) DEFAULT 0.0,
+    `earned_leave_used` DECIMAL(5,1) DEFAULT 0.0,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY `uk_user_year` (`user_id`, `year`),
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
@@ -113,7 +115,7 @@ CREATE TABLE IF NOT EXISTS `leave_quotas` (
 CREATE TABLE IF NOT EXISTS `leaves` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `user_id` INT NOT NULL,
-    `leave_type` ENUM('casual', 'sick') NOT NULL,
+    `leave_type` ENUM('casual', 'sick', 'earned') NOT NULL,
     `start_date` DATE NOT NULL,
     `end_date` DATE NOT NULL,
     `total_days` DECIMAL(5,1) DEFAULT 1.0,
@@ -253,11 +255,11 @@ INSERT INTO `users` (`id`, `name`, `email`, `password`, `phone`, `dob`, `address
 VALUES (4, 'Ananya Iyer', 'ananya.iyer@tgcconnect.com', '$2y$12$txkT4GZGUwWa8UZ.Mfv31eRruPjtnTVLeRmMDn.I.BoNf/bDgZNSC', '+91 98334 56789', '1999-11-10', 'Bandra West, Mumbai', 'Operations', 'Operations Analyst', '2026-09-01', 'employee', 'pending_approval', 42000.00, 0)
 ON DUPLICATE KEY UPDATE `password` = VALUES(`password`);
 
--- Leave Quotas for Active Employees
-INSERT INTO `leave_quotas` (`user_id`, `year`, `casual_leave_total`, `sick_leave_total`, `casual_leave_used`, `sick_leave_used`) VALUES
-(2, 2026, 12.0, 6.0, 1.0, 0.0),
-(3, 2026, 12.0, 6.0, 0.0, 0.0)
-ON DUPLICATE KEY UPDATE `casual_leave_total` = VALUES(`casual_leave_total`);
+-- Leave Quotas for Active Employees (12 CL, 12 SL, 12 EL = 1 per month in 1-year cycle)
+INSERT INTO `leave_quotas` (`user_id`, `year`, `casual_leave_total`, `sick_leave_total`, `earned_leave_total`, `casual_leave_used`, `sick_leave_used`, `earned_leave_used`) VALUES
+(2, 2026, 12.0, 12.0, 12.0, 1.0, 0.0, 0.0),
+(3, 2026, 12.0, 12.0, 12.0, 0.0, 0.0, 0.0)
+ON DUPLICATE KEY UPDATE `casual_leave_total` = VALUES(`casual_leave_total`), `sick_leave_total` = VALUES(`sick_leave_total`), `earned_leave_total` = VALUES(`earned_leave_total`);
 
 -- Pending Leave Application in Review Board
 INSERT INTO `leaves` (`id`, `user_id`, `leave_type`, `start_date`, `end_date`, `total_days`, `reason`, `status`)

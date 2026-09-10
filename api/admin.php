@@ -173,7 +173,7 @@ switch ($action) {
         $currentYear = (int) date('Y');
 
         $sql = "
-            SELECT u.*, q.casual_leave_total, q.casual_leave_used, q.sick_leave_total, q.sick_leave_used
+            SELECT u.*, q.casual_leave_total, q.casual_leave_used, q.sick_leave_total, q.sick_leave_used, q.earned_leave_total, q.earned_leave_used
             FROM users u
             LEFT JOIN leave_quotas q ON u.id = q.user_id AND q.year = {$currentYear}
             WHERE u.role = 'employee'
@@ -241,11 +241,11 @@ switch ($action) {
         $stmt->execute([$name, $email, $hashedPass, $phone, $dob, $address, $department, $job_profile, $doj, $baseSalary, $firstLoginRequired]);
         $newId = $pdo->lastInsertId();
 
-        // Initialize Leave Quota
+        // Initialize Leave Quota (12 CL, 12 SL, 12 EL = 1 per month in 1-year cycle)
         $currentYear = (int) date('Y');
         $pdo->prepare("
-            INSERT INTO leave_quotas (user_id, year, casual_leave_total, sick_leave_total, casual_leave_used, sick_leave_used)
-            VALUES (?, ?, 12.0, 6.0, 0.0, 0.0)
+            INSERT INTO leave_quotas (user_id, year, casual_leave_total, sick_leave_total, earned_leave_total, casual_leave_used, sick_leave_used, earned_leave_used)
+            VALUES (?, ?, 12.0, 12.0, 12.0, 0.0, 0.0, 0.0)
         ")->execute([$newId, $currentYear]);
 
         logAdminAction($pdo, $user['id'], 'admin_onboard_employee', $newId, "Admin directly registered {$name} ({$email}) [First-login required: {$firstLoginRequired}].");
@@ -294,14 +294,14 @@ switch ($action) {
         $stmtUpdate->execute([$newStatus, $empId]);
 
         if ($decision === 'approve') {
-            // Initialize leave quota if not present
+            // Initialize leave quota if not present (12 CL, 12 SL, 12 EL = 1 per month in 1-year cycle)
             $currentYear = (int) date('Y');
             $stmtQ = $pdo->prepare("SELECT id FROM leave_quotas WHERE user_id = ? AND year = ?");
             $stmtQ->execute([$empId, $currentYear]);
             if (!$stmtQ->fetch()) {
                 $pdo->prepare("
-                    INSERT INTO leave_quotas (user_id, year, casual_leave_total, sick_leave_total, casual_leave_used, sick_leave_used)
-                    VALUES (?, ?, 12.0, 6.0, 0.0, 0.0)
+                    INSERT INTO leave_quotas (user_id, year, casual_leave_total, sick_leave_total, earned_leave_total, casual_leave_used, sick_leave_used, earned_leave_used)
+                    VALUES (?, ?, 12.0, 12.0, 12.0, 0.0, 0.0, 0.0)
                 ")->execute([$empId, $currentYear]);
             }
         }
@@ -428,7 +428,8 @@ switch ($action) {
         $userId = intval($input['user_id'] ?? 0);
         $year = intval($input['year'] ?? date('Y'));
         $clTotal = floatval($input['casual_leave_total'] ?? 12.0);
-        $slTotal = floatval($input['sick_leave_total'] ?? 6.0);
+        $slTotal = floatval($input['sick_leave_total'] ?? 12.0);
+        $elTotal = floatval($input['earned_leave_total'] ?? 12.0);
 
         if (!$userId) {
             sendResponse(false, ['message' => 'User ID is required.'], 400);
@@ -439,14 +440,14 @@ switch ($action) {
         $existing = $stmt->fetch();
 
         if ($existing) {
-            $stmtUpdate = $pdo->prepare("UPDATE leave_quotas SET casual_leave_total = ?, sick_leave_total = ? WHERE id = ?");
-            $stmtUpdate->execute([$clTotal, $slTotal, $existing['id']]);
+            $stmtUpdate = $pdo->prepare("UPDATE leave_quotas SET casual_leave_total = ?, sick_leave_total = ?, earned_leave_total = ? WHERE id = ?");
+            $stmtUpdate->execute([$clTotal, $slTotal, $elTotal, $existing['id']]);
         } else {
-            $stmtInsert = $pdo->prepare("INSERT INTO leave_quotas (user_id, year, casual_leave_total, sick_leave_total) VALUES (?, ?, ?, ?)");
-            $stmtInsert->execute([$userId, $year, $clTotal, $slTotal]);
+            $stmtInsert = $pdo->prepare("INSERT INTO leave_quotas (user_id, year, casual_leave_total, sick_leave_total, earned_leave_total) VALUES (?, ?, ?, ?, ?)");
+            $stmtInsert->execute([$userId, $year, $clTotal, $slTotal, $elTotal]);
         }
 
-        logAdminAction($pdo, $user['id'], 'update_leave_quota', $userId, "Updated leave quotas (CL: {$clTotal}, SL: {$slTotal}) for user #{$userId}.");
+        logAdminAction($pdo, $user['id'], 'update_leave_quota', $userId, "Updated leave quotas (CL: {$clTotal}, SL: {$slTotal}, EL: {$elTotal}) for user #{$userId}.");
 
         sendResponse(true, ['message' => 'Leave quotas updated successfully.']);
         break;
