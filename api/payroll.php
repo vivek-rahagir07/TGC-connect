@@ -72,10 +72,12 @@ switch ($action) {
             $paidLeaves = floatval($lRow['total_paid_leaves'] ?? 0);
 
             // 3. Calculate Unpaid Days & Deductions
+            // Daily rate is calculated by dividing monthly base salary by total calendar days of the month (30, 31, 28/29)
+            $totalMonthDays = $numDays;
+            $dailyRate = round($baseSalary / $totalMonthDays, 2);
+
             $paidTotal = $presentDays + $paidLeaves;
             $unpaidDays = max(0.0, (float) $totalWorkingDays - $paidTotal);
-
-            $dailyRate = round($baseSalary / $totalWorkingDays, 2);
             $deductionAmount = round($dailyRate * $unpaidDays, 2);
             $netSalary = max(0.0, round($baseSalary - $deductionAmount, 2));
 
@@ -84,7 +86,7 @@ switch ($action) {
             $stmtCheck->execute([$emp['id'], $month, $year]);
             $existing = $stmtCheck->fetch();
 
-            $remarks = "{$presentDays} days present, {$paidLeaves} paid leaves, {$unpaidDays} days absent deduction";
+            $remarks = "Divisor: {$totalMonthDays}d (₹{$dailyRate}/d) | {$presentDays}d present, {$paidLeaves}d paid leave, {$unpaidDays}d absent deduction";
 
             if ($existing) {
                 $stmtUpdate = $pdo->prepare("
@@ -95,7 +97,7 @@ switch ($action) {
                     WHERE id = ?
                 ");
                 $stmtUpdate->execute([
-                    $baseSalary, $totalWorkingDays, $presentDays, $paidLeaves,
+                    $baseSalary, $totalMonthDays, $presentDays, $paidLeaves,
                     $unpaidDays, $dailyRate, $deductionAmount, $netSalary,
                     $remarks, $existing['id']
                 ]);
@@ -105,7 +107,7 @@ switch ($action) {
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'processed', ?)
                 ");
                 $stmtInsert->execute([
-                    $emp['id'], $month, $year, $baseSalary, $totalWorkingDays, $presentDays, $paidLeaves,
+                    $emp['id'], $month, $year, $baseSalary, $totalMonthDays, $presentDays, $paidLeaves,
                     $unpaidDays, $dailyRate, $deductionAmount, $netSalary, $remarks
                 ]);
             }
@@ -132,7 +134,7 @@ switch ($action) {
         $year = intval($_GET['year'] ?? date('Y'));
 
         $sql = "
-            SELECT p.*, u.name as user_name, u.email as user_email, u.department as user_dept, u.job_profile as user_job, u.phone as user_phone, u.photo_path
+            SELECT p.*, u.name as user_name, u.email as user_email, u.company as user_company, u.department as user_dept, u.job_profile as user_job, u.phone as user_phone, u.photo_path
             FROM payrolls p
             JOIN users u ON p.user_id = u.id
             WHERE p.month = ? AND p.year = ?
@@ -152,6 +154,7 @@ switch ($action) {
 
         foreach ($payrolls as &$pay) {
             $pay['photo_url'] = $pay['photo_path'] ? 'uploads/' . $pay['photo_path'] : null;
+            $pay['user_company'] = !empty($pay['user_company']) ? $pay['user_company'] : 'getting roots';
         }
 
         sendResponse(true, [
@@ -169,7 +172,7 @@ switch ($action) {
 
         $id = intval($_GET['id'] ?? 0);
         $stmt = $pdo->prepare("
-            SELECT p.*, u.name as user_name, u.email as user_email, u.department as user_dept, u.job_profile as user_job, u.date_of_joining, u.phone, u.photo_path
+            SELECT p.*, u.name as user_name, u.email as user_email, u.company as user_company, u.address as user_address, u.department as user_dept, u.job_profile as user_job, u.date_of_joining, u.phone, u.photo_path
             FROM payrolls p
             JOIN users u ON p.user_id = u.id
             WHERE p.id = ?
@@ -186,6 +189,7 @@ switch ($action) {
         }
 
         $payroll['photo_url'] = $payroll['photo_path'] ? 'uploads/' . $payroll['photo_path'] : null;
+        $payroll['user_company'] = !empty($payroll['user_company']) ? $payroll['user_company'] : 'getting roots';
 
         sendResponse(true, ['payroll' => $payroll]);
         break;
@@ -217,7 +221,7 @@ switch ($action) {
         $year = intval($_GET['year'] ?? date('Y'));
 
         $sql = "
-            SELECT p.month, p.year, u.name, u.email, u.department, u.job_profile,
+            SELECT p.month, p.year, u.name, u.email, u.company, u.department, u.job_profile,
                    p.base_salary, p.total_working_days, p.present_days, p.paid_leaves,
                    p.unpaid_days, p.daily_rate, p.deduction_amount, p.net_salary, p.status, p.payment_date, p.remarks
             FROM payrolls p
@@ -234,11 +238,11 @@ switch ($action) {
         $fp = fopen('php://output', 'w');
         // UTF-8 BOM for Microsoft Excel / Sheets compatibility
         fprintf($fp, chr(0xEF).chr(0xBB).chr(0xBF));
-        fputcsv($fp, ['Month', 'Year', 'Employee Name', 'Email', 'Department', 'Job Profile', 'Base Salary (INR)', 'Working Days', 'Present Days', 'Paid Leaves', 'Unpaid Days', 'Daily Rate', 'Deductions (INR)', 'Net Payable (INR)', 'Status', 'Payment Date', 'Remarks'], ',', '"', "\\");
+        fputcsv($fp, ['Month', 'Year', 'Employee Name', 'Email', 'Company', 'Department', 'Job Profile', 'Base Salary (INR)', 'Days Divisor', 'Present Days', 'Paid Leaves', 'Unpaid Days', 'Daily Rate (Base/Divisor)', 'Deductions (INR)', 'Net Payable (INR)', 'Status', 'Payment Date', 'Remarks'], ',', '"', "\\");
 
         foreach ($rows as $r) {
             fputcsv($fp, [
-                $r['month'], $r['year'], $r['name'], $r['email'], $r['department'], $r['job_profile'],
+                $r['month'], $r['year'], $r['name'], $r['email'], $r['company'] ?: 'getting roots', $r['department'], $r['job_profile'],
                 $r['base_salary'], $r['total_working_days'], $r['present_days'], $r['paid_leaves'],
                 $r['unpaid_days'], $r['daily_rate'], $r['deduction_amount'], $r['net_salary'],
                 ucfirst($r['status']), $r['payment_date'] ?: '-', $r['remarks']

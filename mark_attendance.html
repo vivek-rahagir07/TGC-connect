@@ -436,8 +436,11 @@ TGC Connect</div>
             await checkTodayAttendanceStatus();
             await checkAttendanceWindowStatus();
 
-            // Auto-refresh window status every 20 seconds
-            setInterval(checkAttendanceWindowStatus, 20000);
+            // Auto-refresh window & attendance status every 3 seconds
+            setInterval(async () => {
+                await checkAttendanceWindowStatus();
+                await checkTodayAttendanceStatus();
+            }, 3000);
         });
 
         // Copy Shareable Attendance Link

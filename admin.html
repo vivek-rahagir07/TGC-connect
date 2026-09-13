@@ -284,35 +284,93 @@
                 </div>
             </div>
 
-            <!-- Tab 2: Employee Directory -->
+            <!-- Tab 2: Employee Directory & Candidate Filtering -->
             <div id="sectionEmployees" class="card" style="display: none;">
-                <div class="card-header">
-                    <div class="card-title">
-                        <i data-lucide="users" style="color: var(--primary);"></i> Employee Directory & Personnel Management
+                <div class="card-header" style="flex-direction: column; align-items: stretch; gap: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                        <div class="card-title">
+                            <i data-lucide="users" style="color: var(--primary);"></i> Candidates & Employee Directory
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                            <button type="button" onclick="openModal('adminOnboardModal')" class="btn btn-primary btn-sm">
+                                <i data-lucide="user-plus" style="width: 16px;"></i> + Add Employee
+                            </button>
+                        </div>
                     </div>
-                    <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
-                        <input type="text" id="employeeSearchInput" oninput="loadEmployees()" placeholder="Search by name, role, dept..." class="form-control" style="width: 250px; font-size: 0.88rem; padding: 0.45rem 0.85rem;">
-                        <button type="button" onclick="openModal('adminOnboardModal')" class="btn btn-primary btn-sm">
-                            <i data-lucide="user-plus" style="width: 16px;"></i> + Add Employee
-                        </button>
+
+                    <!-- Filter Toolbar: Company, Profession, Date Presence, Search -->
+                    <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.85rem 1rem; display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center;">
+                        <div style="flex: 1.2; min-width: 190px;">
+                            <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Search Name / Email</label>
+                            <input type="text" id="employeeSearchInput" oninput="loadEmployees()" placeholder="Search candidate..." class="form-control" style="font-size: 0.84rem; padding: 0.4rem 0.65rem;">
+                        </div>
+
+                        <div style="flex: 1; min-width: 170px;">
+                            <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Filter by Company</label>
+                            <select id="empFilterCompany" onchange="loadEmployees()" class="form-control" style="font-size: 0.84rem; padding: 0.4rem 0.65rem;">
+                                <option value="all">All Companies</option>
+                                <option value="getting roots">getting roots</option>
+                                <option value="torpedo learning">torpedo learning</option>
+                                <option value="torpedo lifestyle">torpedo lifestyle</option>
+                                <option value="project help globle">project help globle</option>
+                                <option value="others">others</option>
+                            </select>
+                        </div>
+
+                        <div style="flex: 1; min-width: 170px;">
+                            <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Profession / Dept</label>
+                            <select id="empFilterProfession" onchange="loadEmployees()" class="form-control" style="font-size: 0.84rem; padding: 0.4rem 0.65rem;">
+                                <option value="all">All Professions / Depts</option>
+                                <option value="Engineering">Engineering</option>
+                                <option value="Design & UI/UX">Design & UI/UX</option>
+                                <option value="Operations">Operations</option>
+                                <option value="Marketing">Marketing</option>
+                                <option value="Human Resources">Human Resources</option>
+                                <option value="Finance & Accounts">Finance & Accounts</option>
+                            </select>
+                        </div>
+
+                        <div style="flex: 1.1; min-width: 160px;">
+                            <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Presence on Date</label>
+                            <input type="date" id="empFilterPresenceDate" onchange="loadEmployees()" class="form-control" style="font-size: 0.84rem; padding: 0.4rem 0.65rem;">
+                        </div>
+
+                        <div style="flex: 0.9; min-width: 140px;">
+                            <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Presence Status</label>
+                            <select id="empFilterPresenceStatus" onchange="loadEmployees()" class="form-control" style="font-size: 0.84rem; padding: 0.4rem 0.65rem;">
+                                <option value="all">All Status</option>
+                                <option value="present">Present (Any)</option>
+                                <option value="absent">Absent / Unpunched</option>
+                                <option value="late">Late Check-in</option>
+                                <option value="half_day">Half Day</option>
+                            </select>
+                        </div>
+
+                        <div style="display: flex; align-items: flex-end; padding-top: 1.25rem;">
+                            <button type="button" onclick="resetEmployeeFilters()" class="btn btn-secondary btn-sm" title="Reset Filters" style="font-size: 0.82rem; padding: 0.45rem 0.75rem;">
+                                <i data-lucide="rotate-ccw" style="width: 14px;"></i> Reset
+                            </button>
+                        </div>
                     </div>
                 </div>
+
                 <div class="table-responsive">
                     <table class="custom-table">
                         <thead>
                             <tr>
                                 <th>Photo</th>
-                                <th>Employee</th>
+                                <th>Candidate</th>
+                                <th>Company</th>
                                 <th>Department & Role</th>
                                 <th>DOJ / Contact</th>
                                 <th>Base Salary</th>
-                                <th>Leave Quotas (CL / SL)</th>
+                                <th>Leave Quotas</th>
                                 <th>Status</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="employeesTableBody">
-                            <tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Loading employees...</td></tr>
+                            <tr><td colspan="9" style="text-align: center; color: var(--text-muted);">Loading candidates...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -448,15 +506,23 @@
                 </div>
             </div>
 
-            <!-- Tab 6: Company Holidays -->
+            <!-- Tab 6: Company Holidays & Academic Calendar -->
             <div id="sectionHolidays" class="card" style="display: none;">
-                <div class="card-header">
+                <div class="card-header" style="flex-wrap: wrap; gap: 0.75rem;">
                     <div class="card-title">
-                        <i data-lucide="sparkles" style="color: var(--primary);"></i> Company & National Holiday Calendar
+                        <i data-lucide="sparkles" style="color: var(--primary);"></i> Company & Academic Holiday Calendar
                     </div>
-                    <button type="button" onclick="openModal('addHolidayModal')" class="btn btn-primary btn-sm">
-                        <i data-lucide="plus-circle" style="width: 16px;"></i> Add Holiday
-                    </button>
+                    <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                        <button type="button" onclick="exportHolidaysCsv()" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 700;">
+                            <i data-lucide="download" style="width: 15px;"></i> Export Excel / CSV
+                        </button>
+                        <button type="button" onclick="openImportHolidaysModal()" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 700; color: var(--primary); border-color: var(--primary);">
+                            <i data-lucide="upload" style="width: 15px;"></i> Import Calendar (CSV)
+                        </button>
+                        <button type="button" onclick="openModal('addHolidayModal')" class="btn btn-primary btn-sm">
+                            <i data-lucide="plus-circle" style="width: 16px;"></i> Add Holiday
+                        </button>
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table class="custom-table">
@@ -893,6 +959,16 @@
                             <input type="date" id="adminOnboardDob" class="form-control" value="1999-01-01">
                         </div>
                     </div>
+                    <div class="form-group">
+                        <label class="form-label">Company / Organization *</label>
+                        <select id="adminOnboardCompany" class="form-control" required>
+                            <option value="getting roots">getting roots</option>
+                            <option value="torpedo learning">torpedo learning</option>
+                            <option value="torpedo lifestyle">torpedo lifestyle</option>
+                            <option value="project help globle">project help globle</option>
+                            <option value="others">others</option>
+                        </select>
+                    </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                         <div class="form-group">
                             <label class="form-label">Department *</label>
@@ -991,6 +1067,16 @@
                             <label class="form-label">Date of Birth</label>
                             <input type="date" id="editEmpDob" class="form-control">
                         </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Company / Organization *</label>
+                        <select id="editEmpCompany" class="form-control" required>
+                            <option value="getting roots">getting roots</option>
+                            <option value="torpedo learning">torpedo learning</option>
+                            <option value="torpedo lifestyle">torpedo lifestyle</option>
+                            <option value="project help globle">project help globle</option>
+                            <option value="others">others</option>
+                        </select>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                         <div class="form-group">
@@ -1152,18 +1238,97 @@
 
     <!-- 8. View Payslip Modal -->
     <div class="modal-overlay" id="viewSlipModal">
-        <div class="modal-content" style="max-width: 760px;">
+        <div class="modal-content" style="max-width: 840px;">
             <div class="modal-header">
                 <h3 style="font-size: 1.25rem; font-weight: 800;">Official Payslip Statement</h3>
                 <button class="close-btn" onclick="closeModal('viewSlipModal')">&times;</button>
             </div>
-            <div class="modal-body" id="slipModalBody"></div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="window.print()">
-                    <i data-lucide="printer" style="width: 16px;"></i> Print / Save PDF
+            <div class="modal-body" id="slipModalBody" style="padding: 1.5rem;"></div>
+            <div class="modal-footer" style="display: flex; justify-content: space-between;">
+                <button type="button" class="btn btn-secondary" onclick="printPayslip()">
+                    <i data-lucide="printer" style="width: 16px;"></i> Print / Save as PDF
                 </button>
                 <button type="button" class="btn btn-primary" onclick="closeModal('viewSlipModal')">Close</button>
             </div>
+        </div>
+    </div>
+
+    <!-- 8b. Candidate Full Profile & Attendance History Modal -->
+    <div class="modal-overlay" id="candidateHistoryModal">
+        <div class="modal-content" style="max-width: 980px; max-height: 92vh; display: flex; flex-direction: column;">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-color); padding: 1.25rem 1.75rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(79,70,229,0.1); color: var(--primary); display: flex; align-items: center; justify-content: center;">
+                        <i data-lucide="user-check" style="width: 22px;"></i>
+                    </div>
+                    <div>
+                        <h3 style="font-size: 1.3rem; font-weight: 800; margin: 0;" id="candHistModalTitle">Candidate Profile & Attendance History</h3>
+                        <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0.15rem 0 0 0;" id="candHistModalSubtitle">Comprehensive attendance log history and personnel profile</p>
+                    </div>
+                </div>
+                <button class="close-btn" onclick="closeModal('candidateHistoryModal')">&times;</button>
+            </div>
+
+            <div class="modal-body" id="candidateHistoryModalBody" style="overflow-y: auto; padding: 1.5rem 1.75rem;">
+                <!-- Injected via viewCandidateHistory(empId) -->
+            </div>
+
+            <div class="modal-footer" style="border-top: 1px solid var(--border-color); padding: 1rem 1.75rem; display: flex; justify-content: space-between;">
+                <button type="button" id="btnExportCandHistCsv" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 700;">
+                    <i data-lucide="file-spreadsheet" style="width: 15px;"></i> Export Candidate Logs (CSV)
+                </button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="closeModal('candidateHistoryModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 8c. Academic Calendar CSV Import Modal -->
+    <div class="modal-overlay" id="importHolidaysModal">
+        <div class="modal-content" style="max-width: 620px;">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 0.65rem;">
+                    <div style="width: 38px; height: 38px; border-radius: 8px; background: rgba(79,70,229,0.1); color: var(--primary); display: flex; align-items: center; justify-content: center;">
+                        <i data-lucide="file-up" style="width: 20px;"></i>
+                    </div>
+                    <div>
+                        <h3 style="font-size: 1.25rem; font-weight: 800; margin: 0;">Import Academic Calendar (CSV)</h3>
+                        <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.15rem 0 0 0;">Upload CSV to assign all academic holidays at once</p>
+                    </div>
+                </div>
+                <button class="close-btn" onclick="closeModal('importHolidaysModal')">&times;</button>
+            </div>
+            <form onsubmit="handleImportHolidaysCsv(event)">
+                <div class="modal-body" style="display: flex; flex-direction: column; gap: 1.15rem;">
+                    <div style="background: #f8fafc; border: 1px dashed var(--border-color); border-radius: var(--radius-md); padding: 1rem; font-size: 0.84rem; color: var(--text-muted);">
+                        <strong style="color: var(--text-main); display: block; margin-bottom: 0.35rem;">Expected CSV Format:</strong>
+                        <div>Columns: <code>Holiday Name, Date (YYYY-MM-DD), Type, Description</code></div>
+                        <div style="margin-top: 0.25rem;">Type can be: <code>national</code>, <code>festival</code>, or <code>company</code>.</div>
+                        <div style="margin-top: 0.75rem;">
+                            <button type="button" onclick="downloadAcademicCalendarSample()" class="btn btn-secondary btn-sm" style="font-size: 0.78rem; padding: 0.25rem 0.65rem;">
+                                <i data-lucide="download" style="width: 13px;"></i> Download Sample CSV Template
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Select CSV File (.csv) *</label>
+                        <input type="file" id="importHolidaysFileInput" accept=".csv,text/csv" class="form-control" onchange="handleHolidayFileSelect(event)">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Or Paste CSV Content Directly</label>
+                        <textarea id="importHolidaysTextarea" rows="4" class="form-control" placeholder="Republic Day,2026-01-26,national,National celebration&#10;Holi,2026-03-04,festival,Spring Festival&#10;Independence Day,2026-08-15,national,National flag hoisting" style="font-family: var(--font-mono); font-size: 0.82rem;"></textarea>
+                    </div>
+
+                    <div id="importHolidaysPreview" style="display: none; max-height: 120px; overflow-y: auto; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.5rem; font-size: 0.78rem; font-family: var(--font-mono);"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('importHolidaysModal')">Cancel</button>
+                    <button type="submit" id="btnSubmitImportHolidays" class="btn btn-primary">
+                        <i data-lucide="check" style="width: 15px;"></i> Upload & Assign Holidays
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -1553,45 +1718,99 @@
             }
         }
 
-        // Periodic background poller for incoming registrations & approvals (every 12 seconds)
+        // ── Live Auto-Refresh Engine (every 3 seconds) ──────────────────────
+        // Refreshes all critical data sections so admins see real-time updates
+        // without needing to manually reload the page.
+        let _autoRefreshRunning = false;
+
         function initAdminNotificationsPoller() {
             setInterval(async () => {
-                const res = await apiRequest('admin.php?action=stats');
-                if (res.ok && res.data.success) {
-                    const s = res.data.stats;
-                    const currentPendingReg = s.pending_registrations || 0;
+                if (_autoRefreshRunning) return; // skip if previous cycle still in-flight
+                _autoRefreshRunning = true;
+                try {
+                    // 1. Stats + KPI + Registration alerts
+                    const res = await apiRequest('admin.php?action=stats');
+                    if (res.ok && res.data.success) {
+                        const s = res.data.stats;
+                        const currentPendingReg = s.pending_registrations || 0;
 
-                    // If a new member registered while admin has dashboard open
-                    if (previousPendingRegistrations !== null && currentPendingReg > previousPendingRegistrations) {
-                        const newCount = currentPendingReg - previousPendingRegistrations;
-                        playSound('success');
-                        showToast(`🔔 ${newCount} new employee registration application received! Check Approvals Hub.`, 'info');
-                        loadPendingApprovals();
-                        loadEmployees();
-                    }
-                    previousPendingRegistrations = currentPendingReg;
+                        // Toast if a new member registered while admin has dashboard open
+                        if (previousPendingRegistrations !== null && currentPendingReg > previousPendingRegistrations) {
+                            const newCount = currentPendingReg - previousPendingRegistrations;
+                            playSound('success');
+                            showToast(`🔔 ${newCount} new employee registration application received! Check Approvals Hub.`, 'info');
+                        }
+                        previousPendingRegistrations = currentPendingReg;
 
-                    // Update Badge and KPI Counters
-                    const navBadge = document.getElementById('navApprovalsCountBadge');
-                    if (navBadge) {
-                        navBadge.textContent = s.total_pending_approvals;
-                        navBadge.style.display = s.total_pending_approvals > 0 ? 'inline-flex' : 'none';
-                    }
-                    const statEl = document.getElementById('statPendingApprovals');
-                    if (statEl) statEl.textContent = s.total_pending_approvals;
+                        // Update KPI counters (direct set, no animation on poll)
+                        const kpiMap = {
+                            statTotalEmployees: s.total_employees,
+                            statPresentToday: s.present_today,
+                            statLateToday: s.late_today,
+                            statAbsentToday: s.absent_today,
+                            statPendingApprovals: s.total_pending_approvals
+                        };
+                        for (const [id, val] of Object.entries(kpiMap)) {
+                            const el = document.getElementById(id);
+                            if (el) el.textContent = val;
+                        }
 
-                    const regAlertBar = document.getElementById('pendingRegistrationsAlertBar');
-                    const regCountBadge = document.getElementById('pendingAlertCountBadge');
-                    const regDesc = document.getElementById('pendingAlertDescription');
-                    if (regAlertBar && currentPendingReg > 0) {
-                        regAlertBar.style.display = 'flex';
-                        if (regCountBadge) regCountBadge.textContent = `${currentPendingReg} Action${currentPendingReg === 1 ? '' : 's'} Required`;
-                        if (regDesc) regDesc.textContent = `${currentPendingReg} candidate registration${currentPendingReg === 1 ? '' : 's'} awaiting Administrator review & approval.`;
-                    } else if (regAlertBar) {
-                        regAlertBar.style.display = 'none';
+                        // Nav badge
+                        const navBadge = document.getElementById('navApprovalsCountBadge');
+                        if (navBadge) {
+                            navBadge.textContent = s.total_pending_approvals;
+                            navBadge.style.display = s.total_pending_approvals > 0 ? 'inline-flex' : 'none';
+                        }
+
+                        // Registration alert bar
+                        const regAlertBar = document.getElementById('pendingRegistrationsAlertBar');
+                        const regCountBadge = document.getElementById('pendingAlertCountBadge');
+                        const regDesc = document.getElementById('pendingAlertDescription');
+                        if (regAlertBar && currentPendingReg > 0) {
+                            regAlertBar.style.display = 'flex';
+                            if (regCountBadge) regCountBadge.textContent = `${currentPendingReg} Action${currentPendingReg === 1 ? '' : 's'} Required`;
+                            if (regDesc) regDesc.textContent = `${currentPendingReg} candidate registration${currentPendingReg === 1 ? '' : 's'} awaiting Administrator review & approval.`;
+                        } else if (regAlertBar) {
+                            regAlertBar.style.display = 'none';
+                        }
+
+                        // GPS link & attendance window header
+                        const activeGps = res.data.active_gps_link;
+                        const gpsAlert = document.getElementById('activeGpsLinkAlert');
+                        if (activeGps) {
+                            gpsAlert.style.display = 'flex';
+                            document.getElementById('gpsAlertTitle').textContent = activeGps.title;
+                            document.getElementById('gpsAlertTimer').textContent = `Expires at ${activeGps.expires_at} (${Math.round(activeGps.seconds_remaining / 60)} min remaining)`;
+                            document.getElementById('gpsUrlCopyInput').value = window.location.origin + window.location.pathname.replace('admin.html', '') + activeGps.url;
+                            document.getElementById('openGpsBtn').href = activeGps.url;
+                        } else if (gpsAlert) {
+                            gpsAlert.style.display = 'none';
+                        }
+
+                        if (res.data.active_attendance_window) {
+                            updateAdminWindowHeaderState(res.data.active_attendance_window);
+                        }
                     }
+
+                    // 2. Refresh all data tables silently
+                    await Promise.allSettled([
+                        loadPendingApprovals(),
+                        loadEmployees(),
+                        loadAttendanceLogs(),
+                        loadAdminLeaves(),
+                        loadAdminPayroll(),
+                        loadAdminHolidays(),
+                        loadAdminLogs(),
+                        loadAttendanceMap(),
+                        loadInventoryData()
+                    ]);
+                } catch (e) {
+                    // Silently ignore refresh errors to avoid spamming user
+                    console.warn('[Auto-Refresh] cycle error:', e);
+                } finally {
+                    _autoRefreshRunning = false;
                 }
-            }, 12000);
+            }, 3000);
         }
 
         function initTrendChart(chartData) {
@@ -1817,6 +2036,7 @@
                 email: document.getElementById('adminOnboardEmail').value.trim(),
                 phone: document.getElementById('adminOnboardPhone').value.trim(),
                 dob: document.getElementById('adminOnboardDob').value,
+                company: document.getElementById('adminOnboardCompany') ? document.getElementById('adminOnboardCompany').value : 'getting roots',
                 department: document.getElementById('adminOnboardDept').value,
                 job_profile: document.getElementById('adminOnboardJob').value.trim(),
                 date_of_joining: document.getElementById('adminOnboardDoj').value,
@@ -1842,23 +2062,69 @@
             }
         }
 
-        // Employee Directory
+        // Employee Directory & Candidate Filtering
         let allEmployeesCache = [];
 
+        function resetEmployeeFilters() {
+            if (document.getElementById('employeeSearchInput')) document.getElementById('employeeSearchInput').value = '';
+            if (document.getElementById('empFilterCompany')) document.getElementById('empFilterCompany').value = 'all';
+            if (document.getElementById('empFilterProfession')) document.getElementById('empFilterProfession').value = 'all';
+            if (document.getElementById('empFilterPresenceDate')) document.getElementById('empFilterPresenceDate').value = '';
+            if (document.getElementById('empFilterPresenceStatus')) document.getElementById('empFilterPresenceStatus').value = 'all';
+            loadEmployees();
+        }
+
         async function loadEmployees() {
-            const q = document.getElementById('employeeSearchInput').value.trim();
-            const res = await apiRequest(`admin.php?action=employees&search=${encodeURIComponent(q)}`);
+            const q = document.getElementById('employeeSearchInput') ? document.getElementById('employeeSearchInput').value.trim() : '';
+            const comp = document.getElementById('empFilterCompany') ? document.getElementById('empFilterCompany').value : 'all';
+            const prof = document.getElementById('empFilterProfession') ? document.getElementById('empFilterProfession').value : 'all';
+            const pDate = document.getElementById('empFilterPresenceDate') ? document.getElementById('empFilterPresenceDate').value : '';
+            const pStatus = document.getElementById('empFilterPresenceStatus') ? document.getElementById('empFilterPresenceStatus').value : 'all';
+
+            const params = new URLSearchParams();
+            if (q) params.append('search', q);
+            if (comp && comp !== 'all') params.append('company', comp);
+            if (prof && prof !== 'all') params.append('profession', prof);
+            if (pDate) params.append('presence_date', pDate);
+            if (pStatus && pStatus !== 'all') params.append('presence_status', pStatus);
+
+            const res = await apiRequest(`admin.php?action=employees&${params.toString()}`);
             const tbody = document.getElementById('employeesTableBody');
 
             if (res.ok && res.data.success) {
                 const emps = res.data.employees;
                 allEmployeesCache = emps;
                 if (emps.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">No matching employees found.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2.5rem;">No matching candidates found for the selected filters.</td></tr>';
                     return;
                 }
 
-                tbody.innerHTML = emps.map(emp => `
+                const companyColors = {
+                    'getting roots': { bg: 'rgba(79, 70, 229, 0.1)', color: '#4f46e5', border: 'rgba(79, 70, 229, 0.25)' },
+                    'torpedo learning': { bg: 'rgba(2, 132, 199, 0.1)', color: '#0284c7', border: 'rgba(2, 132, 199, 0.25)' },
+                    'torpedo lifestyle': { bg: 'rgba(217, 119, 6, 0.1)', color: '#d97706', border: 'rgba(217, 119, 6, 0.25)' },
+                    'project help globle': { bg: 'rgba(5, 150, 105, 0.1)', color: '#059669', border: 'rgba(5, 150, 105, 0.25)' },
+                    'others': { bg: 'rgba(100, 116, 139, 0.1)', color: '#64748b', border: 'rgba(100, 116, 139, 0.25)' }
+                };
+
+                tbody.innerHTML = emps.map(emp => {
+                    const compKey = (emp.company || 'getting roots').toLowerCase();
+                    const cStyle = companyColors[compKey] || companyColors['getting roots'];
+
+                    let presenceBadge = '';
+                    if (pDate) {
+                        if (emp.presence_status === 'present') {
+                            presenceBadge = `<div style="margin-top: 0.35rem;"><span class="badge badge-success" style="font-size: 0.72rem;">PRESENT (${emp.presence_check_in ? emp.presence_check_in.substring(0,5) : 'Logged'})</span></div>`;
+                        } else if (emp.presence_status === 'late') {
+                            presenceBadge = `<div style="margin-top: 0.35rem;"><span class="badge badge-warning" style="font-size: 0.72rem;">LATE (${emp.presence_check_in ? emp.presence_check_in.substring(0,5) : 'Logged'})</span></div>`;
+                        } else if (emp.presence_status === 'half_day') {
+                            presenceBadge = `<div style="margin-top: 0.35rem;"><span class="badge badge-info" style="font-size: 0.72rem;">HALF DAY</span></div>`;
+                        } else {
+                            presenceBadge = `<div style="margin-top: 0.35rem;"><span class="badge badge-danger" style="font-size: 0.72rem;">ABSENT</span></div>`;
+                        }
+                    }
+
+                    return `
                     <tr>
                         <td>
                             <div class="avatar-sm">
@@ -1868,6 +2134,12 @@
                         <td>
                             <strong>${emp.name}</strong>
                             <div style="font-size: 0.78rem; color: var(--text-muted);">${emp.email}</div>
+                        </td>
+                        <td>
+                            <span class="badge" style="background: ${cStyle.bg}; color: ${cStyle.color}; border: 1px solid ${cStyle.border}; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.3px;">
+                                ${escapeHtml(emp.company || 'getting roots')}
+                            </span>
+                            ${presenceBadge}
                         </td>
                         <td>
                             <div>${emp.department || 'Operations'}</div>
@@ -1888,7 +2160,10 @@
                         </td>
                         <td><span class="badge badge-${emp.status === 'active' ? 'success' : (emp.status === 'pending_approval' ? 'warning' : 'danger')}">${emp.status}</span></td>
                         <td>
-                            <div style="display: flex; gap: 0.4rem;">
+                            <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
+                                <button onclick="viewCandidateHistory(${emp.id})" class="btn btn-secondary btn-sm" title="View Full Candidate Profile & Attendance History" style="color: var(--primary); font-weight: 700; border-color: rgba(79,70,229,0.35); background: rgba(79,70,229,0.06); padding: 0.35rem 0.65rem;">
+                                    <i data-lucide="user-check" style="width: 14px;"></i> Logs
+                                </button>
                                 <button onclick="openAdminMarkForEmployee(${emp.id}, '${emp.name.replace(/'/g, "\\'")}')" class="btn btn-secondary btn-sm" title="Punch Attendance (Anytime)" style="color: #059669; border-color: #a7f3d0;">
                                     <i data-lucide="check-circle-2" style="width: 14px;"></i>
                                 </button>
@@ -1901,9 +2176,183 @@
                             </div>
                         </td>
                     </tr>
-                `).join('');
+                    `;
+                }).join('');
                 lucide.createIcons();
             }
+        }
+
+        // 1-Click Candidate Profile & Attendance History Modal
+        async function viewCandidateHistory(empId) {
+            playSound('click');
+            openModal('candidateHistoryModal');
+            const body = document.getElementById('candidateHistoryModalBody');
+            body.innerHTML = `
+                <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                    <i data-lucide="loader" class="spin" style="width: 32px; height: 32px; margin: 0 auto 0.75rem auto; color: var(--primary); display: block;"></i>
+                    <div style="font-weight: 600;">Loading candidate profile and complete attendance history...</div>
+                </div>
+            `;
+            lucide.createIcons();
+
+            const res = await apiRequest(`admin.php?action=candidate_summary&id=${empId}`);
+            if (!res.ok || !res.data.success) {
+                body.innerHTML = `<div class="alert alert-danger" style="padding: 1.5rem;">Could not load candidate profile and attendance history.</div>`;
+                return;
+            }
+
+            const c = res.data.candidate;
+            const stats = res.data.stats;
+            const quota = res.data.quota || {};
+            const history = res.data.history || [];
+
+            document.getElementById('candHistModalTitle').textContent = `${c.name} - Profile & Logs`;
+            document.getElementById('candHistModalSubtitle').textContent = `Candidate ID: #TGC-${String(c.id).padStart(4, '0')} • ${c.company.toUpperCase()}`;
+
+            // Wire up CSV export button for this candidate
+            document.getElementById('btnExportCandHistCsv').onclick = function() {
+                exportCandidateLogsCsv(c.name, history);
+            };
+
+            const companyColors = {
+                'getting roots': '#4f46e5',
+                'torpedo learning': '#0284c7',
+                'torpedo lifestyle': '#d97706',
+                'project help globle': '#059669',
+                'others': '#64748b'
+            };
+            const compColor = companyColors[c.company.toLowerCase()] || '#4f46e5';
+
+            let historyRows = '';
+            if (history.length === 0) {
+                historyRows = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2.5rem;">No attendance records logged for this candidate yet.</td></tr>`;
+            } else {
+                historyRows = history.map(h => {
+                    const statusClass = h.status === 'present' ? 'success' : (h.status === 'late' ? 'warning' : (h.status === 'half_day' ? 'info' : 'danger'));
+                    const durationStr = h.duration ? h.duration.substring(0, 5) + ' hrs' : (h.check_in_time && !h.check_out_time ? 'Active Shift' : '-');
+                    const methodBadge = h.method === 'gps' ? '<span class="badge badge-secondary" style="font-size: 0.72rem;"><i data-lucide="map-pin" style="width: 10px;"></i> GPS</span>' : (h.method === 'admin' ? '<span class="badge badge-info" style="font-size: 0.72rem;"><i data-lucide="shield" style="width: 10px;"></i> Admin</span>' : '<span class="badge badge-primary" style="font-size: 0.72rem;"><i data-lucide="qr-code" style="width: 10px;"></i> QR</span>');
+                    return `
+                        <tr>
+                            <td><strong style="font-family: var(--font-mono);">${h.date}</strong></td>
+                            <td style="font-family: var(--font-mono); color: var(--success); font-weight: 700;">${h.check_in_time ? h.check_in_time.substring(0, 5) : '-'}</td>
+                            <td style="font-family: var(--font-mono); color: var(--secondary);">${h.check_out_time ? h.check_out_time.substring(0, 5) : '-'}</td>
+                            <td>${durationStr}</td>
+                            <td>${methodBadge}</td>
+                            <td><span class="badge badge-${statusClass}">${h.status.toUpperCase()}</span></td>
+                            <td style="font-size: 0.8rem; color: var(--text-muted); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${h.location_name || h.notes || ''}">
+                                ${h.location_name || h.notes || '-'}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            body.innerHTML = `
+                <!-- Candidate Bio Header -->
+                <div style="display: flex; gap: 1.25rem; align-items: center; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; flex-wrap: wrap;">
+                    <div style="width: 68px; height: 68px; border-radius: 50%; overflow: hidden; background: #e0e7ff; color: var(--primary); font-size: 1.7rem; font-weight: 800; display: flex; align-items: center; justify-content: center; border: 3px solid ${compColor}; flex-shrink: 0;">
+                        ${c.photo_url ? `<img src="${c.photo_url}" style="width: 100%; height: 100%; object-fit: cover;">` : c.name.charAt(0)}
+                    </div>
+                    <div style="flex: 1; min-width: 240px;">
+                        <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+                            <h2 style="font-size: 1.4rem; font-weight: 800; margin: 0;">${c.name}</h2>
+                            <span class="badge" style="background: ${compColor}15; color: ${compColor}; border: 1px solid ${compColor}40; font-weight: 800; text-transform: uppercase;">${c.company}</span>
+                            <span class="badge badge-${c.status === 'active' ? 'success' : (c.status === 'pending_approval' ? 'warning' : 'danger')}">${c.status.toUpperCase()}</span>
+                        </div>
+                        <div style="display: flex; gap: 1.25rem; font-size: 0.86rem; color: var(--text-muted); margin-top: 0.35rem; flex-wrap: wrap;">
+                            <div><i data-lucide="mail" style="width: 13px; vertical-align: middle;"></i> ${c.email}</div>
+                            <div><i data-lucide="phone" style="width: 13px; vertical-align: middle;"></i> ${c.phone || 'No phone'}</div>
+                            <div><i data-lucide="briefcase" style="width: 13px; vertical-align: middle;"></i> ${c.department || 'Operations'} (${c.job_profile || 'Staff'})</div>
+                        </div>
+                        <div style="display: flex; gap: 1.25rem; font-size: 0.82rem; color: var(--text-muted); margin-top: 0.25rem; flex-wrap: wrap;">
+                            <div><strong>DOJ:</strong> ${c.date_of_joining || '-'}</div>
+                            <div><strong>DOB:</strong> ${c.dob || '-'}</div>
+                            <div><strong>Monthly Base Salary:</strong> ₹${parseFloat(c.base_salary).toLocaleString()}</div>
+                            <div><strong>Address:</strong> ${c.address || '-'}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats Counters -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem;">
+                    <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: var(--radius-md); padding: 0.75rem; text-align: center;">
+                        <div style="font-size: 1.45rem; font-weight: 800; color: #059669;">${stats.present_days}</div>
+                        <div style="font-size: 0.75rem; font-weight: 700; color: #065f46; text-transform: uppercase;">Present Days</div>
+                    </div>
+                    <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-md); padding: 0.75rem; text-align: center;">
+                        <div style="font-size: 1.45rem; font-weight: 800; color: #d97706;">${stats.late_days}</div>
+                        <div style="font-size: 0.75rem; font-weight: 700; color: #92400e; text-transform: uppercase;">Late Check-ins</div>
+                    </div>
+                    <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-md); padding: 0.75rem; text-align: center;">
+                        <div style="font-size: 1.45rem; font-weight: 800; color: #2563eb;">${stats.half_days}</div>
+                        <div style="font-size: 0.75rem; font-weight: 700; color: #1e40af; text-transform: uppercase;">Half Days</div>
+                    </div>
+                    <div style="background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: var(--radius-md); padding: 0.75rem; text-align: center;">
+                        <div style="font-size: 1.45rem; font-weight: 800; color: #7c3aed;">${stats.approved_leave_days}</div>
+                        <div style="font-size: 0.75rem; font-weight: 700; color: #5b21b6; text-transform: uppercase;">Paid Leaves</div>
+                    </div>
+                    <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.75rem; text-align: center;">
+                        <div style="font-size: 1.45rem; font-weight: 800; color: var(--text-main);">${stats.total_punches}</div>
+                        <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Punches</div>
+                    </div>
+                </div>
+
+                <!-- Complete Attendance History Table -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
+                    <h4 style="font-size: 1.05rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 0.4rem;">
+                        <i data-lucide="calendar" style="width: 18px; color: var(--primary);"></i> Complete Verified Attendance Records (${history.length} logs)
+                    </h4>
+                </div>
+                <div class="table-responsive" style="max-height: 380px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+                    <table class="custom-table" style="margin-bottom: 0;">
+                        <thead>
+                            <tr style="position: sticky; top: 0; background: #fff; z-index: 2;">
+                                <th>Date</th>
+                                <th>Check In</th>
+                                <th>Check Out</th>
+                                <th>Duration</th>
+                                <th>Method</th>
+                                <th>Status</th>
+                                <th>Location / Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${historyRows}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        function exportCandidateLogsCsv(candidateName, history) {
+            if (!history || history.length === 0) {
+                showToast('No attendance records to export.', 'warning');
+                return;
+            }
+            let csv = '\uFEFFDate,Check-In Time,Check-Out Time,Duration,Method,Status,Location,Notes\n';
+            history.forEach(h => {
+                const date = h.date || '';
+                const cin = h.check_in_time || '';
+                const cout = h.check_out_time || '';
+                const dur = h.duration || '';
+                const method = h.method || '';
+                const status = h.status || '';
+                const loc = `"${(h.location_name || '').replace(/"/g, '""')}"`;
+                const notes = `"${(h.notes || '').replace(/"/g, '""')}"`;
+                csv += `${date},${cin},${cout},${dur},${method},${status},${loc},${notes}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const safeName = candidateName.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+            a.download = `attendance_logs_${safeName}_${new Date().toISOString().substring(0, 10)}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('Candidate attendance logs downloaded successfully!', 'success');
         }
 
         // Admin Direct Attendance Punch Handlers (Full Access Anytime)
@@ -2085,6 +2534,9 @@
             document.getElementById('editEmpDob').value = emp.dob || '';
             document.getElementById('editEmpDoj').value = emp.date_of_joining || '';
             document.getElementById('editEmpAddress').value = emp.address || '';
+            if (document.getElementById('editEmpCompany')) {
+                document.getElementById('editEmpCompany').value = emp.company || 'getting roots';
+            }
             document.getElementById('editEmpDepartment').value = emp.department || '';
             document.getElementById('editEmpJob').value = emp.job_profile || '';
             document.getElementById('editEmpSalary').value = emp.base_salary || 30000;
@@ -2104,6 +2556,7 @@
                 dob: document.getElementById('editEmpDob').value,
                 date_of_joining: document.getElementById('editEmpDoj').value,
                 address: document.getElementById('editEmpAddress').value.trim(),
+                company: document.getElementById('editEmpCompany') ? document.getElementById('editEmpCompany').value : 'getting roots',
                 department: document.getElementById('editEmpDepartment').value.trim(),
                 job_profile: document.getElementById('editEmpJob').value.trim(),
                 base_salary: parseFloat(document.getElementById('editEmpSalary').value),
@@ -2390,57 +2843,288 @@
             window.location.href = `api/payroll.php?action=export_csv&month=${m}&year=${y}`;
         }
 
+        function numberToWordsINR(num) {
+            const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
+            const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+            num = Math.round(parseFloat(num) || 0);
+            if (num === 0) return 'Rupees Zero Only';
+
+            function inWords(n) {
+                if (n < 20) return a[n];
+                const digit = n % 10;
+                if (n < 100) return b[Math.floor(n / 10)] + (digit ? ' ' + a[digit] : ' ');
+                if (n < 1000) return a[Math.floor(n / 100)] + 'Hundred ' + (n % 100 === 0 ? '' : 'and ' + inWords(n % 100));
+                return '';
+            }
+
+            let str = '';
+            const crore = Math.floor(num / 10000000);
+            num %= 10000000;
+            const lakh = Math.floor(num / 100000);
+            num %= 100000;
+            const thousand = Math.floor(num / 1000);
+            num %= 1000;
+            const remainder = num;
+
+            if (crore > 0) str += inWords(crore) + 'Crore ';
+            if (lakh > 0) str += inWords(lakh) + 'Lakh ';
+            if (thousand > 0) str += inWords(thousand) + 'Thousand ';
+            if (remainder > 0) str += inWords(remainder);
+
+            return 'Rupees ' + str.trim() + ' Only';
+        }
+
+        function printPayslip() {
+            window.print();
+        }
+
         async function viewAdminPayslip(id) {
             const res = await apiRequest(`payroll.php?action=slip&id=${id}`);
             if (res.ok && res.data.success) {
                 const p = res.data.payroll;
+                const companyName = (p.user_company || 'getting roots').toUpperCase();
+                const numDays = p.total_working_days || 30;
+                const dailyRate = parseFloat(p.daily_rate || 0).toFixed(2);
+                const baseSal = parseFloat(p.base_salary || 0);
+                const bonusSal = parseFloat(p.bonus_amount || 0);
+                const grossSal = baseSal + bonusSal;
+                const dedAmt = parseFloat(p.deduction_amount || 0);
+                const netSal = parseFloat(p.net_salary || 0);
+                const words = numberToWordsINR(netSal);
+                const voucherCode = `PAY-${p.year}${String(p.month).padStart(2, '0')}-${String(p.id).padStart(4, '0')}`;
+
                 document.getElementById('slipModalBody').innerHTML = `
-                    <div class="payslip-container" style="position: relative;">
-                        <div class="payslip-watermark">CONFIDENTIAL</div>
-                        <div class="payslip-header">
+                    <div class="payslip-container" style="position: relative; padding: 2rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b;">
+                        <div class="payslip-watermark" style="position: absolute; top: 48%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 5rem; font-weight: 900; color: rgba(15, 23, 42, 0.03); pointer-events: none; letter-spacing: 12px; z-index: 1;">CONFIDENTIAL</div>
+                        
+                        <!-- Corporate Header -->
+                        <div class="payslip-header" style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #4f46e5; padding-bottom: 1.25rem; margin-bottom: 1.5rem; position: relative; z-index: 2;">
                             <div>
-                                <div class="brand-badge" style="margin-bottom: 0.5rem; display: inline-block;">TGC CONNECT HRMS</div>
-                                <h2 style="font-size: 1.6rem; font-weight: 800;">SALARY STATEMENT & PAY VOUCHER</h2>
-                                <p style="font-size: 0.88rem; color: var(--text-muted);">Period: Month ${p.month}/${p.year} &bull; Authorized by Admin</p>
+                                <div style="display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(79, 70, 229, 0.1); color: #4f46e5; font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; padding: 0.25rem 0.65rem; border-radius: 6px; margin-bottom: 0.5rem;">
+                                    <span>${companyName}</span>
+                                </div>
+                                <h2 style="font-size: 1.5rem; font-weight: 900; margin: 0; color: #0f172a; letter-spacing: -0.02em;">SALARY STATEMENT & PAY VOUCHER</h2>
+                                <p style="font-size: 0.84rem; color: #64748b; margin: 0.25rem 0 0 0;">Pay Period: <strong>Month ${p.month}/${p.year}</strong> &bull; Voucher Ref: <code style="font-family: var(--font-mono); font-weight: 700; color: #4f46e5;">#${voucherCode}</code></p>
                             </div>
-                            <span class="badge badge-${p.status === 'paid' ? 'success' : 'warning'}" style="font-size: 0.95rem; padding: 0.4rem 0.9rem;">
-                                ${p.status.toUpperCase()}
-                            </span>
-                        </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; background: var(--bg-main); padding: 1.25rem; border-radius: var(--radius-md);">
-                            <div>
-                                <div><strong>Employee:</strong> ${p.user_name}</div>
-                                <div style="color: var(--text-muted); font-size: 0.88rem;">Email: ${p.user_email}</div>
-                                <div style="color: var(--text-muted); font-size: 0.88rem;">ID: #TGC-${String(p.user_id).padStart(4, '0')}</div>
-                            </div>
-                            <div>
-                                <div><strong>Department:</strong> ${p.user_dept || 'Operations'}</div>
-                                <div style="color: var(--text-muted); font-size: 0.88rem;">Profile: ${p.user_job || 'Staff'}</div>
+                            <div style="text-align: right;">
+                                <span class="badge badge-${p.status === 'paid' ? 'success' : 'warning'}" style="font-size: 0.92rem; padding: 0.4rem 0.85rem; font-weight: 800; letter-spacing: 0.04em;">
+                                    ${p.status.toUpperCase()}
+                                </span>
+                                <div style="font-size: 0.76rem; color: #94a3b8; margin-top: 0.35rem;">Generated: ${new Date(p.created_at || Date.now()).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
                             </div>
                         </div>
-                        <table class="payslip-table">
+
+                        <!-- Candidate & Entity Details Grid -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; background: #f8fafc; padding: 1.2rem; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 1.25rem; font-size: 0.88rem; position: relative; z-index: 2;">
+                            <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+                                <div><span style="color: #64748b;">Candidate Name:</span> <strong style="color: #0f172a; font-size: 0.96rem;">${p.user_name}</strong></div>
+                                <div><span style="color: #64748b;">Candidate Code:</span> <strong style="font-family: var(--font-mono); color: #4f46e5;">#TGC-${String(p.user_id).padStart(4, '0')}</strong></div>
+                                <div><span style="color: #64748b;">Official Email:</span> <span>${p.user_email}</span></div>
+                                <div><span style="color: #64748b;">Profession / Designation:</span> <strong>${p.user_job || 'Staff'}</strong></div>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+                                <div><span style="color: #64748b;">Company / Entity:</span> <strong style="color: #4f46e5;">${companyName}</strong></div>
+                                <div><span style="color: #64748b;">Department:</span> <strong>${p.user_dept || 'General'}</strong></div>
+                                <div><span style="color: #64748b;">Payment Method:</span> <span>${p.payment_mode || 'Bank Transfer'}</span></div>
+                                <div><span style="color: #64748b;">Disbursal Date:</span> <span>${p.paid_at || 'Pending Final Authorization'}</span></div>
+                            </div>
+                        </div>
+
+                        <!-- 30/31-Day Calculation Basis Banner -->
+                        <div style="background: rgba(79, 70, 229, 0.05); border: 1px solid rgba(79, 70, 229, 0.2); border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.82rem; color: #3730a3; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; position: relative; z-index: 2;">
+                            <div>
+                                <strong>Calendar Day Rate Policy:</strong> Total Month Days = <strong>${numDays} Days</strong> &bull; 
+                                Daily Rate = ₹${baseSal.toLocaleString()} &divide; ${numDays} = <strong>₹${dailyRate}/day</strong>
+                            </div>
+                            <div>
+                                Present + Paid Leaves: <strong>${(p.present_days || 0) + (p.paid_leave_days || 0)} Days</strong> &bull; 
+                                Absent Days: <strong style="color: #e11d48;">${p.unpaid_days || 0} Day(s)</strong>
+                            </div>
+                        </div>
+
+                        <!-- Itemized Earnings & Deductions Table -->
+                        <table class="payslip-table" style="width: 100%; border-collapse: collapse; margin-bottom: 1.25rem; font-size: 0.88rem; position: relative; z-index: 2;">
                             <thead>
-                                <tr><th>Earnings</th><th style="text-align: right;">Amount</th><th>Deductions</th><th style="text-align: right;">Amount</th></tr>
+                                <tr style="background: #0f172a; color: #ffffff;">
+                                    <th style="padding: 0.75rem 1rem; text-align: left; width: 32%;">Earnings Component</th>
+                                    <th style="padding: 0.75rem 1rem; text-align: right; width: 18%;">Amount (INR)</th>
+                                    <th style="padding: 0.75rem 1rem; text-align: left; width: 32%;">Deductions Component</th>
+                                    <th style="padding: 0.75rem 1rem; text-align: right; width: 18%;">Amount (INR)</th>
+                                </tr>
                             </thead>
                             <tbody>
-                                <tr>
-                                    <td>Base Salary</td><td style="text-align: right; font-weight: 700;">₹${parseFloat(p.base_salary).toLocaleString()}</td>
-                                    <td>Absent Days: ${p.unpaid_days} d</td><td style="text-align: right; color: var(--danger); font-weight: 700;">-₹${parseFloat(p.deduction_amount).toLocaleString()}</td>
+                                <tr style="border-bottom: 1px solid #e2e8f0;">
+                                    <td style="padding: 0.75rem 1rem;"><strong>Base Monthly Salary</strong><br><small style="color: #64748b;">Contracted package</small></td>
+                                    <td style="padding: 0.75rem 1rem; text-align: right; font-weight: 700; font-family: var(--font-mono);">₹${baseSal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td style="padding: 0.75rem 1rem;">
+                                        <strong>Absent / Unpaid Days</strong><br>
+                                        <small style="color: #e11d48;">${p.unpaid_days} day(s) &times; ₹${dailyRate}/d</small>
+                                    </td>
+                                    <td style="padding: 0.75rem 1rem; text-align: right; font-weight: 700; color: #e11d48; font-family: var(--font-mono);">${dedAmt > 0 ? '-₹' + dedAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '₹0.00'}</td>
                                 </tr>
-                                <tr>
-                                    <td>Working Days: ${p.total_working_days} d</td><td>-</td>
-                                    <td>Daily Rate</td><td style="text-align: right;">₹${parseFloat(p.daily_rate).toFixed(2)}/d</td>
+                                <tr style="border-bottom: 1px solid #e2e8f0;">
+                                    <td style="padding: 0.75rem 1rem;"><strong>Incentives & Performance Bonus</strong></td>
+                                    <td style="padding: 0.75rem 1rem; text-align: right; font-weight: 700; font-family: var(--font-mono);">₹${bonusSal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td style="padding: 0.75rem 1rem;"><strong>Statutory & Other Deductions</strong></td>
+                                    <td style="padding: 0.75rem 1rem; text-align: right; font-family: var(--font-mono);">₹0.00</td>
                                 </tr>
-                                <tr style="background: #f8fafc; font-size: 1.15rem; font-weight: 800;">
-                                    <td>Total</td><td style="text-align: right;">₹${parseFloat(p.base_salary).toLocaleString()}</td>
-                                    <td style="color: var(--success);">NET PAYABLE</td>
-                                    <td style="text-align: right; color: var(--success); font-size: 1.35rem; font-family: var(--font-mono);">₹${parseFloat(p.net_salary).toLocaleString()}</td>
+                                <tr style="background: #f1f5f9; font-weight: 700;">
+                                    <td style="padding: 0.75rem 1rem;">Gross Earnings</td>
+                                    <td style="padding: 0.75rem 1rem; text-align: right; font-family: var(--font-mono);">₹${grossSal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td style="padding: 0.75rem 1rem;">Total Deductions</td>
+                                    <td style="padding: 0.75rem 1rem; text-align: right; color: #e11d48; font-family: var(--font-mono);">${dedAmt > 0 ? '-₹' + dedAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '₹0.00'}</td>
+                                </tr>
+                                <tr style="background: #ecfdf5; border-top: 2px solid #10b981; border-bottom: 2px solid #10b981;">
+                                    <td colspan="2" style="padding: 1rem; font-size: 1.1rem; font-weight: 800; color: #065f46;">
+                                        NET TAKE-HOME PAYABLE
+                                    </td>
+                                    <td colspan="2" style="padding: 1rem; text-align: right; font-size: 1.45rem; font-weight: 900; color: #059669; font-family: var(--font-mono);">
+                                        ₹${netSal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
+
+                        <!-- Net in Words & Remarks -->
+                        <div style="margin-bottom: 1.5rem; padding: 0.85rem 1rem; background: #f8fafc; border-left: 4px solid #10b981; border-radius: 4px; font-size: 0.86rem; position: relative; z-index: 2;">
+                            <div><span style="color: #64748b; font-weight: 600;">Net Amount in Words:</span> <strong style="color: #0f172a; text-transform: uppercase;">${words}</strong></div>
+                            ${p.remarks ? `<div style="margin-top: 0.35rem; color: #64748b; font-size: 0.8rem;">Note: ${p.remarks}</div>` : ''}
+                        </div>
+
+                        <!-- Signatures & Verification Stamp -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px dashed #cbd5e1; position: relative; z-index: 2;">
+                            <div style="text-align: center;">
+                                <div style="height: 48px; border-bottom: 1px solid #94a3b8; width: 75%; margin: 0 auto;"></div>
+                                <div style="font-size: 0.82rem; font-weight: 700; color: #475569; margin-top: 0.4rem;">Employee Signature</div>
+                                <div style="font-size: 0.74rem; color: #94a3b8;">${p.user_name}</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="height: 48px; border-bottom: 1px solid #94a3b8; width: 75%; margin: 0 auto; display: flex; align-items: flex-end; justify-content: center;">
+                                    <span style="font-family: 'Brush Script MT', cursive, sans-serif; font-size: 1.4rem; color: #4f46e5;">Authorized Payroll Dept</span>
+                                </div>
+                                <div style="font-size: 0.82rem; font-weight: 700; color: #475569; margin-top: 0.4rem;">Authorized Signatory & Seal</div>
+                                <div style="font-size: 0.74rem; color: #94a3b8;">For ${companyName}</div>
+                            </div>
+                        </div>
+
+                        <div style="text-align: center; margin-top: 1.5rem; font-size: 0.72rem; color: #94a3b8;">
+                            This is an electronically generated salary voucher under TGC Connect HRMS. No physical signature is required. Confidential.
+                        </div>
                     </div>
                 `;
                 openModal('viewSlipModal');
+            } else {
+                showToast(res.data?.message || 'Could not load payslip details', 'error');
+            }
+        }
+
+        // Academic Calendar & Holidays Export / Import
+        function exportHolidaysCsv() {
+            window.location.href = 'api/leave.php?action=export_holidays_csv';
+        }
+
+        function openImportHolidaysModal() {
+            const fileInput = document.getElementById('importHolidaysFileInput');
+            const textarea = document.getElementById('importHolidaysTextarea');
+            const preview = document.getElementById('importHolidaysPreview');
+            if (fileInput) fileInput.value = '';
+            if (textarea) textarea.value = '';
+            if (preview) {
+                preview.style.display = 'none';
+                preview.innerHTML = '';
+            }
+            openModal('importHolidaysModal');
+        }
+
+        function downloadAcademicCalendarSample() {
+            const sampleContent = 'Title,Date,Type,Description\r\n' +
+                'New Year Celebration,2026-01-01,festival,New Year Day Holiday\r\n' +
+                'Republic Day,2026-01-26,national,National celebration of the Constitution\r\n' +
+                'Holi Festival,2026-03-04,festival,Spring festival of colors\r\n' +
+                'Good Friday,2026-04-03,festival,Christian observance\r\n' +
+                'Independence Day,2026-08-15,national,Flag hoisting & national observance\r\n' +
+                'Gandhi Jayanti,2026-10-02,national,Birth anniversary of Mahatma Gandhi\r\n' +
+                'Diwali (Deepavali),2026-11-08,festival,Festival of Lights\r\n' +
+                'Company Annual Day,2026-12-18,company,Corporate celebration';
+
+            const blob = new Blob([sampleContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'academic_calendar_sample.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function handleHolidayFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const content = evt.target.result;
+                const textarea = document.getElementById('importHolidaysTextarea');
+                if (textarea) textarea.value = content;
+
+                const lines = content.split(/\r\n|\n/).filter(l => l.trim().length > 0);
+                const preview = document.getElementById('importHolidaysPreview');
+                if (preview) {
+                    preview.style.display = 'block';
+                    preview.innerHTML = `<strong>Detected ${lines.length} lines (including header).</strong> First 3 rows:<br>` +
+                        lines.slice(0, 4).map(l => `<div>• ${l}</div>`).join('');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        async function handleImportHolidaysCsv(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmitImportHolidays');
+            const fileInput = document.getElementById('importHolidaysFileInput');
+            const textarea = document.getElementById('importHolidaysTextarea');
+            const csvText = textarea ? textarea.value.trim() : '';
+            const file = fileInput && fileInput.files[0];
+
+            if (!file && !csvText) {
+                showToast('Please select a CSV file or paste CSV content', 'warning');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="loader-2" class="spin" style="width: 15px;"></i> Processing...';
+            lucide.createIcons();
+
+            let res;
+            if (file) {
+                const formData = new FormData();
+                formData.append('csv_file', file);
+                try {
+                    const response = await fetch('api/leave.php?action=import_holidays_csv', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    res = { ok: response.ok, data: await response.json() };
+                } catch (err) {
+                    res = { ok: false, data: { message: err.message } };
+                }
+            } else {
+                res = await apiRequest('leave.php?action=import_holidays_csv', 'POST', { csv_content: csvText });
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i data-lucide="check" style="width: 15px;"></i> Upload & Assign Holidays';
+            lucide.createIcons();
+
+            if (res.ok && res.data.success) {
+                playSound('success');
+                showToast(res.data.message || 'Academic calendar imported successfully', 'success');
+                closeModal('importHolidaysModal');
+                loadAdminHolidays();
+            } else {
+                playSound('error');
+                showToast(res.data?.message || 'Failed to import academic calendar', 'error');
             }
         }
 

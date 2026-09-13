@@ -40,6 +40,15 @@ try {
         PDO::ATTR_EMULATE_PREPARES   => false,
         PDO::ATTR_TIMEOUT            => 5,
     ]);
+    // Ensure company column exists on users table (Idempotent Migration)
+    try {
+        $cols = $pdo->query("SHOW COLUMNS FROM `users` LIKE 'company'")->fetchAll();
+        if (empty($cols)) {
+            $pdo->exec("ALTER TABLE `users` ADD COLUMN `company` VARCHAR(100) DEFAULT 'getting roots' AFTER `department`");
+        }
+    } catch (Exception $e) {
+        // Silently skip if users table doesn't exist yet or already altered
+    }
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode([

@@ -170,27 +170,65 @@ switch ($action) {
     case 'employees':
         $search = trim($_GET['search'] ?? '');
         $statusFilter = trim($_GET['status'] ?? 'all');
+        $companyFilter = trim($_GET['company'] ?? 'all');
+        $professionFilter = trim($_GET['profession'] ?? ($_GET['department'] ?? 'all'));
+        $presenceDate = trim($_GET['presence_date'] ?? '');
+        $presenceStatus = trim($_GET['presence_status'] ?? 'all');
         $currentYear = (int) date('Y');
 
-        $sql = "
-            SELECT u.*, q.casual_leave_total, q.casual_leave_used, q.sick_leave_total, q.sick_leave_used, q.earned_leave_total, q.earned_leave_used
-            FROM users u
-            LEFT JOIN leave_quotas q ON u.id = q.user_id AND q.year = {$currentYear}
-            WHERE u.role = 'employee'
-        ";
+        $selectPresence = "";
+        $joinPresence = "";
         $params = [];
 
-        if ($statusFilter !== 'all') {
+        if (!empty($presenceDate) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $presenceDate)) {
+            $selectPresence = ", att.id as presence_att_id, att.status as presence_status, att.check_in_time as presence_check_in, att.check_out_time as presence_check_out, att.method as presence_method";
+            $joinPresence = " LEFT JOIN attendances att ON u.id = att.user_id AND att.date = ? ";
+            $params[] = $presenceDate;
+        }
+
+        $sql = "
+            SELECT u.*, q.casual_leave_total, q.casual_leave_used, q.sick_leave_total, q.sick_leave_used, q.earned_leave_total, q.earned_leave_used {$selectPresence}
+            FROM users u
+            LEFT JOIN leave_quotas q ON u.id = q.user_id AND q.year = {$currentYear}
+            {$joinPresence}
+            WHERE u.role = 'employee'
+        ";
+
+        if ($statusFilter !== 'all' && !empty($statusFilter)) {
             $sql .= " AND u.status = ?";
             $params[] = $statusFilter;
         }
 
+        if ($companyFilter !== 'all' && !empty($companyFilter)) {
+            $sql .= " AND LOWER(u.company) = LOWER(?)";
+            $params[] = $companyFilter;
+        }
+
+        if ($professionFilter !== 'all' && !empty($professionFilter)) {
+            $sql .= " AND (LOWER(u.department) = LOWER(?) OR LOWER(u.job_profile) LIKE LOWER(?))";
+            $params[] = $professionFilter;
+            $params[] = "%{$professionFilter}%";
+        }
+
         if ($search) {
-            $sql .= " AND (u.name LIKE ? OR u.email LIKE ? OR u.department LIKE ? OR u.job_profile LIKE ?)";
+            $sql .= " AND (u.name LIKE ? OR u.email LIKE ? OR u.department LIKE ? OR u.job_profile LIKE ? OR u.phone LIKE ?)";
             $params[] = "%{$search}%";
             $params[] = "%{$search}%";
             $params[] = "%{$search}%";
             $params[] = "%{$search}%";
+            $params[] = "%{$search}%";
+        }
+
+        if (!empty($presenceDate) && $presenceStatus !== 'all' && !empty($presenceStatus)) {
+            if ($presenceStatus === 'present') {
+                $sql .= " AND att.status IN ('present', 'late', 'half_day')";
+            } elseif ($presenceStatus === 'absent') {
+                $sql .= " AND (att.id IS NULL OR att.status = 'absent')";
+            } elseif ($presenceStatus === 'late') {
+                $sql .= " AND att.status = 'late'";
+            } elseif ($presenceStatus === 'half_day') {
+                $sql .= " AND att.status = 'half_day'";
+            }
         }
 
         $sql .= " ORDER BY CASE WHEN u.status = 'pending_approval' THEN 0 ELSE 1 END, u.name ASC";
@@ -201,9 +239,18 @@ switch ($action) {
 
         foreach ($employees as &$emp) {
             $emp['photo_url'] = $emp['photo_path'] ? 'uploads/' . $emp['photo_path'] : null;
+            $emp['company'] = !empty($emp['company']) ? $emp['company'] : 'getting roots';
         }
 
-        sendResponse(true, ['employees' => $employees]);
+        sendResponse(true, [
+            'employees' => $employees,
+            'filters_applied' => [
+                'company' => $companyFilter,
+                'profession' => $professionFilter,
+                'presence_date' => $presenceDate,
+                'presence_status' => $presenceStatus,
+            ]
+        ]);
         break;
 
     case 'admin_register':
@@ -212,6 +259,7 @@ switch ($action) {
         $phone = trim($input['phone'] ?? '');
         $dob = !empty($input['dob']) ? trim($input['dob']) : null;
         $address = trim($input['address'] ?? '');
+        $company = trim($input['company'] ?? 'getting roots');
         $department = trim($input['department'] ?? 'General Operations');
         $job_profile = trim($input['job_profile'] ?? 'Team Member');
         $doj = !empty($input['date_of_joining']) ? trim($input['date_of_joining']) : date('Y-m-d');
@@ -235,10 +283,10 @@ switch ($action) {
         $hashedPass = password_hash($tempPassword, PASSWORD_DEFAULT);
 
         $stmt = $pdo->prepare("
-            INSERT INTO users (name, email, password, phone, dob, address, department, job_profile, date_of_joining, role, status, base_salary, first_login_required)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'employee', 'active', ?, ?)
+            INSERT INTO users (name, email, password, phone, dob, address, company, department, job_profile, date_of_joining, role, status, base_salary, first_login_required)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'employee', 'active', ?, ?)
         ");
-        $stmt->execute([$name, $email, $hashedPass, $phone, $dob, $address, $department, $job_profile, $doj, $baseSalary, $firstLoginRequired]);
+        $stmt->execute([$name, $email, $hashedPass, $phone, $dob, $address, $company, $department, $job_profile, $doj, $baseSalary, $firstLoginRequired]);
         $newId = $pdo->lastInsertId();
 
         // Initialize Leave Quota (12 CL, 12 SL, 12 EL = 1 per month in 1-year cycle)
@@ -349,7 +397,7 @@ switch ($action) {
         if ($decision === 'approve') {
             $changes = json_decode($req['changes_json'], true) ?: [];
             if (!empty($changes)) {
-                $allowed = ['phone', 'dob', 'address', 'department', 'job_profile'];
+                $allowed = ['phone', 'dob', 'address', 'company', 'department', 'job_profile'];
                 $sets = [];
                 $params = [];
                 foreach ($changes as $key => $val) {
@@ -385,6 +433,7 @@ switch ($action) {
         $dob = !empty($input['dob']) ? trim($input['dob']) : null;
         $doj = !empty($input['date_of_joining']) ? trim($input['date_of_joining']) : null;
         $address = trim($input['address'] ?? '');
+        $company = trim($input['company'] ?? '');
         $department = trim($input['department'] ?? '');
         $job_profile = trim($input['job_profile'] ?? '');
         $baseSalary = floatval($input['base_salary'] ?? 30000.00);
@@ -400,19 +449,19 @@ switch ($action) {
             $hashed = password_hash($newPassword, PASSWORD_DEFAULT);
             $stmt = $pdo->prepare("
                 UPDATE users
-                SET name = ?, email = ?, phone = ?, dob = ?, address = ?, department = ?, job_profile = ?, 
+                SET name = ?, email = ?, phone = ?, dob = ?, address = ?, company = COALESCE(NULLIF(?, ''), company), department = ?, job_profile = ?, 
                     date_of_joining = COALESCE(?, date_of_joining), base_salary = ?, status = ?, password = ?
                 WHERE id = ?
             ");
-            $stmt->execute([$name, $email, $phone, $dob, $address, $department, $job_profile, $doj, $baseSalary, $status, $hashed, $id]);
+            $stmt->execute([$name, $email, $phone, $dob, $address, $company, $department, $job_profile, $doj, $baseSalary, $status, $hashed, $id]);
         } else {
             $stmt = $pdo->prepare("
                 UPDATE users
-                SET name = ?, email = ?, phone = ?, dob = ?, address = ?, department = ?, job_profile = ?, 
+                SET name = ?, email = ?, phone = ?, dob = ?, address = ?, company = COALESCE(NULLIF(?, ''), company), department = ?, job_profile = ?, 
                     date_of_joining = COALESCE(?, date_of_joining), base_salary = ?, status = ?
                 WHERE id = ?
             ");
-            $stmt->execute([$name, $email, $phone, $dob, $address, $department, $job_profile, $doj, $baseSalary, $status, $id]);
+            $stmt->execute([$name, $email, $phone, $dob, $address, $company, $department, $job_profile, $doj, $baseSalary, $status, $id]);
         }
 
         if ($firstLogin !== null) {
@@ -468,6 +517,70 @@ switch ($action) {
         logAdminAction($pdo, $user['id'], 'delete_employee', $id, "Removed employee {$targetName}.");
 
         sendResponse(true, ['message' => 'Employee removed.']);
+        break;
+
+    case 'candidate_summary':
+        $empId = intval($_GET['id'] ?? ($input['id'] ?? 0));
+        if (!$empId) {
+            sendResponse(false, ['message' => 'Candidate ID is required.'], 400);
+        }
+
+        $stmtU = $pdo->prepare("SELECT id, name, email, phone, dob, address, company, department, job_profile, date_of_joining, photo_path, role, status, base_salary, created_at FROM users WHERE id = ?");
+        $stmtU->execute([$empId]);
+        $candidate = $stmtU->fetch();
+
+        if (!$candidate) {
+            sendResponse(false, ['message' => 'Candidate not found.'], 404);
+        }
+
+        $candidate['photo_url'] = $candidate['photo_path'] ? 'uploads/' . $candidate['photo_path'] : null;
+        $candidate['company'] = !empty($candidate['company']) ? $candidate['company'] : 'getting roots';
+
+        // Leave quota for current year
+        $currentYear = (int) date('Y');
+        $stmtQ = $pdo->prepare("SELECT * FROM leave_quotas WHERE user_id = ? AND year = ?");
+        $stmtQ->execute([$empId, $currentYear]);
+        $quota = $stmtQ->fetch();
+
+        // Complete Attendance History
+        $stmtH = $pdo->prepare("
+            SELECT id, date, check_in_time, check_out_time, method, latitude, longitude,
+                   location_name, ip_address, status, notes, created_at,
+                   TIMEDIFF(check_out_time, check_in_time) as duration
+            FROM attendances
+            WHERE user_id = ?
+            ORDER BY date DESC, check_in_time DESC
+        ");
+        $stmtH->execute([$empId]);
+        $history = $stmtH->fetchAll();
+
+        // Attendance stats aggregation
+        $totalPresent = 0;
+        $totalLate = 0;
+        $totalHalfDay = 0;
+        foreach ($history as $h) {
+            if ($h['status'] === 'present') $totalPresent++;
+            elseif ($h['status'] === 'late') $totalLate++;
+            elseif ($h['status'] === 'half_day') $totalHalfDay++;
+        }
+
+        // Approved leaves
+        $stmtL = $pdo->prepare("SELECT COUNT(*) as count, COALESCE(SUM(total_days), 0) as days FROM leaves WHERE user_id = ? AND status = 'approved'");
+        $stmtL->execute([$empId]);
+        $leavesRow = $stmtL->fetch();
+
+        sendResponse(true, [
+            'candidate' => $candidate,
+            'quota' => $quota,
+            'stats' => [
+                'total_punches' => count($history),
+                'present_days' => $totalPresent,
+                'late_days' => $totalLate,
+                'half_days' => $totalHalfDay,
+                'approved_leave_days' => (float) $leavesRow['days'],
+            ],
+            'history' => $history
+        ]);
         break;
 
     case 'logs':

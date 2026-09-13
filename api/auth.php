@@ -69,6 +69,7 @@ switch ($action) {
         $phone = trim($input['phone'] ?? '');
         $dob = !empty($input['dob']) ? trim($input['dob']) : null;
         $address = trim($input['address'] ?? '');
+        $company = trim($input['company'] ?? 'getting roots');
         $department = trim($input['department'] ?? '');
         $job_profile = trim($input['job_profile'] ?? '');
         $date_of_joining = !empty($input['date_of_joining']) ? trim($input['date_of_joining']) : date('Y-m-d');
@@ -104,10 +105,10 @@ switch ($action) {
 
         // Self-registration is saved with status 'pending_approval'
         $stmt = $pdo->prepare("
-            INSERT INTO users (name, email, password, phone, dob, address, department, job_profile, date_of_joining, photo_path, role, status, base_salary, first_login_required)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'employee', 'pending_approval', ?, 0)
+            INSERT INTO users (name, email, password, phone, dob, address, company, department, job_profile, date_of_joining, photo_path, role, status, base_salary, first_login_required)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'employee', 'pending_approval', ?, 0)
         ");
-        $stmt->execute([$name, $email, $hashedPass, $phone, $dob, $address, $department, $job_profile, $date_of_joining, $photoFileName, $baseSalary]);
+        $stmt->execute([$name, $email, $hashedPass, $phone, $dob, $address, $company, $department, $job_profile, $date_of_joining, $photoFileName, $baseSalary]);
         $newUserId = $pdo->lastInsertId();
 
         // Audit Log
@@ -187,7 +188,7 @@ switch ($action) {
         }
 
         // Allowed fields for employee profile update
-        $allowed = ['phone', 'dob', 'address', 'department', 'job_profile'];
+        $allowed = ['phone', 'dob', 'address', 'company', 'department', 'job_profile'];
         $filteredChanges = [];
         foreach ($allowed as $field) {
             if (isset($changes[$field]) && $changes[$field] !== ($user[$field] ?? '')) {
@@ -237,6 +238,7 @@ switch ($action) {
                 'phone' => $user['phone'],
                 'dob' => $user['dob'] ?? '',
                 'address' => $user['address'] ?? '',
+                'company' => $user['company'] ?? 'getting roots',
                 'department' => $user['department'],
                 'job_profile' => $user['job_profile'],
                 'date_of_joining' => $user['date_of_joining'],

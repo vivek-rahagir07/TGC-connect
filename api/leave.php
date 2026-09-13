@@ -354,6 +354,120 @@ switch ($action) {
         sendResponse(true, ['message' => 'Holiday removed successfully.']);
         break;
 
+    case 'export_holidays_csv':
+        $user = getCurrentUser($pdo);
+        if (!$user || $user['role'] !== 'admin') {
+            sendResponse(false, ['message' => 'Unauthorized. Admin privileges required.'], 403);
+        }
+
+        $year = intval($_GET['year'] ?? date('Y'));
+        $stmt = $pdo->prepare("SELECT title, holiday_date, type, description FROM holidays ORDER BY holiday_date ASC");
+        $stmt->execute();
+        $holidays = $stmt->fetchAll();
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header("Content-Disposition: attachment; filename=academic_calendar_holidays_{$year}.csv");
+        $fp = fopen('php://output', 'w');
+        // UTF-8 BOM for Excel compatibility
+        fprintf($fp, chr(0xEF).chr(0xBB).chr(0xBF));
+        fputcsv($fp, ['Holiday Name', 'Date (YYYY-MM-DD)', 'Type', 'Description'], ',', '"', "\\");
+
+        foreach ($holidays as $h) {
+            fputcsv($fp, [
+                $h['title'],
+                $h['holiday_date'],
+                $h['type'],
+                $h['description'] ?: ''
+            ], ',', '"', "\\");
+        }
+        fclose($fp);
+        exit;
+
+    case 'import_holidays_csv':
+        $user = getCurrentUser($pdo);
+        if (!$user || $user['role'] !== 'admin') {
+            sendResponse(false, ['message' => 'Unauthorized. Admin privileges required.'], 403);
+        }
+
+        $csvText = '';
+        if (!empty($_FILES['file']['tmp_name'])) {
+            $csvText = file_get_contents($_FILES['file']['tmp_name']);
+        } elseif (!empty($input['csv_content'])) {
+            $csvText = $input['csv_content'];
+        }
+
+        if (empty($csvText)) {
+            sendResponse(false, ['message' => 'No CSV file or data provided.'], 400);
+        }
+
+        // Parse CSV text
+        $lines = preg_split("/\r\n|\n|\r/", trim($csvText));
+        if (empty($lines)) {
+            sendResponse(false, ['message' => 'CSV file is empty.'], 400);
+        }
+
+        $imported = 0;
+        $skipped = 0;
+        $stmtUpsert = $pdo->prepare("
+            INSERT INTO holidays (title, holiday_date, type, description)
+            VALUES (?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE title = VALUES(title), type = VALUES(type), description = VALUES(description)
+        ");
+
+        $isFirst = true;
+        foreach ($lines as $line) {
+            $row = str_getcsv($line, ',', '"', '\\');
+            if (empty($row) || count($row) < 2) continue;
+
+            // Skip header line if detected
+            if ($isFirst) {
+                $isFirst = false;
+                $col0 = strtolower(trim($row[0]));
+                $col1 = strtolower(trim($row[1]));
+                if (str_contains($col0, 'holiday') || str_contains($col0, 'name') || str_contains($col1, 'date')) {
+                    continue;
+                }
+            }
+
+            $rawTitle = trim($row[0] ?? '');
+            $rawDate  = trim($row[1] ?? '');
+            $rawType  = strtolower(trim($row[2] ?? 'company'));
+            $rawDesc  = trim($row[3] ?? '');
+
+            if (empty($rawTitle) || empty($rawDate)) {
+                $skipped++;
+                continue;
+            }
+
+            // Normalize Date to YYYY-MM-DD
+            $time = strtotime($rawDate);
+            if (!$time) {
+                $skipped++;
+                continue;
+            }
+            $cleanDate = date('Y-m-d', $time);
+
+            // Allowed holiday types
+            $allowedTypes = ['national', 'festival', 'company'];
+            $cleanType = in_array($rawType, $allowedTypes) ? $rawType : 'company';
+
+            try {
+                $stmtUpsert->execute([$rawTitle, $cleanDate, $cleanType, $rawDesc]);
+                $imported++;
+            } catch (Exception $e) {
+                $skipped++;
+            }
+        }
+
+        logAdminAction($pdo, $user['id'], 'import_holidays_csv', null, "Bulk imported {$imported} holidays into academic calendar via CSV.");
+
+        sendResponse(true, [
+            'message' => "Successfully imported {$imported} holiday(s) into academic calendar." . ($skipped > 0 ? " ({$skipped} skipped due to invalid date/title)" : ""),
+            'imported_count' => $imported,
+            'skipped_count' => $skipped
+        ]);
+        break;
+
     default:
         sendResponse(false, ['message' => 'Invalid leave action.'], 400);
         break;

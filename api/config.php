@@ -28,10 +28,15 @@ $defaultConfig = [
     // Attendance Notification Settings
     'notifications' => [
         'admin_whatsapp'         => '+91 87430 88888',
-        'admin_email'            => 'Tgcconnectglobal@gmail.com',
-        'company_name'           => 'TGCConnect Team',
+        'admin_email'            => 'tgcconnectglobal@gmail.com',
+        'company_name'           => 'TGC Connect',
         'send_whatsapp'          => true,
         'send_email'             => true,
+        // Gmail SMTP Settings (required for email delivery)
+        'smtp_host'              => 'smtp.gmail.com',
+        'smtp_port'              => 587,
+        'smtp_user'              => 'tgcconnectglobal@gmail.com',
+        'smtp_password'          => getenv('SMTP_PASSWORD') ?: '',  // Google App Password — generate at https://myaccount.google.com/apppasswords
         // Optional webhook or automated gateway integration (UltraMsg / Twilio / Meta / Webhook)
         'whatsapp_provider'      => getenv('WHATSAPP_PROVIDER') ?: 'direct',
         'whatsapp_gateway_url'   => getenv('WHATSAPP_GATEWAY_URL') ?: '',

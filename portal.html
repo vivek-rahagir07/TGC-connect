@@ -302,6 +302,16 @@
                         Changes to employee profile records require Admin oversight and verification before becoming active.
                     </p>
                     <div class="form-group">
+                        <label class="form-label">Company / Organization</label>
+                        <select id="editProfileCompany" class="form-control">
+                            <option value="getting roots">getting roots</option>
+                            <option value="torpedo learning">torpedo learning</option>
+                            <option value="torpedo lifestyle">torpedo lifestyle</option>
+                            <option value="project help globle">project help globle</option>
+                            <option value="others">others</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label class="form-label">Contact Phone</label>
                         <input type="tel" id="editProfilePhone" class="form-control" required>
                     </div>
@@ -368,9 +378,9 @@
 
     <!-- 4. Printable Payslip Statement Modal -->
     <div class="modal-overlay" id="viewSlipModal">
-        <div class="modal-content" style="max-width: 760px;">
+        <div class="modal-content" style="max-width: 840px;">
             <div class="modal-header">
-                <h3 style="font-size: 1.25rem; font-weight: 800;">Employee Payslip Statement</h3>
+                <h3 style="font-size: 1.25rem; font-weight: 800;">Official Payslip Statement</h3>
                 <button class="close-btn" onclick="closeModal('viewSlipModal')">&times;</button>
             </div>
             <div class="modal-body" id="slipModalBody"></div>
@@ -402,6 +412,28 @@
             loadRecentLeaves();
             loadAttendanceHistory();
             loadSalarySlips();
+            loadMyItems();
+
+            // ── Live Auto-Refresh (every 3 seconds) ──────────────────────
+            let _portalRefreshing = false;
+            setInterval(async () => {
+                if (_portalRefreshing) return;
+                _portalRefreshing = true;
+                try {
+                    await Promise.allSettled([
+                        loadTodayAttendance(),
+                        loadLeaveQuotas(),
+                        loadRecentLeaves(),
+                        loadAttendanceHistory(),
+                        loadSalarySlips(),
+                        loadMyItems()
+                    ]);
+                } catch (e) {
+                    console.warn('[Portal Auto-Refresh] error:', e);
+                } finally {
+                    _portalRefreshing = false;
+                }
+            }, 3000);
         });
 
         async function loadUserProfile() {
@@ -415,7 +447,8 @@
             currentUserData = u;
 
             document.getElementById('userNameHeading').textContent = `Welcome, ${u.name}`;
-            document.getElementById('userDeptProfile').textContent = `${u.department || 'General'} • ${u.job_profile || 'Staff'}`;
+            const companyDisplay = u.company ? u.company.toUpperCase() : 'GETTING ROOTS';
+            document.getElementById('userDeptProfile').textContent = `${companyDisplay} • ${u.department || 'General'} • ${u.job_profile || 'Staff'}`;
             document.getElementById('userSubInfo').textContent = `Employee ID: #TGC-${String(u.id).padStart(4, '0')} • Base Salary: ₹${parseFloat(u.base_salary).toLocaleString()}/mo`;
 
             const avatarBox = document.getElementById('userAvatarBox');
@@ -656,6 +689,9 @@
 
         function openProfileEditModal() {
             if (currentUserData) {
+                if (document.getElementById('editProfileCompany')) {
+                    document.getElementById('editProfileCompany').value = currentUserData.company || 'getting roots';
+                }
                 document.getElementById('editProfilePhone').value = currentUserData.phone || '';
                 document.getElementById('editProfileDob').value = currentUserData.dob || '';
                 document.getElementById('editProfileAddress').value = currentUserData.address || '';
@@ -670,6 +706,7 @@
 
             const payload = {
                 changes: {
+                    company: document.getElementById('editProfileCompany') ? document.getElementById('editProfileCompany').value : '',
                     phone: document.getElementById('editProfilePhone').value.trim(),
                     dob: document.getElementById('editProfileDob').value,
                     address: document.getElementById('editProfileAddress').value.trim(),
@@ -813,92 +850,175 @@
             }
         }
 
+        function numberToWordsINR(num) {
+            const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
+            const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+            num = Math.round(parseFloat(num) || 0);
+            if (num === 0) return 'Rupees Zero Only';
+
+            function inWords(n) {
+                if (n < 20) return a[n];
+                const digit = n % 10;
+                if (n < 100) return b[Math.floor(n / 10)] + (digit ? ' ' + a[digit] : ' ');
+                if (n < 1000) return a[Math.floor(n / 100)] + 'Hundred ' + (n % 100 === 0 ? '' : 'and ' + inWords(n % 100));
+                return '';
+            }
+
+            let str = '';
+            const crore = Math.floor(num / 10000000);
+            num %= 10000000;
+            const lakh = Math.floor(num / 100000);
+            num %= 100000;
+            const thousand = Math.floor(num / 1000);
+            num %= 1000;
+            const remainder = num;
+
+            if (crore > 0) str += inWords(crore) + 'Crore ';
+            if (lakh > 0) str += inWords(lakh) + 'Lakh ';
+            if (thousand > 0) str += inWords(thousand) + 'Thousand ';
+            if (remainder > 0) str += inWords(remainder);
+
+            return 'Rupees ' + str.trim() + ' Only';
+        }
+
         async function viewPayslip(id) {
             const res = await apiRequest(`payroll.php?action=slip&id=${id}`);
             if (res.ok && res.data.success) {
                 const p = res.data.payroll;
+                const companyName = (p.user_company || 'getting roots').toUpperCase();
+                const numDays = p.total_working_days || 30;
+                const dailyRate = parseFloat(p.daily_rate || 0).toFixed(2);
+                const baseSal = parseFloat(p.base_salary || 0);
+                const bonusSal = parseFloat(p.bonus_amount || 0);
+                const grossSal = baseSal + bonusSal;
+                const dedAmt = parseFloat(p.deduction_amount || 0);
+                const netSal = parseFloat(p.net_salary || 0);
+                const words = numberToWordsINR(netSal);
+                const voucherCode = `PAY-${p.year}${String(p.month).padStart(2, '0')}-${String(p.id).padStart(4, '0')}`;
+
                 document.getElementById('slipModalBody').innerHTML = `
-                    <div class="payslip-container" style="position: relative;">
-                        <div class="payslip-watermark">CONFIDENTIAL</div>
+                    <div class="payslip-container" style="position: relative; padding: 2rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b;">
+                        <div class="payslip-watermark" style="position: absolute; top: 48%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 5rem; font-weight: 900; color: rgba(15, 23, 42, 0.03); pointer-events: none; letter-spacing: 12px; z-index: 1;">CONFIDENTIAL</div>
                         
-                        <div class="payslip-header">
+                        <!-- Corporate Header -->
+                        <div class="payslip-header" style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #4f46e5; padding-bottom: 1.25rem; margin-bottom: 1.5rem; position: relative; z-index: 2;">
                             <div>
-                                <div class="brand-badge" style="margin-bottom: 0.5rem; display: inline-block;">TGC CONNECT HRMS</div>
-                                <h2 style="font-size: 1.6rem; font-weight: 800; letter-spacing: -0.5px;">SALARY STATEMENT & PAY VOUCHER</h2>
-                                <p style="font-size: 0.88rem; color: var(--text-muted);">Pay Period: Month ${p.month} / ${p.year} • Official Corporate Document</p>
+                                <div style="display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(79, 70, 229, 0.1); color: #4f46e5; font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; padding: 0.25rem 0.65rem; border-radius: 6px; margin-bottom: 0.5rem;">
+                                    <span>${companyName}</span>
+                                </div>
+                                <h2 style="font-size: 1.5rem; font-weight: 900; margin: 0; color: #0f172a; letter-spacing: -0.02em;">SALARY STATEMENT & PAY VOUCHER</h2>
+                                <p style="font-size: 0.84rem; color: #64748b; margin: 0.25rem 0 0 0;">Pay Period: <strong>Month ${p.month}/${p.year}</strong> &bull; Voucher Ref: <code style="font-family: var(--font-mono); font-weight: 700; color: #4f46e5;">#${voucherCode}</code></p>
                             </div>
                             <div style="text-align: right;">
-                                <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted);">STATUS</div>
-                                <span class="badge badge-${p.status === 'paid' ? 'success' : 'warning'}" style="font-size: 0.9rem; padding: 0.4rem 0.9rem;">
+                                <span class="badge badge-${p.status === 'paid' ? 'success' : 'warning'}" style="font-size: 0.92rem; padding: 0.4rem 0.85rem; font-weight: 800; letter-spacing: 0.04em;">
                                     ${p.status.toUpperCase()}
                                 </span>
+                                <div style="font-size: 0.76rem; color: #94a3b8; margin-top: 0.35rem;">Generated: ${new Date(p.created_at || Date.now()).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
                             </div>
                         </div>
 
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.5rem; background: var(--bg-main); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
-                            <div>
-                                <div><strong>Employee:</strong> ${p.user_name}</div>
-                                <div style="color: var(--text-muted); font-size: 0.88rem;">Email: ${p.user_email}</div>
-                                <div style="color: var(--text-muted); font-size: 0.88rem;">Employee ID: #TGC-${String(p.user_id).padStart(4, '0')}</div>
+                        <!-- Candidate & Entity Details Grid -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; background: #f8fafc; padding: 1.2rem; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 1.25rem; font-size: 0.88rem; position: relative; z-index: 2;">
+                            <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+                                <div><span style="color: #64748b;">Employee Name:</span> <strong style="color: #0f172a; font-size: 0.96rem;">${p.user_name}</strong></div>
+                                <div><span style="color: #64748b;">Employee Code:</span> <strong style="font-family: var(--font-mono); color: #4f46e5;">#TGC-${String(p.user_id).padStart(4, '0')}</strong></div>
+                                <div><span style="color: #64748b;">Official Email:</span> <span>${p.user_email}</span></div>
+                                <div><span style="color: #64748b;">Profession / Designation:</span> <strong>${p.user_job || 'Staff'}</strong></div>
                             </div>
-                            <div>
-                                <div><strong>Department:</strong> ${p.user_dept || 'Operations'}</div>
-                                <div style="color: var(--text-muted); font-size: 0.88rem;">Role: ${p.user_job || 'Staff'}</div>
-                                <div style="color: var(--text-muted); font-size: 0.88rem;">Generated: ${p.created_at || 'Automatic'}</div>
+                            <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+                                <div><span style="color: #64748b;">Company / Entity:</span> <strong style="color: #4f46e5;">${companyName}</strong></div>
+                                <div><span style="color: #64748b;">Department:</span> <strong>${p.user_dept || 'General'}</strong></div>
+                                <div><span style="color: #64748b;">Payment Method:</span> <span>${p.payment_mode || 'Bank Transfer'}</span></div>
+                                <div><span style="color: #64748b;">Disbursal Date:</span> <span>${p.paid_at || 'Disbursed / Finalized'}</span></div>
                             </div>
                         </div>
 
-                        <table class="payslip-table">
+                        <!-- 30/31-Day Calculation Basis Banner -->
+                        <div style="background: rgba(79, 70, 229, 0.05); border: 1px solid rgba(79, 70, 229, 0.2); border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.82rem; color: #3730a3; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; position: relative; z-index: 2;">
+                            <div>
+                                <strong>Calendar Day Rate Policy:</strong> Total Month Days = <strong>${numDays} Days</strong> &bull; 
+                                Daily Rate = ₹${baseSal.toLocaleString()} &divide; ${numDays} = <strong>₹${dailyRate}/day</strong>
+                            </div>
+                            <div>
+                                Present + Paid Leaves: <strong>${(p.present_days || 0) + (p.paid_leave_days || 0)} Days</strong> &bull; 
+                                Absent Days: <strong style="color: #e11d48;">${p.unpaid_days || 0} Day(s)</strong>
+                            </div>
+                        </div>
+
+                        <!-- Itemized Earnings & Deductions Table -->
+                        <table class="payslip-table" style="width: 100%; border-collapse: collapse; margin-bottom: 1.25rem; font-size: 0.88rem; position: relative; z-index: 2;">
                             <thead>
-                                <tr>
-                                    <th>Earnings & Allowances</th>
-                                    <th style="text-align: right;">Amount (₹)</th>
-                                    <th>Deductions & Absences</th>
-                                    <th style="text-align: right;">Amount (₹)</th>
+                                <tr style="background: #0f172a; color: #ffffff;">
+                                    <th style="padding: 0.75rem 1rem; text-align: left; width: 32%;">Earnings Component</th>
+                                    <th style="padding: 0.75rem 1rem; text-align: right; width: 18%;">Amount (INR)</th>
+                                    <th style="padding: 0.75rem 1rem; text-align: left; width: 32%;">Deductions Component</th>
+                                    <th style="padding: 0.75rem 1rem; text-align: right; width: 18%;">Amount (INR)</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr>
-                                    <td>Base Monthly Salary</td>
-                                    <td style="text-align: right; font-weight: 700;">₹${parseFloat(p.base_salary).toLocaleString()}</td>
-                                    <td>Unpaid Absences (${p.unpaid_days} days)</td>
-                                    <td style="text-align: right; color: var(--danger); font-weight: 700;">₹${parseFloat(p.deduction_amount).toLocaleString()}</td>
+                                <tr style="border-bottom: 1px solid #e2e8f0;">
+                                    <td style="padding: 0.75rem 1rem;"><strong>Base Monthly Salary</strong><br><small style="color: #64748b;">Contracted package</small></td>
+                                    <td style="padding: 0.75rem 1rem; text-align: right; font-weight: 700; font-family: var(--font-mono);">₹${baseSal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td style="padding: 0.75rem 1rem;">
+                                        <strong>Absent / Unpaid Days</strong><br>
+                                        <small style="color: #e11d48;">${p.unpaid_days} day(s) &times; ₹${dailyRate}/d</small>
+                                    </td>
+                                    <td style="padding: 0.75rem 1rem; text-align: right; font-weight: 700; color: #e11d48; font-family: var(--font-mono);">${dedAmt > 0 ? '-₹' + dedAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '₹0.00'}</td>
                                 </tr>
-                                <tr>
-                                    <td>Working Days in Month: ${p.total_working_days} d</td>
-                                    <td style="text-align: right;">-</td>
-                                    <td>Daily Deduction Rate</td>
-                                    <td style="text-align: right;">₹${parseFloat(p.daily_rate).toFixed(2)}/day</td>
+                                <tr style="border-bottom: 1px solid #e2e8f0;">
+                                    <td style="padding: 0.75rem 1rem;"><strong>Incentives & Performance Bonus</strong></td>
+                                    <td style="padding: 0.75rem 1rem; text-align: right; font-weight: 700; font-family: var(--font-mono);">₹${bonusSal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td style="padding: 0.75rem 1rem;"><strong>Statutory & Other Deductions</strong></td>
+                                    <td style="padding: 0.75rem 1rem; text-align: right; font-family: var(--font-mono);">₹0.00</td>
                                 </tr>
-                                <tr>
-                                    <td>Present: ${p.present_days} d + Paid Leaves: ${p.paid_leaves} d</td>
-                                    <td style="text-align: right;">-</td>
-                                    <td>Other Taxes & Cess</td>
-                                    <td style="text-align: right;">₹0.00</td>
+                                <tr style="background: #f1f5f9; font-weight: 700;">
+                                    <td style="padding: 0.75rem 1rem;">Gross Earnings</td>
+                                    <td style="padding: 0.75rem 1rem; text-align: right; font-family: var(--font-mono);">₹${grossSal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td style="padding: 0.75rem 1rem;">Total Deductions</td>
+                                    <td style="padding: 0.75rem 1rem; text-align: right; color: #e11d48; font-family: var(--font-mono);">${dedAmt > 0 ? '-₹' + dedAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '₹0.00'}</td>
                                 </tr>
-                                <tr style="background: #f8fafc; font-size: 1.15rem; font-weight: 800;">
-                                    <td>Total Gross Pay</td>
-                                    <td style="text-align: right;">₹${parseFloat(p.base_salary).toLocaleString()}</td>
-                                    <td style="color: var(--success);">NET PAYABLE SALARY</td>
-                                    <td style="text-align: right; color: var(--success); font-size: 1.3rem; font-family: var(--font-mono);">₹${parseFloat(p.net_salary).toLocaleString()}</td>
+                                <tr style="background: #ecfdf5; border-top: 2px solid #10b981; border-bottom: 2px solid #10b981;">
+                                    <td colspan="2" style="padding: 1rem; font-size: 1.1rem; font-weight: 800; color: #065f46;">
+                                        NET TAKE-HOME PAYABLE
+                                    </td>
+                                    <td colspan="2" style="padding: 1rem; text-align: right; font-size: 1.45rem; font-weight: 900; color: #059669; font-family: var(--font-mono);">
+                                        ₹${netSal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
 
-                        <div style="margin-top: 2rem; display: flex; justify-content: space-between; align-items: flex-end; padding-top: 1.5rem; border-top: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-muted);">
-                            <div>
-                                <div>This is a computer-generated payslip authorized by TGC Connect Payroll Engine.</div>
-                                <div>Location Coordinates & Attendance are cryptographically audited.</div>
+                        <!-- Net in Words & Remarks -->
+                        <div style="margin-bottom: 1.5rem; padding: 0.85rem 1rem; background: #f8fafc; border-left: 4px solid #10b981; border-radius: 4px; font-size: 0.86rem; position: relative; z-index: 2;">
+                            <div><span style="color: #64748b; font-weight: 600;">Net Amount in Words:</span> <strong style="color: #0f172a; text-transform: uppercase;">${words}</strong></div>
+                            ${p.remarks ? `<div style="margin-top: 0.35rem; color: #64748b; font-size: 0.8rem;">Note: ${p.remarks}</div>` : ''}
+                        </div>
+
+                        <!-- Signatures & Verification Stamp -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px dashed #cbd5e1; position: relative; z-index: 2;">
+                            <div style="text-align: center;">
+                                <div style="height: 48px; border-bottom: 1px solid #94a3b8; width: 75%; margin: 0 auto;"></div>
+                                <div style="font-size: 0.82rem; font-weight: 700; color: #475569; margin-top: 0.4rem;">Employee Signature</div>
+                                <div style="font-size: 0.74rem; color: #94a3b8;">${p.user_name}</div>
                             </div>
-                            <div style="text-align: right;">
-                                <div style="border-bottom: 1.5px dashed #94a3b8; width: 180px; margin-bottom: 0.35rem;"></div>
-                                <strong>Authorized Signature</strong>
+                            <div style="text-align: center;">
+                                <div style="height: 48px; border-bottom: 1px solid #94a3b8; width: 75%; margin: 0 auto; display: flex; align-items: flex-end; justify-content: center;">
+                                    <span style="font-family: 'Brush Script MT', cursive, sans-serif; font-size: 1.4rem; color: #4f46e5;">Authorized Payroll Dept</span>
+                                </div>
+                                <div style="font-size: 0.82rem; font-weight: 700; color: #475569; margin-top: 0.4rem;">Authorized Signatory & Seal</div>
+                                <div style="font-size: 0.74rem; color: #94a3b8;">For ${companyName}</div>
                             </div>
+                        </div>
+
+                        <div style="text-align: center; margin-top: 1.5rem; font-size: 0.72rem; color: #94a3b8;">
+                            This is an electronically generated salary voucher under TGC Connect HRMS. No physical signature is required. Confidential.
                         </div>
                     </div>
                 `;
                 openModal('viewSlipModal');
                 lucide.createIcons();
+            } else {
+                showToast(res.data?.message || 'Failed to load payslip', 'error');
             }
         }
     </script>

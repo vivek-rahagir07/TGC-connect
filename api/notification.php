@@ -85,10 +85,192 @@ function buildWhatsAppUrl($phone, $message) {
 }
 
 /**
- * Send Email Notification using standard PHP mail()
+ * Send Email via Gmail SMTP (smtp.gmail.com:587 with STARTTLS)
+ * Works on localhost AND Hostinger — no external libraries needed.
+ * 
+ * Requirements:
+ *   1. Enable 2-Step Verification on the Gmail account
+ *   2. Generate an App Password at https://myaccount.google.com/apppasswords
+ *   3. Set the app password in config.php -> notifications -> smtp_password
  */
-function sendAttendanceEmail($toEmail, $employeeName, $locationName, $messageBody, $fromEmail = 'Tgcconnectglobal@gmail.com') {
+function smtpSendMail($smtpHost, $smtpPort, $smtpUser, $smtpPass, $fromName, $fromEmail, $toEmail, $subject, $htmlBody, $plainBody = '') {
+    $timeout = 10;
+    $errno = 0;
+    $errstr = '';
+
+    // Connect to SMTP server
+    $socket = @fsockopen($smtpHost, $smtpPort, $errno, $errstr, $timeout);
+    if (!$socket) {
+        return ['ok' => false, 'error' => "Connection failed: {$errstr} ({$errno})"];
+    }
+
+    stream_set_timeout($socket, $timeout);
+
+    // Helper to read server response
+    $readResponse = function() use ($socket) {
+        $response = '';
+        while ($line = @fgets($socket, 515)) {
+            $response .= $line;
+            // If 4th char is space, it's the last line of multi-line response
+            if (isset($line[3]) && $line[3] === ' ') break;
+        }
+        return $response;
+    };
+
+    // Helper to send command and get response
+    $sendCmd = function($cmd) use ($socket, $readResponse) {
+        @fwrite($socket, $cmd . "\r\n");
+        return $readResponse();
+    };
+
+    // Read greeting
+    $greeting = $readResponse();
+    if (substr($greeting, 0, 3) !== '220') {
+        fclose($socket);
+        return ['ok' => false, 'error' => "Bad greeting: {$greeting}"];
+    }
+
+    // EHLO
+    $ehloResp = $sendCmd("EHLO tgcconnect.in");
+    if (substr($ehloResp, 0, 3) !== '250') {
+        fclose($socket);
+        return ['ok' => false, 'error' => "EHLO failed: {$ehloResp}"];
+    }
+
+    // STARTTLS
+    $tlsResp = $sendCmd("STARTTLS");
+    if (substr($tlsResp, 0, 3) !== '220') {
+        fclose($socket);
+        return ['ok' => false, 'error' => "STARTTLS failed: {$tlsResp}"];
+    }
+
+    // Enable TLS encryption on the socket
+    $cryptoMethod = STREAM_CRYPTO_METHOD_TLS_CLIENT;
+    if (defined('STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT')) {
+        $cryptoMethod |= STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT;
+    }
+    $tlsResult = @stream_socket_enable_crypto($socket, true, $cryptoMethod);
+    if (!$tlsResult) {
+        fclose($socket);
+        return ['ok' => false, 'error' => 'TLS handshake failed'];
+    }
+
+    // EHLO again after TLS
+    $ehloResp2 = $sendCmd("EHLO tgcconnect.in");
+    if (substr($ehloResp2, 0, 3) !== '250') {
+        fclose($socket);
+        return ['ok' => false, 'error' => "Post-TLS EHLO failed: {$ehloResp2}"];
+    }
+
+    // AUTH LOGIN
+    $authResp = $sendCmd("AUTH LOGIN");
+    if (substr($authResp, 0, 3) !== '334') {
+        fclose($socket);
+        return ['ok' => false, 'error' => "AUTH LOGIN failed: {$authResp}"];
+    }
+
+    // Send username (base64)
+    $userResp = $sendCmd(base64_encode($smtpUser));
+    if (substr($userResp, 0, 3) !== '334') {
+        fclose($socket);
+        return ['ok' => false, 'error' => "AUTH user failed: {$userResp}"];
+    }
+
+    // Send password (base64)
+    $passResp = $sendCmd(base64_encode($smtpPass));
+    if (substr($passResp, 0, 3) !== '235') {
+        fclose($socket);
+        return ['ok' => false, 'error' => "AUTH password failed (check App Password): {$passResp}"];
+    }
+
+    // MAIL FROM
+    $fromResp = $sendCmd("MAIL FROM:<{$fromEmail}>");
+    if (substr($fromResp, 0, 3) !== '250') {
+        fclose($socket);
+        return ['ok' => false, 'error' => "MAIL FROM failed: {$fromResp}"];
+    }
+
+    // RCPT TO
+    $rcptResp = $sendCmd("RCPT TO:<{$toEmail}>");
+    if (substr($rcptResp, 0, 3) !== '250') {
+        fclose($socket);
+        return ['ok' => false, 'error' => "RCPT TO failed: {$rcptResp}"];
+    }
+
+    // DATA
+    $dataResp = $sendCmd("DATA");
+    if (substr($dataResp, 0, 3) !== '354') {
+        fclose($socket);
+        return ['ok' => false, 'error' => "DATA failed: {$dataResp}"];
+    }
+
+    // Build email message
+    $boundary = "==TGC_Boundary_" . md5(uniqid(time()));
+    $date = date('r');
+
+    $message  = "Date: {$date}\r\n";
+    $message .= "From: {$fromName} <{$fromEmail}>\r\n";
+    $message .= "To: {$toEmail}\r\n";
+    $message .= "Subject: {$subject}\r\n";
+    $message .= "MIME-Version: 1.0\r\n";
+    $message .= "Content-Type: multipart/alternative; boundary=\"{$boundary}\"\r\n";
+    $message .= "\r\n";
+
+    // Plain text part
+    if (!empty($plainBody)) {
+        $message .= "--{$boundary}\r\n";
+        $message .= "Content-Type: text/plain; charset=UTF-8\r\n";
+        $message .= "Content-Transfer-Encoding: 8bit\r\n\r\n";
+        $message .= $plainBody . "\r\n\r\n";
+    }
+
+    // HTML part
+    $message .= "--{$boundary}\r\n";
+    $message .= "Content-Type: text/html; charset=UTF-8\r\n";
+    $message .= "Content-Transfer-Encoding: 8bit\r\n\r\n";
+    $message .= $htmlBody . "\r\n\r\n";
+    $message .= "--{$boundary}--\r\n";
+
+    // Escape any lines starting with a dot (SMTP transparency)
+    $message = str_replace("\r\n.\r\n", "\r\n..\r\n", $message);
+
+    // Send message data and end with <CRLF>.<CRLF>
+    @fwrite($socket, $message . "\r\n.\r\n");
+    $sendResp = $readResponse();
+    if (substr($sendResp, 0, 3) !== '250') {
+        fclose($socket);
+        return ['ok' => false, 'error' => "Message send failed: {$sendResp}"];
+    }
+
+    // QUIT
+    $sendCmd("QUIT");
+    fclose($socket);
+
+    return ['ok' => true, 'error' => ''];
+}
+
+/**
+ * Send Attendance Email Notification via Gmail SMTP
+ */
+function sendAttendanceEmail($toEmail, $employeeName, $locationName, $messageBody, $fromEmail = 'tgcconnectglobal@gmail.com') {
+    global $config;
+    if (!$config) {
+        $config = require __DIR__ . '/config.php';
+    }
+
     if (empty($toEmail) || !filter_var($toEmail, FILTER_VALIDATE_EMAIL)) {
+        return false;
+    }
+
+    $notifConfig = $config['notifications'] ?? [];
+    $smtpHost = $notifConfig['smtp_host'] ?? 'smtp.gmail.com';
+    $smtpPort = (int)($notifConfig['smtp_port'] ?? 587);
+    $smtpUser = $notifConfig['smtp_user'] ?? $fromEmail;
+    $smtpPass = $notifConfig['smtp_password'] ?? '';
+
+    // If no SMTP password configured, cannot send email
+    if (empty($smtpPass)) {
+        error_log("[TGC Notification] SMTP password not configured. Set 'smtp_password' in config.php -> notifications. Generate at https://myaccount.google.com/apppasswords");
         return false;
     }
 
@@ -97,9 +279,7 @@ function sendAttendanceEmail($toEmail, $employeeName, $locationName, $messageBod
     $safeName = htmlspecialchars($employeeName, ENT_QUOTES, 'UTF-8');
     $safeBody = nl2br(htmlspecialchars($messageBody, ENT_QUOTES, 'UTF-8'));
 
-    $boundary = "==Multipart_Boundary_x" . md5(time()) . "x";
-
-    $plainText = $messageBody . "\n\n---\nEmployee: {$employeeName}\nLocation: {$safeLoc}\nDate: " . date('d M Y') . "\nTime: " . date('h:i A') . " IST\nStatus: PRESENT\n\nAutomated notification from TGC Connect Global.";
+    $plainText = $messageBody . "\n\n---\nEmployee: {$employeeName}\nLocation: {$locationName}\nDate: " . date('d M Y') . "\nTime: " . date('h:i A') . " IST\nStatus: PRESENT\n\nAutomated notification from TGC Connect Global.";
 
     $htmlContent = "
     <!DOCTYPE html>
@@ -150,24 +330,17 @@ function sendAttendanceEmail($toEmail, $employeeName, $locationName, $messageBod
     </body>
     </html>";
 
-    $headers  = "MIME-Version: 1.0\r\n";
-    $headers .= "From: TGCConnect Team <{$fromEmail}>\r\n";
-    $headers .= "Reply-To: {$fromEmail}\r\n";
-    $headers .= "Return-Path: {$fromEmail}\r\n";
-    $headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
-    $headers .= "Content-Type: multipart/alternative; boundary=\"{$boundary}\"\r\n";
+    $result = smtpSendMail(
+        $smtpHost, $smtpPort, $smtpUser, $smtpPass,
+        'TGC Connect', $fromEmail, $toEmail,
+        $subject, $htmlContent, $plainText
+    );
 
-    $body  = "--{$boundary}\r\n";
-    $body .= "Content-Type: text/plain; charset=UTF-8\r\n";
-    $body .= "Content-Transfer-Encoding: 8bit\r\n\r\n";
-    $body .= $plainText . "\r\n\r\n";
-    $body .= "--{$boundary}\r\n";
-    $body .= "Content-Type: text/html; charset=UTF-8\r\n";
-    $body .= "Content-Transfer-Encoding: 8bit\r\n\r\n";
-    $body .= $htmlContent . "\r\n\r\n";
-    $body .= "--{$boundary}--";
+    if (!$result['ok']) {
+        error_log("[TGC Notification] Email to {$toEmail} failed: " . $result['error']);
+    }
 
-    return @mail($toEmail, $subject, $body, $headers, "-f {$fromEmail}");
+    return $result['ok'];
 }
 
 /**

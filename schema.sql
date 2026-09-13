@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS `users` (
     `dob` DATE DEFAULT NULL,
     `address` TEXT DEFAULT NULL,
     `department` VARCHAR(100) DEFAULT 'Operations',
+    `company` VARCHAR(100) DEFAULT 'getting roots',
     `job_profile` VARCHAR(100) DEFAULT 'Staff Member',
     `date_of_joining` DATE DEFAULT NULL,
     `photo_path` VARCHAR(255) DEFAULT NULL,
@@ -258,37 +259,6 @@ INSERT INTO `users` (`id`, `name`, `email`, `password`, `phone`, `department`, `
 VALUES (1, 'Administrator', 'gettingroots@gmail.com', '$2y$12$lIMxxbjDStUjEBHYyGV5X.knBCAYHFizV04Xzd.FY6q8olNQJy/au', '+91 98765 43210', 'Executive Management', 'Lead Systems Administrator', '2025-01-01', 'admin', 'active', 95000.00, 0)
 ON DUPLICATE KEY UPDATE `password` = VALUES(`password`);
 
--- 2. Real Active Employee: Rohan Verma (Senior Frontend Engineer) (Email: rohan.verma@tgcconnect.com)
-INSERT INTO `users` (`id`, `name`, `email`, `password`, `phone`, `dob`, `address`, `department`, `job_profile`, `date_of_joining`, `role`, `status`, `base_salary`, `first_login_required`)
-VALUES (2, 'Rohan Verma', 'rohan.verma@tgcconnect.com', '$2y$12$txkT4GZGUwWa8UZ.Mfv31eRruPjtnTVLeRmMDn.I.BoNf/bDgZNSC', '+91 98112 34567', '1996-05-14', 'Tower 4, Cyber City, Gurugram', 'Engineering', 'Senior Frontend Engineer', '2025-02-15', 'employee', 'active', 65000.00, 0)
-ON DUPLICATE KEY UPDATE `password` = VALUES(`password`);
-
--- 3. Real Active Employee: Priya Sharma (Product Designer) (Email: priya.sharma@tgcconnect.com)
-INSERT INTO `users` (`id`, `name`, `email`, `password`, `phone`, `dob`, `address`, `department`, `job_profile`, `date_of_joining`, `role`, `status`, `base_salary`, `first_login_required`)
-VALUES (3, 'Priya Sharma', 'priya.sharma@tgcconnect.com', '$2y$12$txkT4GZGUwWa8UZ.Mfv31eRruPjtnTVLeRmMDn.I.BoNf/bDgZNSC', '+91 98223 45678', '1998-08-22', 'Indiranagar 100ft Road, Bengaluru', 'Design & UX', 'Lead Product Designer', '2025-04-01', 'employee', 'active', 55000.00, 0)
-ON DUPLICATE KEY UPDATE `password` = VALUES(`password`);
-
--- 4. Realistic Pending Registration: Ananya Iyer (Self-Registered, awaiting Admin Approval in Approvals Hub)
-INSERT INTO `users` (`id`, `name`, `email`, `password`, `phone`, `dob`, `address`, `department`, `job_profile`, `date_of_joining`, `role`, `status`, `base_salary`, `first_login_required`)
-VALUES (4, 'Ananya Iyer', 'ananya.iyer@tgcconnect.com', '$2y$12$txkT4GZGUwWa8UZ.Mfv31eRruPjtnTVLeRmMDn.I.BoNf/bDgZNSC', '+91 98334 56789', '1999-11-10', 'Bandra West, Mumbai', 'Operations', 'Operations Analyst', '2026-09-01', 'employee', 'pending_approval', 42000.00, 0)
-ON DUPLICATE KEY UPDATE `password` = VALUES(`password`);
-
--- Leave Quotas for Active Employees (12 CL, 12 SL, 12 EL = 1 per month in 1-year cycle)
-INSERT INTO `leave_quotas` (`user_id`, `year`, `casual_leave_total`, `sick_leave_total`, `earned_leave_total`, `casual_leave_used`, `sick_leave_used`, `earned_leave_used`) VALUES
-(2, 2026, 12.0, 12.0, 12.0, 1.0, 0.0, 0.0),
-(3, 2026, 12.0, 12.0, 12.0, 0.0, 0.0, 0.0)
-ON DUPLICATE KEY UPDATE `casual_leave_total` = VALUES(`casual_leave_total`), `sick_leave_total` = VALUES(`sick_leave_total`), `earned_leave_total` = VALUES(`earned_leave_total`);
-
--- Pending Leave Application in Review Board
-INSERT INTO `leaves` (`id`, `user_id`, `leave_type`, `start_date`, `end_date`, `total_days`, `reason`, `status`)
-VALUES (1, 2, 'casual', '2026-09-18', '2026-09-19', 2.0, 'Attending Annual Developer Summit & Tech Conference', 'pending')
-ON DUPLICATE KEY UPDATE `status` = VALUES(`status`);
-
--- Today's Attendance Check-in for Rohan Verma (Verified QR punch)
-INSERT INTO `attendances` (`user_id`, `date`, `check_in_time`, `method`, `status`, `notes`, `device_fingerprint`)
-VALUES (2, CURDATE(), '09:14:22', 'qr', 'present', 'Checked in via Reception Standee QR', 'fp-rohan-macbook')
-ON DUPLICATE KEY UPDATE `status` = VALUES(`status`);
-
 -- Default Reception QR Code
 INSERT INTO `qr_codes` (`token`, `title`, `is_active`) 
 VALUES ('TGC-OFFICE-MAIN-HQ', 'TGC Corporate HQ Reception QR', 1)
@@ -314,13 +284,3 @@ INSERT INTO `inventories` (`id`, `name`, `category`, `unit`, `total_quantity`, `
 (6, 'Chisel & Bullet Tip Permanent Markers (Black/Blue)', 'Stationery & Supplies', 'Pieces', 60, 56, 12, 'Stationery Cabinet Shelf C', 'Camlin water-resistant waterproof permanent markers.'),
 (7, 'Self-Adhesive Sticky Notes Pad (3x3 Yellow)', 'Stationery & Supplies', 'Pads', 50, 48, 10, 'Stationery Cabinet Shelf B', 'Post-it 100 sheets per pad for quick ideation and task board.')
 ON DUPLICATE KEY UPDATE `name` = VALUES(`name`);
-
--- Sample Historical & Active Issuances
-INSERT INTO `inventory_issuances` (`id`, `inventory_id`, `user_id`, `recipient_name`, `recipient_type`, `quantity`, `issue_date`, `expected_return_date`, `is_returnable`, `status`, `returned_quantity`, `issued_by`, `purpose`) VALUES
-(1, 1, 2, 'Rohan Verma', 'employee', 1, CURDATE() - INTERVAL 5 DAY, NULL, 1, 'issued', 0, 1, 'Assigned for engineering workstation paperwork'),
-(2, 5, 2, 'Rohan Verma', 'employee', 1, CURDATE() - INTERVAL 5 DAY, NULL, 1, 'issued', 0, 1, 'Precision alignment for physical hardware & cables'),
-(3, 3, 3, 'Priya Sharma', 'employee', 10, CURDATE() - INTERVAL 2 DAY, NULL, 0, 'consumed', 0, 1, 'Product UI wireframing workshop with stakeholders'),
-(4, 2, 3, 'Priya Sharma', 'employee', 2, CURDATE() - INTERVAL 2 DAY, NULL, 0, 'consumed', 0, 1, 'Affixing design charts on UX collaboration board'),
-(5, 4, 1, 'Administration Department', 'department', 2, CURDATE() - INTERVAL 1 DAY, NULL, 0, 'consumed', 0, 1, 'Monthly payroll & compliance printouts')
-ON DUPLICATE KEY UPDATE `id` = VALUES(`id`);
-

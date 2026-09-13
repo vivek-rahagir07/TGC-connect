@@ -1010,35 +1010,109 @@ body::after {
 
 /* Print Stylesheet */
 @media print {
+  /* Page setup for A4 salary slip */
+  @page {
+    size: A4 portrait;
+    margin: 12mm 15mm 12mm 15mm;
+  }
+
+  /* Base reset */
   body {
     background: #ffffff !important;
     background-image: none !important;
     color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    font-size: 11pt !important;
   }
-  body::before, body::after, .navbar, .btn, #navUserArea, #toast-container, .modal-footer, .nav-menu, #confettiCanvas {
+
+  /* Hide everything on the page first */
+  body > * {
     display: none !important;
   }
-  .main-container {
-    max-width: 100% !important;
-    padding: 0 !important;
-    margin: 0 !important;
-  }
-  .modal-overlay {
-    position: static !important;
+
+  /* Then show only the active payslip modal */
+  body > #viewSlipModal.active,
+  body > .modal-overlay#viewSlipModal.active {
     display: block !important;
+    position: static !important;
     background: none !important;
     backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
     padding: 0 !important;
+    overflow: visible !important;
+    z-index: auto !important;
   }
+
+  /* Hide non-printable UI elements */
+  body::before, body::after,
+  .navbar, .nav-menu, #navUserArea,
+  #toast-container, #confettiCanvas,
+  .modal-header, .modal-footer,
+  .close-btn, .btn,
+  .main-container, .admin-sidebar,
+  .tab-content:not(.active),
+  .sidebar-nav, .admin-tab-header {
+    display: none !important;
+  }
+
+  /* Style the visible modal content */
   .modal-content {
     box-shadow: none !important;
     max-width: 100% !important;
+    width: 100% !important;
     border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+    max-height: none !important;
+    overflow: visible !important;
+    position: static !important;
   }
+
+  .modal-body {
+    padding: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* Payslip container print optimizations */
   .payslip-container {
     box-shadow: none !important;
     border: none !important;
+    border-radius: 0 !important;
     padding: 0 !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Ensure backgrounds and colors print */
+  .payslip-header, .payslip-table th,
+  .badge, [style*="background"] {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Tables should not break across pages */
+  .payslip-table {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .payslip-table th {
+    background: #0f172a !important;
+    color: #ffffff !important;
+  }
+
+  /* Watermark print handling */
+  .payslip-watermark {
+    opacity: 0.04 !important;
+  }
+
+  /* Prevent links from showing URLs */
+  a[href]:after {
+    content: none !important;
   }
 }
 
