@@ -44,7 +44,7 @@ try {
     try {
         $cols = $pdo->query("SHOW COLUMNS FROM `users` LIKE 'company'")->fetchAll();
         if (empty($cols)) {
-            $pdo->exec("ALTER TABLE `users` ADD COLUMN `company` VARCHAR(100) DEFAULT 'getting roots' AFTER `department`");
+            $pdo->exec("ALTER TABLE `users` ADD COLUMN `company` VARCHAR(255) DEFAULT 'Getting Roots Coaching & Training Pvt. Ltd.' AFTER `department`");
         }
     } catch (Exception $e) {
         // Silently skip if users table doesn't exist yet or already altered

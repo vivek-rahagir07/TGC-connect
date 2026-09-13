@@ -86,11 +86,11 @@
                             <div class="form-group">
                                 <label class="form-label">Company / Organization *</label>
                                 <select id="regCompany" class="form-control" required>
-                                    <option value="getting roots">getting roots</option>
-                                    <option value="torpedo learning">torpedo learning</option>
-                                    <option value="torpedo lifestyle">torpedo lifestyle</option>
-                                    <option value="project help globle">project help globle</option>
-                                    <option value="others">others</option>
+                                    <option value="Getting Roots Coaching & Training Pvt. Ltd.">Getting Roots Coaching & Training Pvt. Ltd.</option>
+                                    <option value="Torpedo Learning">Torpedo Learning</option>
+                                    <option value="Torpedo Lifestyle">Torpedo Lifestyle</option>
+                                    <option value="Project Help Global">Project Help Global</option>
+                                    <option value="Others">Others</option>
                                 </select>
                             </div>
 
@@ -120,8 +120,12 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label class="form-label">Monthly Base Salary (₹) *</label>
-                                    <input type="number" id="regSalary" class="form-control" value="45000" required min="1000">
+                                    <label class="form-label" style="color: var(--text-muted); font-size: 0.82rem;">Monthly Base Salary</label>
+                                    <div style="background: rgba(100,116,139,0.08); border: 1px dashed var(--border-color); border-radius: var(--radius-sm); padding: 0.55rem 0.85rem; font-size: 0.86rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.4rem;">
+                                        <i data-lucide="lock" style="width: 14px; opacity: 0.5;"></i>
+                                        <span>Salary will be assigned by Admin upon approval</span>
+                                    </div>
+                                    <input type="hidden" id="regSalary" value="0">
                                 </div>
                             </div>
 
@@ -369,7 +373,7 @@
                 department: document.getElementById('regDepartment').value,
                 job_profile: document.getElementById('regJob').value.trim(),
                 date_of_joining: document.getElementById('regDoj').value,
-                base_salary: parseFloat(document.getElementById('regSalary').value) || 35000,
+                base_salary: 0,
                 photo_base64: photo,
             };
 

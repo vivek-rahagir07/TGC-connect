@@ -69,7 +69,7 @@ switch ($action) {
         $phone = trim($input['phone'] ?? '');
         $dob = !empty($input['dob']) ? trim($input['dob']) : null;
         $address = trim($input['address'] ?? '');
-        $company = trim($input['company'] ?? 'getting roots');
+        $company = trim($input['company'] ?? 'Getting Roots Coaching & Training Pvt. Ltd.');
         $department = trim($input['department'] ?? '');
         $job_profile = trim($input['job_profile'] ?? '');
         $date_of_joining = !empty($input['date_of_joining']) ? trim($input['date_of_joining']) : date('Y-m-d');
@@ -238,7 +238,7 @@ switch ($action) {
                 'phone' => $user['phone'],
                 'dob' => $user['dob'] ?? '',
                 'address' => $user['address'] ?? '',
-                'company' => $user['company'] ?? 'getting roots',
+                'company' => $user['company'] ?? 'Getting Roots Coaching & Training Pvt. Ltd.',
                 'department' => $user['department'],
                 'job_profile' => $user['job_profile'],
                 'date_of_joining' => $user['date_of_joining'],

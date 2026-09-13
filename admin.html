@@ -309,11 +309,11 @@
                             <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Filter by Company</label>
                             <select id="empFilterCompany" onchange="loadEmployees()" class="form-control" style="font-size: 0.84rem; padding: 0.4rem 0.65rem;">
                                 <option value="all">All Companies</option>
-                                <option value="getting roots">getting roots</option>
-                                <option value="torpedo learning">torpedo learning</option>
-                                <option value="torpedo lifestyle">torpedo lifestyle</option>
-                                <option value="project help globle">project help globle</option>
-                                <option value="others">others</option>
+                                <option value="Getting Roots Coaching & Training Pvt. Ltd.">Getting Roots Coaching & Training Pvt. Ltd.</option>
+                                <option value="Torpedo Learning">Torpedo Learning</option>
+                                <option value="Torpedo Lifestyle">Torpedo Lifestyle</option>
+                                <option value="Project Help Global">Project Help Global</option>
+                                <option value="Others">Others</option>
                             </select>
                         </div>
 
@@ -355,7 +355,7 @@
                 </div>
 
                 <div class="table-responsive">
-                    <table class="custom-table">
+                    <table class="custom-table" style="min-width: 1040px;">
                         <thead>
                             <tr>
                                 <th>Photo</th>
@@ -962,11 +962,11 @@
                     <div class="form-group">
                         <label class="form-label">Company / Organization *</label>
                         <select id="adminOnboardCompany" class="form-control" required>
-                            <option value="getting roots">getting roots</option>
-                            <option value="torpedo learning">torpedo learning</option>
-                            <option value="torpedo lifestyle">torpedo lifestyle</option>
-                            <option value="project help globle">project help globle</option>
-                            <option value="others">others</option>
+                            <option value="Getting Roots Coaching & Training Pvt. Ltd.">Getting Roots Coaching & Training Pvt. Ltd.</option>
+                            <option value="Torpedo Learning">Torpedo Learning</option>
+                            <option value="Torpedo Lifestyle">Torpedo Lifestyle</option>
+                            <option value="Project Help Global">Project Help Global</option>
+                            <option value="Others">Others</option>
                         </select>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
@@ -1071,11 +1071,11 @@
                     <div class="form-group">
                         <label class="form-label">Company / Organization *</label>
                         <select id="editEmpCompany" class="form-control" required>
-                            <option value="getting roots">getting roots</option>
-                            <option value="torpedo learning">torpedo learning</option>
-                            <option value="torpedo lifestyle">torpedo lifestyle</option>
-                            <option value="project help globle">project help globle</option>
-                            <option value="others">others</option>
+                            <option value="Getting Roots Coaching & Training Pvt. Ltd.">Getting Roots Coaching & Training Pvt. Ltd.</option>
+                            <option value="Torpedo Learning">Torpedo Learning</option>
+                            <option value="Torpedo Lifestyle">Torpedo Lifestyle</option>
+                            <option value="Project Help Global">Project Help Global</option>
+                            <option value="Others">Others</option>
                         </select>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
@@ -1932,7 +1932,7 @@
                                     <td>${escapeHtml(p.email || '')}</td>
                                     <td>${escapeHtml(p.department || '')} &bull; <span style="color: var(--text-muted);">${escapeHtml(p.job_profile || '')}</span></td>
                                     <td>DOB: ${p.dob || '-'} &bull; DOJ: ${p.date_of_joining || '-'}</td>
-                                    <td>₹${parseFloat(p.base_salary || 0).toLocaleString()}</td>
+                                    <td>${parseFloat(p.base_salary || 0) > 0 ? '₹' + parseFloat(p.base_salary).toLocaleString() : '<span class="badge badge-warning" style="font-size: 0.75rem;">⚠️ Pending</span>'}</td>
                                     <td>
                                         <div style="display: flex; gap: 0.4rem;">
                                             <button onclick="reviewRegistration(${p.id}, 'approve')" class="btn btn-success btn-sm">Approve</button>
@@ -1994,7 +1994,37 @@
 
         async function reviewRegistration(id, decision) {
             playSound('click');
-            const res = await apiRequest('admin.php?action=review_registration', 'POST', { id, decision });
+
+            let baseSalary = null;
+
+            if (decision === 'approve') {
+                // Prompt admin to enter a valid salary before approving
+                const salaryInput = prompt(
+                    '⚠️ Set Valid Monthly Salary for this Candidate\n\n' +
+                    'Self-registered candidates do not have a salary assigned.\n' +
+                    'Please enter the monthly base salary (₹) to proceed with approval:',
+                    ''
+                );
+
+                if (salaryInput === null) {
+                    // Admin cancelled
+                    return;
+                }
+
+                baseSalary = parseFloat(salaryInput);
+                if (isNaN(baseSalary) || baseSalary <= 0) {
+                    showToast('Please enter a valid salary amount greater than ₹0 to approve.', 'error');
+                    playSound('error');
+                    return;
+                }
+            }
+
+            const payload = { id, decision };
+            if (baseSalary !== null) {
+                payload.base_salary = baseSalary;
+            }
+
+            const res = await apiRequest('admin.php?action=review_registration', 'POST', payload);
             if (res.ok && res.data.success) {
                 if (decision === 'approve') {
                     playSound('success');
@@ -2036,7 +2066,7 @@
                 email: document.getElementById('adminOnboardEmail').value.trim(),
                 phone: document.getElementById('adminOnboardPhone').value.trim(),
                 dob: document.getElementById('adminOnboardDob').value,
-                company: document.getElementById('adminOnboardCompany') ? document.getElementById('adminOnboardCompany').value : 'getting roots',
+                company: document.getElementById('adminOnboardCompany') ? document.getElementById('adminOnboardCompany').value : 'Getting Roots Coaching & Training Pvt. Ltd.',
                 department: document.getElementById('adminOnboardDept').value,
                 job_profile: document.getElementById('adminOnboardJob').value.trim(),
                 date_of_joining: document.getElementById('adminOnboardDoj').value,
@@ -2100,16 +2130,16 @@
                 }
 
                 const companyColors = {
-                    'getting roots': { bg: 'rgba(79, 70, 229, 0.1)', color: '#4f46e5', border: 'rgba(79, 70, 229, 0.25)' },
-                    'torpedo learning': { bg: 'rgba(2, 132, 199, 0.1)', color: '#0284c7', border: 'rgba(2, 132, 199, 0.25)' },
-                    'torpedo lifestyle': { bg: 'rgba(217, 119, 6, 0.1)', color: '#d97706', border: 'rgba(217, 119, 6, 0.25)' },
-                    'project help globle': { bg: 'rgba(5, 150, 105, 0.1)', color: '#059669', border: 'rgba(5, 150, 105, 0.25)' },
-                    'others': { bg: 'rgba(100, 116, 139, 0.1)', color: '#64748b', border: 'rgba(100, 116, 139, 0.25)' }
+                    'Getting Roots Coaching & Training Pvt. Ltd.': { bg: 'rgba(79, 70, 229, 0.1)', color: '#4f46e5', border: 'rgba(79, 70, 229, 0.25)' },
+                    'Torpedo Learning': { bg: 'rgba(2, 132, 199, 0.1)', color: '#0284c7', border: 'rgba(2, 132, 199, 0.25)' },
+                    'Torpedo Lifestyle': { bg: 'rgba(217, 119, 6, 0.1)', color: '#d97706', border: 'rgba(217, 119, 6, 0.25)' },
+                    'Project Help Global': { bg: 'rgba(5, 150, 105, 0.1)', color: '#059669', border: 'rgba(5, 150, 105, 0.25)' },
+                    'Others': { bg: 'rgba(100, 116, 139, 0.1)', color: '#64748b', border: 'rgba(100, 116, 139, 0.25)' }
                 };
 
                 tbody.innerHTML = emps.map(emp => {
-                    const compKey = (emp.company || 'getting roots').toLowerCase();
-                    const cStyle = companyColors[compKey] || companyColors['getting roots'];
+                    const compKey = emp.company || 'Getting Roots Coaching & Training Pvt. Ltd.';
+                    const cStyle = companyColors[compKey] || companyColors['Getting Roots Coaching & Training Pvt. Ltd.'];
 
                     let presenceBadge = '';
                     if (pDate) {
@@ -2126,52 +2156,56 @@
 
                     return `
                     <tr>
-                        <td>
+                        <td style="width: 46px; padding-right: 0.5rem;">
                             <div class="avatar-sm">
                                 ${emp.photo_url ? `<img src="${emp.photo_url}" style="width:100%;height:100%;object-fit:cover;">` : emp.name.charAt(0)}
                             </div>
                         </td>
-                        <td>
+                        <td style="white-space: nowrap;">
                             <strong>${emp.name}</strong>
                             <div style="font-size: 0.78rem; color: var(--text-muted);">${emp.email}</div>
                         </td>
-                        <td>
-                            <span class="badge" style="background: ${cStyle.bg}; color: ${cStyle.color}; border: 1px solid ${cStyle.border}; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.3px;">
-                                ${escapeHtml(emp.company || 'getting roots')}
+                        <td style="white-space: nowrap;">
+                            <span class="badge" title="${escapeHtml(compKey)}" style="background: ${cStyle.bg}; color: ${cStyle.color}; border: 1px solid ${cStyle.border}; font-weight: 700; font-size: 0.74rem; letter-spacing: 0.2px; white-space: nowrap; display: inline-block; padding: 0.3rem 0.65rem; border-radius: 6px;">
+                                ${escapeHtml(getCompanyShortName(compKey))}
                             </span>
                             ${presenceBadge}
                         </td>
-                        <td>
+                        <td style="white-space: nowrap;">
                             <div>${emp.department || 'Operations'}</div>
                             <div style="font-size: 0.8rem; color: var(--text-muted);">${emp.job_profile || 'Staff'}</div>
                         </td>
-                        <td style="font-size: 0.88rem;">
-                            <div>DOJ: ${emp.date_of_joining}</div>
-                            <div style="color: var(--text-muted); font-size: 0.8rem;">${emp.phone || '-'}</div>
+                        <td style="font-size: 0.84rem; white-space: nowrap;">
+                            <div>DOJ: <strong>${emp.date_of_joining || '-'}</strong></div>
+                            <div style="color: var(--text-muted); font-size: 0.78rem;">${emp.phone || '-'}</div>
                         </td>
-                        <td><strong>₹${parseFloat(emp.base_salary).toLocaleString()}</strong></td>
-                        <td style="font-size: 0.86rem;">
-                            CL: <strong>${(emp.casual_leave_total || 12) - (emp.casual_leave_used || 0)}</strong>/${emp.casual_leave_total || 12} &bull; 
-                            SL: <strong>${(emp.sick_leave_total || 12) - (emp.sick_leave_used || 0)}</strong>/${emp.sick_leave_total || 12} &bull; 
-                            EL: <strong>${(emp.earned_leave_total || 12) - (emp.earned_leave_used || 0)}</strong>/${emp.earned_leave_total || 12}
+                        <td style="white-space: nowrap;"><strong>₹${parseFloat(emp.base_salary).toLocaleString()}</strong></td>
+                        <td style="font-size: 0.82rem; white-space: nowrap;">
                             <div>
-                                <a href="javascript:void(0)" onclick="openQuotaModal(${emp.id}, '${emp.name.replace(/'/g, "\\'")}', ${emp.casual_leave_total || 12}, ${emp.sick_leave_total || 12}, ${emp.earned_leave_total || 12})" style="font-size: 0.76rem; color: var(--primary); font-weight: 700;">Edit Quotas</a>
+                                <span title="Casual Leave">CL: <strong>${Math.round(emp.casual_leave_total || 12) - Math.round(emp.casual_leave_used || 0)}</strong>/${Math.round(emp.casual_leave_total || 12)}</span>
+                                <span style="color: var(--border-color); margin: 0 4px;">&bull;</span>
+                                <span title="Sick Leave">SL: <strong>${Math.round(emp.sick_leave_total || 12) - Math.round(emp.sick_leave_used || 0)}</strong>/${Math.round(emp.sick_leave_total || 12)}</span>
+                                <span style="color: var(--border-color); margin: 0 4px;">&bull;</span>
+                                <span title="Earned Leave">EL: <strong>${Math.round(emp.earned_leave_total || 12) - Math.round(emp.earned_leave_used || 0)}</strong>/${Math.round(emp.earned_leave_total || 12)}</span>
+                            </div>
+                            <div style="margin-top: 0.25rem;">
+                                <a href="javascript:void(0)" onclick="openQuotaModal(${emp.id}, '${emp.name.replace(/'/g, "\\'")}', ${emp.casual_leave_total || 12}, ${emp.sick_leave_total || 12}, ${emp.earned_leave_total || 12})" style="font-size: 0.75rem; color: var(--primary); font-weight: 700;">Edit Quotas</a>
                             </div>
                         </td>
-                        <td><span class="badge badge-${emp.status === 'active' ? 'success' : (emp.status === 'pending_approval' ? 'warning' : 'danger')}">${emp.status}</span></td>
-                        <td>
-                            <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
-                                <button onclick="viewCandidateHistory(${emp.id})" class="btn btn-secondary btn-sm" title="View Full Candidate Profile & Attendance History" style="color: var(--primary); font-weight: 700; border-color: rgba(79,70,229,0.35); background: rgba(79,70,229,0.06); padding: 0.35rem 0.65rem;">
-                                    <i data-lucide="user-check" style="width: 14px;"></i> Logs
+                        <td style="white-space: nowrap;"><span class="badge badge-${emp.status === 'active' ? 'success' : (emp.status === 'pending_approval' ? 'warning' : 'danger')}">${emp.status}</span></td>
+                        <td style="white-space: nowrap;">
+                            <div style="display: inline-flex; gap: 0.35rem; align-items: center;">
+                                <button onclick="viewCandidateHistory(${emp.id})" class="btn btn-secondary btn-sm" title="View Logs & History" style="color: var(--primary); font-weight: 700; border-color: rgba(79,70,229,0.35); background: rgba(79,70,229,0.06); padding: 0.35rem 0.6rem; font-size: 0.78rem;">
+                                    <i data-lucide="user-check" style="width: 13px; height: 13px; vertical-align: -2px;"></i> Logs
                                 </button>
-                                <button onclick="openAdminMarkForEmployee(${emp.id}, '${emp.name.replace(/'/g, "\\'")}')" class="btn btn-secondary btn-sm" title="Punch Attendance (Anytime)" style="color: #059669; border-color: #a7f3d0;">
-                                    <i data-lucide="check-circle-2" style="width: 14px;"></i>
+                                <button onclick="openAdminMarkForEmployee(${emp.id}, '${emp.name.replace(/'/g, "\\'")}')" class="btn btn-secondary btn-sm" title="Punch Attendance (Anytime)" style="color: #059669; border-color: #a7f3d0; padding: 0.35rem 0.5rem;">
+                                    <i data-lucide="check-circle-2" style="width: 14px; height: 14px; vertical-align: -2px;"></i>
                                 </button>
-                                <button onclick="openEditEmployeeModal(${JSON.stringify(emp).replace(/"/g, '&quot;')})" class="btn btn-secondary btn-sm" title="Edit">
-                                    <i data-lucide="edit" style="width: 14px;"></i>
+                                <button onclick="openEditEmployeeModal(${JSON.stringify(emp).replace(/"/g, '&quot;')})" class="btn btn-secondary btn-sm" title="Edit Employee" style="padding: 0.35rem 0.5rem;">
+                                    <i data-lucide="edit" style="width: 14px; height: 14px; vertical-align: -2px;"></i>
                                 </button>
-                                <button onclick="deleteEmployee(${emp.id})" class="btn btn-danger btn-sm" title="Remove">
-                                    <i data-lucide="trash-2" style="width: 14px;"></i>
+                                <button onclick="deleteEmployee(${emp.id})" class="btn btn-danger btn-sm" title="Remove" style="padding: 0.35rem 0.5rem;">
+                                    <i data-lucide="trash-2" style="width: 14px; height: 14px; vertical-align: -2px;"></i>
                                 </button>
                             </div>
                         </td>
@@ -2215,13 +2249,13 @@
             };
 
             const companyColors = {
-                'getting roots': '#4f46e5',
-                'torpedo learning': '#0284c7',
-                'torpedo lifestyle': '#d97706',
-                'project help globle': '#059669',
-                'others': '#64748b'
+                'Getting Roots Coaching & Training Pvt. Ltd.': '#4f46e5',
+                'Torpedo Learning': '#0284c7',
+                'Torpedo Lifestyle': '#d97706',
+                'Project Help Global': '#059669',
+                'Others': '#64748b'
             };
-            const compColor = companyColors[c.company.toLowerCase()] || '#4f46e5';
+            const compColor = companyColors[c.company] || '#4f46e5';
 
             let historyRows = '';
             if (history.length === 0) {
@@ -2256,7 +2290,7 @@
                     <div style="flex: 1; min-width: 240px;">
                         <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
                             <h2 style="font-size: 1.4rem; font-weight: 800; margin: 0;">${c.name}</h2>
-                            <span class="badge" style="background: ${compColor}15; color: ${compColor}; border: 1px solid ${compColor}40; font-weight: 800; text-transform: uppercase;">${c.company}</span>
+                            <span class="badge" title="${escapeHtml(c.company)}" style="background: ${compColor}15; color: ${compColor}; border: 1px solid ${compColor}40; font-weight: 700; border-radius: 6px; padding: 0.3rem 0.65rem;">${escapeHtml(getCompanyShortName(c.company))}</span>
                             <span class="badge badge-${c.status === 'active' ? 'success' : (c.status === 'pending_approval' ? 'warning' : 'danger')}">${c.status.toUpperCase()}</span>
                         </div>
                         <div style="display: flex; gap: 1.25rem; font-size: 0.86rem; color: var(--text-muted); margin-top: 0.35rem; flex-wrap: wrap;">
@@ -2535,7 +2569,7 @@
             document.getElementById('editEmpDoj').value = emp.date_of_joining || '';
             document.getElementById('editEmpAddress').value = emp.address || '';
             if (document.getElementById('editEmpCompany')) {
-                document.getElementById('editEmpCompany').value = emp.company || 'getting roots';
+                document.getElementById('editEmpCompany').value = emp.company || 'Getting Roots Coaching & Training Pvt. Ltd.';
             }
             document.getElementById('editEmpDepartment').value = emp.department || '';
             document.getElementById('editEmpJob').value = emp.job_profile || '';
@@ -2556,7 +2590,7 @@
                 dob: document.getElementById('editEmpDob').value,
                 date_of_joining: document.getElementById('editEmpDoj').value,
                 address: document.getElementById('editEmpAddress').value.trim(),
-                company: document.getElementById('editEmpCompany') ? document.getElementById('editEmpCompany').value : 'getting roots',
+                company: document.getElementById('editEmpCompany') ? document.getElementById('editEmpCompany').value : 'Getting Roots Coaching & Training Pvt. Ltd.',
                 department: document.getElementById('editEmpDepartment').value.trim(),
                 job_profile: document.getElementById('editEmpJob').value.trim(),
                 base_salary: parseFloat(document.getElementById('editEmpSalary').value),
@@ -2882,7 +2916,7 @@
             const res = await apiRequest(`payroll.php?action=slip&id=${id}`);
             if (res.ok && res.data.success) {
                 const p = res.data.payroll;
-                const companyName = (p.user_company || 'getting roots').toUpperCase();
+                const companyName = (p.user_company || 'Getting Roots Coaching & Training Pvt. Ltd.').toUpperCase();
                 const numDays = p.total_working_days || 30;
                 const dailyRate = parseFloat(p.daily_rate || 0).toFixed(2);
                 const baseSal = parseFloat(p.base_salary || 0);
@@ -3922,6 +3956,16 @@
                 playSound('error');
                 showToast(res.data.message || 'Cannot delete item.', 'error');
             }
+        }
+
+        // Short name helper for company badges in tables
+        function getCompanyShortName(fullName) {
+            if (!fullName) return 'Getting Roots';
+            if (fullName.includes('Getting Roots')) return 'Getting Roots';
+            if (fullName.includes('Torpedo Learning')) return 'Torpedo Learning';
+            if (fullName.includes('Torpedo Lifestyle')) return 'Torpedo Lifestyle';
+            if (fullName.includes('Project Help Global')) return 'Project Help Global';
+            return fullName;
         }
 
         // Escape HTML helper (prevent XSS in table rendering)

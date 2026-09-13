@@ -409,3 +409,14 @@ function escapeHtml(text) {
     .replace(/'/g, '&#039;');
 }
 
+// 12. Company display short name helper for UI tables and compact badges
+function getCompanyShortName(fullName) {
+  if (!fullName) return 'Getting Roots';
+  if (fullName.includes('Getting Roots')) return 'Getting Roots';
+  if (fullName.includes('Torpedo Learning')) return 'Torpedo Learning';
+  if (fullName.includes('Torpedo Lifestyle')) return 'Torpedo Lifestyle';
+  if (fullName.includes('Project Help Global')) return 'Project Help Global';
+  return fullName;
+}
+
+

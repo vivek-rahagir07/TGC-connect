@@ -239,7 +239,7 @@ switch ($action) {
 
         foreach ($employees as &$emp) {
             $emp['photo_url'] = $emp['photo_path'] ? 'uploads/' . $emp['photo_path'] : null;
-            $emp['company'] = !empty($emp['company']) ? $emp['company'] : 'getting roots';
+            $emp['company'] = !empty($emp['company']) ? $emp['company'] : 'Getting Roots Coaching & Training Pvt. Ltd.';
         }
 
         sendResponse(true, [
@@ -259,7 +259,7 @@ switch ($action) {
         $phone = trim($input['phone'] ?? '');
         $dob = !empty($input['dob']) ? trim($input['dob']) : null;
         $address = trim($input['address'] ?? '');
-        $company = trim($input['company'] ?? 'getting roots');
+        $company = trim($input['company'] ?? 'Getting Roots Coaching & Training Pvt. Ltd.');
         $department = trim($input['department'] ?? 'General Operations');
         $job_profile = trim($input['job_profile'] ?? 'Team Member');
         $doj = !empty($input['date_of_joining']) ? trim($input['date_of_joining']) : date('Y-m-d');
@@ -342,6 +342,13 @@ switch ($action) {
         $stmtUpdate->execute([$newStatus, $empId]);
 
         if ($decision === 'approve') {
+            // Update base_salary if provided by admin during approval
+            $baseSalary = isset($input['base_salary']) ? floatval($input['base_salary']) : 0;
+            if ($baseSalary > 0) {
+                $stmtSal = $pdo->prepare("UPDATE users SET base_salary = ? WHERE id = ?");
+                $stmtSal->execute([$baseSalary, $empId]);
+            }
+
             // Initialize leave quota if not present (12 CL, 12 SL, 12 EL = 1 per month in 1-year cycle)
             $currentYear = (int) date('Y');
             $stmtQ = $pdo->prepare("SELECT id FROM leave_quotas WHERE user_id = ? AND year = ?");
@@ -534,7 +541,7 @@ switch ($action) {
         }
 
         $candidate['photo_url'] = $candidate['photo_path'] ? 'uploads/' . $candidate['photo_path'] : null;
-        $candidate['company'] = !empty($candidate['company']) ? $candidate['company'] : 'getting roots';
+        $candidate['company'] = !empty($candidate['company']) ? $candidate['company'] : 'Getting Roots Coaching & Training Pvt. Ltd.';
 
         // Leave quota for current year
         $currentYear = (int) date('Y');

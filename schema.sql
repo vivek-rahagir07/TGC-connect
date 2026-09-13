@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS `users` (
     `dob` DATE DEFAULT NULL,
     `address` TEXT DEFAULT NULL,
     `department` VARCHAR(100) DEFAULT 'Operations',
-    `company` VARCHAR(100) DEFAULT 'getting roots',
+    `company` VARCHAR(255) DEFAULT 'Getting Roots Coaching & Training Pvt. Ltd.',
     `job_profile` VARCHAR(100) DEFAULT 'Staff Member',
     `date_of_joining` DATE DEFAULT NULL,
     `photo_path` VARCHAR(255) DEFAULT NULL,

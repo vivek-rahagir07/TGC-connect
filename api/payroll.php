@@ -154,7 +154,7 @@ switch ($action) {
 
         foreach ($payrolls as &$pay) {
             $pay['photo_url'] = $pay['photo_path'] ? 'uploads/' . $pay['photo_path'] : null;
-            $pay['user_company'] = !empty($pay['user_company']) ? $pay['user_company'] : 'getting roots';
+            $pay['user_company'] = !empty($pay['user_company']) ? $pay['user_company'] : 'Getting Roots Coaching & Training Pvt. Ltd.';
         }
 
         sendResponse(true, [
@@ -189,7 +189,7 @@ switch ($action) {
         }
 
         $payroll['photo_url'] = $payroll['photo_path'] ? 'uploads/' . $payroll['photo_path'] : null;
-        $payroll['user_company'] = !empty($payroll['user_company']) ? $payroll['user_company'] : 'getting roots';
+        $payroll['user_company'] = !empty($payroll['user_company']) ? $payroll['user_company'] : 'Getting Roots Coaching & Training Pvt. Ltd.';
 
         sendResponse(true, ['payroll' => $payroll]);
         break;
@@ -242,7 +242,7 @@ switch ($action) {
 
         foreach ($rows as $r) {
             fputcsv($fp, [
-                $r['month'], $r['year'], $r['name'], $r['email'], $r['company'] ?: 'getting roots', $r['department'], $r['job_profile'],
+                $r['month'], $r['year'], $r['name'], $r['email'], $r['company'] ?: 'Getting Roots Coaching & Training Pvt. Ltd.', $r['department'], $r['job_profile'],
                 $r['base_salary'], $r['total_working_days'], $r['present_days'], $r['paid_leaves'],
                 $r['unpaid_days'], $r['daily_rate'], $r['deduction_amount'], $r['net_salary'],
                 ucfirst($r['status']), $r['payment_date'] ?: '-', $r['remarks']
