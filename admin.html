@@ -848,7 +848,7 @@
                         <i data-lucide="calendar-clock" style="width: 16px;"></i> Automated Daily Attendance Schedule
                     </div>
                     <div style="color: #1e3a8a; line-height: 1.45; font-size: 0.8rem;">
-                        <div>🌅 <strong>Morning Check-In:</strong> 09:00 AM – 09:20 AM (20 mins daily)</div>
+                        <div>🌅 <strong>Check-In Windows:</strong> 09:00–09:20, 10:00–10:20, 11:00–11:20, 12:00–12:20, 01:00–01:20 PM (20 mins loop)</div>
                         <div>🌆 <strong>Evening Check-Out:</strong> 05:30 PM – 05:50 PM (20 mins daily)</div>
                     </div>
                     <div style="margin-top: 0.65rem; padding-top: 0.65rem; border-top: 1px dashed #bfdbfe; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
@@ -3485,7 +3485,7 @@
                 card.style.background = isEvening ? '#eef2ff' : '#ecfdf5';
                 card.style.borderColor = isEvening ? '#c7d2fe' : '#a7f3d0';
                 dot.style.background = isEvening ? '#6366f1' : '#10b981';
-                statusLabel.textContent = isEvening ? '🌆 Evening Check-Out Window Active' : '🌅 Morning Check-In Window Active';
+                statusLabel.textContent = isEvening ? '🌆 Evening Check-Out Window Active' : '🌅 ' + (win.title || 'Check-In Window Active');
                 statusLabel.style.color = isEvening ? '#3730a3' : '#065f46';
                 subtext.innerHTML = `<strong>${win.title}</strong> is active until <strong>${win.expires_at}</strong>.`;
                 subtext.style.color = isEvening ? '#4338ca' : '#047857';
@@ -3510,7 +3510,7 @@
                 if (data && data.next_window) {
                     subtext.innerHTML = `Next automatic window: <strong>${data.next_window.title}</strong> opens at <strong>${data.next_window.opens_at_label}</strong>.`;
                 } else {
-                    subtext.textContent = 'Employees can mark attendance during automated daily windows (09:00-09:20 AM and 05:30-05:50 PM).';
+                    subtext.textContent = 'Employees can mark attendance during scheduled windows (09:00–09:20, 10:00–10:20, 11:00–11:20, 12:00–12:20, 01:00–01:20 PM, and 05:30–05:50 PM).';
                 }
                 subtext.style.color = 'var(--text-muted)';
 

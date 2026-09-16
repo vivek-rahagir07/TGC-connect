@@ -589,15 +589,20 @@
                         const mins = Math.floor(winRes.data.window.seconds_remaining / 60);
                         const secs = winRes.data.window.seconds_remaining % 60;
                         const timeStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-                        winBanner.style.background = '#ecfdf5';
-                        winBanner.style.border = '1px solid #a7f3d0';
-                        winBanner.style.color = '#065f46';
-                        winText.innerHTML = `🟢 Attendance Window Active (Open for ${timeStr})`;
+                        winBanner.style.background = winRes.data.window.type === 'check_out' ? '#eef2ff' : '#ecfdf5';
+                        winBanner.style.border = winRes.data.window.type === 'check_out' ? '1px solid #c7d2fe' : '1px solid #a7f3d0';
+                        winBanner.style.color = winRes.data.window.type === 'check_out' ? '#3730a3' : '#065f46';
+                        winText.innerHTML = `🟢 <strong>${escapeHtml(winRes.data.window.title || 'Attendance Window Active')}</strong> (Open for ${timeStr})`;
                     } else {
                         winBanner.style.background = '#f1f5f9';
                         winBanner.style.border = '1px solid #cbd5e1';
                         winBanner.style.color = '#475569';
-                        winText.innerHTML = `🔒 Attendance Window Closed by Administrator`;
+                        const nw = winRes.data.next_window;
+                        if (nw) {
+                            winText.innerHTML = `🔒 Attendance Window Closed • Next: <strong>${escapeHtml(nw.title)}</strong> opens at <strong>${escapeHtml(nw.opens_at_label)}</strong>`;
+                        } else {
+                            winText.innerHTML = `🔒 Attendance Window Currently Closed`;
+                        }
                     }
                 }
             } catch (e) {

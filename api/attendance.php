@@ -12,64 +12,20 @@ if ($reqMethod === 'POST' && empty($action)) {
 
 /**
  * Calculate automated attendance window schedule and return status
- * Official Automated Schedule:
- * - Morning Check-In:  09:00:00 to 09:20:00 (20 minutes)
- * - Evening Check-Out: 17:30:00 to 17:50:00 (20 minutes)
- * - Or active manual admin override window from attendance_windows
+ * Official Automated Recurring Schedule:
+ * - Window 1: 09:00:00 to 09:20:00 (Morning Check-In)
+ * - Window 2: 10:00:00 to 10:20:00 (Late Check-In Slot 1)
+ * - Window 3: 11:00:00 to 11:20:00 (Late Check-In Slot 2)
+ * - Window 4: 12:00:00 to 12:20:00 (Midday Check-In Slot 3)
+ * - Window 5: 13:00:00 to 13:20:00 (Afternoon Check-In Slot 4)
+ * - Evening Check-Out: 17:30:00 to 17:50:00
+ * - Or active manual admin override window from attendance_windows table
  */
 function getAutomatedWindowStatus($pdo) {
     $now = time();
     $today = date('Y-m-d');
 
-    // Morning window bounds (09:00 - 09:20 AM)
-    $morningStart = strtotime($today . ' 09:00:00');
-    $morningEnd   = strtotime($today . ' 09:20:00');
-
-    // Evening window bounds (05:30 - 05:50 PM / 17:30 - 17:50)
-    $eveningStart = strtotime($today . ' 17:30:00');
-    $eveningEnd   = strtotime($today . ' 17:50:00');
-
-    // 1. Check if inside scheduled Morning Check-In Window (09:00 - 09:20 AM)
-    if ($now >= $morningStart && $now < $morningEnd) {
-        $secondsRemaining = $morningEnd - $now;
-        return [
-            'is_open' => true,
-            'is_automated' => true,
-            'window' => [
-                'id' => 'auto_morning',
-                'type' => 'check_in',
-                'title' => 'Morning Attendance Window (09:00 AM - 09:20 AM)',
-                'subtitle' => 'Official shift check-in window is active.',
-                'opened_at' => date('Y-m-d H:i:s', $morningStart),
-                'expires_at' => date('Y-m-d H:i:s', $morningEnd),
-                'duration_minutes' => 20,
-                'seconds_remaining' => $secondsRemaining,
-            ],
-            'next_window' => null
-        ];
-    }
-
-    // 2. Check if inside scheduled Evening Check-Out Window (05:30 - 05:50 PM)
-    if ($now >= $eveningStart && $now < $eveningEnd) {
-        $secondsRemaining = $eveningEnd - $now;
-        return [
-            'is_open' => true,
-            'is_automated' => true,
-            'window' => [
-                'id' => 'auto_evening',
-                'type' => 'check_out',
-                'title' => 'Evening Check-Out Window (05:30 PM - 05:50 PM)',
-                'subtitle' => 'Official shift check-out window is active.',
-                'opened_at' => date('Y-m-d H:i:s', $eveningStart),
-                'expires_at' => date('Y-m-d H:i:s', $eveningEnd),
-                'duration_minutes' => 20,
-                'seconds_remaining' => $secondsRemaining,
-            ],
-            'next_window' => null
-        ];
-    }
-
-    // 3. Check for Admin Manual Override Window in database
+    // 1. Check for Admin Manual Override Window in database first
     $stmtWin = $pdo->query("
         SELECT *, TIMESTAMPDIFF(SECOND, NOW(), expires_at) as diff_sec
         FROM attendance_windows
@@ -97,39 +53,129 @@ function getAutomatedWindowStatus($pdo) {
         ];
     }
 
-    // 4. Closed: Calculate Next Scheduled Window & Countdown
-    if ($now < $morningStart) {
-        $nextType = 'check_in';
-        $nextTitle = 'Morning Check-In Window (09:00 AM - 09:20 AM)';
-        $nextOpensAt = $morningStart;
-        $nextLabel = '09:00 AM Today';
-    } elseif ($now < $eveningStart) {
-        $nextType = 'check_out';
-        $nextTitle = 'Evening Check-Out Window (05:30 PM - 05:50 PM)';
-        $nextOpensAt = $eveningStart;
-        $nextLabel = '05:30 PM Today';
-    } else {
-        $tomorrowMorning = strtotime('+1 day', $morningStart);
-        $nextType = 'check_in';
-        $nextTitle = 'Morning Check-In Window (09:00 AM - 09:20 AM)';
-        $nextOpensAt = $tomorrowMorning;
-        $nextLabel = '09:00 AM Tomorrow (' . date('D, M j', $tomorrowMorning) . ')';
+    // 2. Define the Recurring Daily Attendance Windows (09:00-09:20, 10:00-10:20, 11:00-11:20, 12:00-12:20, 13:00-13:20, 17:30-17:50)
+    $scheduledWindows = [
+        [
+            'id' => 'auto_checkin_0900',
+            'type' => 'check_in',
+            'title' => 'Morning Attendance Window (09:00 AM - 09:20 AM)',
+            'subtitle' => 'Official shift check-in window is active.',
+            'start_time' => '09:00:00',
+            'end_time' => '09:20:00',
+            'start_label' => '09:00 AM',
+            'end_label' => '09:20 AM',
+        ],
+        [
+            'id' => 'auto_checkin_1000',
+            'type' => 'check_in',
+            'title' => 'Attendance Window (10:00 AM - 10:20 AM)',
+            'subtitle' => 'Late attendance check-in window is active.',
+            'start_time' => '10:00:00',
+            'end_time' => '10:20:00',
+            'start_label' => '10:00 AM',
+            'end_label' => '10:20 AM',
+        ],
+        [
+            'id' => 'auto_checkin_1100',
+            'type' => 'check_in',
+            'title' => 'Attendance Window (11:00 AM - 11:20 AM)',
+            'subtitle' => 'Late attendance check-in window is active.',
+            'start_time' => '11:00:00',
+            'end_time' => '11:20:00',
+            'start_label' => '11:00 AM',
+            'end_label' => '11:20 AM',
+        ],
+        [
+            'id' => 'auto_checkin_1200',
+            'type' => 'check_in',
+            'title' => 'Midday Attendance Window (12:00 PM - 12:20 PM)',
+            'subtitle' => 'Midday attendance check-in window is active.',
+            'start_time' => '12:00:00',
+            'end_time' => '12:20:00',
+            'start_label' => '12:00 PM',
+            'end_label' => '12:20 PM',
+        ],
+        [
+            'id' => 'auto_checkin_1300',
+            'type' => 'check_in',
+            'title' => 'Afternoon Attendance Window (01:00 PM - 01:20 PM)',
+            'subtitle' => 'Afternoon attendance check-in window is active.',
+            'start_time' => '13:00:00',
+            'end_time' => '13:20:00',
+            'start_label' => '01:00 PM',
+            'end_label' => '01:20 PM',
+        ],
+        [
+            'id' => 'auto_checkout_1730',
+            'type' => 'check_out',
+            'title' => 'Evening Check-Out Window (05:30 PM - 05:50 PM)',
+            'subtitle' => 'Official shift check-out window is active.',
+            'start_time' => '17:30:00',
+            'end_time' => '17:50:00',
+            'start_label' => '05:30 PM',
+            'end_label' => '05:50 PM',
+        ],
+    ];
+
+    // 3. Check if current time falls within any scheduled window
+    foreach ($scheduledWindows as $w) {
+        $startTime = strtotime($today . ' ' . $w['start_time']);
+        $endTime   = strtotime($today . ' ' . $w['end_time']);
+
+        if ($now >= $startTime && $now < $endTime) {
+            $secondsRemaining = $endTime - $now;
+            return [
+                'is_open' => true,
+                'is_automated' => true,
+                'window' => [
+                    'id' => $w['id'],
+                    'type' => $w['type'],
+                    'title' => $w['title'],
+                    'subtitle' => $w['subtitle'],
+                    'opened_at' => date('Y-m-d H:i:s', $startTime),
+                    'expires_at' => date('Y-m-d H:i:s', $endTime),
+                    'duration_minutes' => 20,
+                    'seconds_remaining' => $secondsRemaining,
+                ],
+                'next_window' => null
+            ];
+        }
     }
 
-    $secondsUntilOpen = max(0, $nextOpensAt - $now);
+    // 4. If currently closed, find the next upcoming scheduled window for today
+    $nextWindow = null;
+    foreach ($scheduledWindows as $w) {
+        $startTime = strtotime($today . ' ' . $w['start_time']);
+        if ($now < $startTime) {
+            $nextWindow = [
+                'type' => $w['type'],
+                'title' => $w['title'],
+                'opens_at' => date('Y-m-d H:i:s', $startTime),
+                'opens_at_label' => $w['start_label'] . ' Today',
+                'seconds_until_open' => $startTime - $now,
+            ];
+            break;
+        }
+    }
+
+    // 5. If all scheduled windows for today have passed, next window is tomorrow's first window (09:00 AM)
+    if (!$nextWindow) {
+        $tomorrowFirst = strtotime('+1 day', strtotime($today . ' ' . $scheduledWindows[0]['start_time']));
+        $nextWindow = [
+            'type' => $scheduledWindows[0]['type'],
+            'title' => $scheduledWindows[0]['title'],
+            'opens_at' => date('Y-m-d H:i:s', $tomorrowFirst),
+            'opens_at_label' => $scheduledWindows[0]['start_label'] . ' Tomorrow (' . date('D, M j', $tomorrowFirst) . ')',
+            'seconds_until_open' => max(0, $tomorrowFirst - $now),
+        ];
+    }
 
     return [
         'is_open' => false,
         'is_automated' => true,
-        'message' => "Attendance window is currently closed. Next window ({$nextTitle}) opens at {$nextLabel}.",
+        'message' => "Attendance window is currently closed. Next window ({$nextWindow['title']}) opens at {$nextWindow['opens_at_label']}.",
         'window' => null,
-        'next_window' => [
-            'type' => $nextType,
-            'title' => $nextTitle,
-            'opens_at' => date('Y-m-d H:i:s', $nextOpensAt),
-            'opens_at_label' => $nextLabel,
-            'seconds_until_open' => $secondsUntilOpen,
-        ]
+        'next_window' => $nextWindow
     ];
 }
 
@@ -453,7 +499,7 @@ switch ($action) {
         // 5. Determine Action: Check-Out vs Check-In
         $isCheckOutAction = ($winType === 'check_out') ||
                             ($punchType === 'check_out') ||
-                            ($existing && !empty($existing['check_in_time']) && empty($existing['check_out_time']) && (date('H') >= 16 || $punchType === 'auto'));
+                            ($existing && !empty($existing['check_in_time']) && empty($existing['check_out_time']) && date('H') >= 16);
 
         if ($isCheckOutAction) {
             // === CHECK-OUT FLOW ===

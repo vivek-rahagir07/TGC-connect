@@ -157,7 +157,7 @@
                     <!-- Automated Schedule Badge & Shareable Link Action -->
                     <div style="display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 0.55rem;">
                         <span style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.76rem; font-weight: 700; color: #1e40af; background: #eff6ff; border: 1px solid #bfdbfe; padding: 0.28rem 0.8rem; border-radius: 9999px;">
-                            <i data-lucide="clock" style="width: 13px;"></i> Check-In: 09:00 - 09:20 AM • Check-Out: 05:30 - 05:50 PM
+                            <i data-lucide="clock" style="width: 13px;"></i> Check-In: 09:00–09:20, 10:00–10:20, 11:00–11:20, 12:00–12:20, 01:00–01:20 PM • Check-Out: 05:30–05:50 PM
                         </span>
                         <button type="button" onclick="copyAttendanceLink()" class="btn btn-secondary btn-sm" style="font-size: 0.74rem; font-weight: 700; padding: 0.26rem 0.75rem; border-radius: 9999px; display: inline-flex; align-items: center; gap: 0.35rem;">
                             <i data-lucide="share-2" style="width: 13px;"></i> Share Link
@@ -605,7 +605,7 @@ TGC Connect</div>
                     if (currentWindowType === 'check_out') {
                         banner.className = 'window-banner open-evening';
                         dot.style.background = '#6366f1';
-                        title.textContent = '🌆 Evening Check-Out Window (05:30 PM - 05:50 PM)';
+                        title.textContent = '🌆 ' + (res.data.window.title || 'Evening Check-Out Window (05:30 PM - 05:50 PM)');
                         title.style.color = '#3730a3';
                         subtext.textContent = res.data.window.subtitle || 'Official shift check-out window is live. Tap to punch out.';
                         subtext.style.color = '#4338ca';
@@ -621,7 +621,7 @@ TGC Connect</div>
                     } else {
                         banner.className = 'window-banner open';
                         dot.style.background = '#10b981';
-                        title.textContent = '🌅 Morning Attendance Window (09:00 AM - 09:20 AM)';
+                        title.textContent = '🌅 ' + (res.data.window.title || 'Attendance Check-In Window');
                         title.style.color = '#065f46';
                         subtext.textContent = res.data.window.subtitle || 'Official shift check-in window is live. Tap to punch in.';
                         subtext.style.color = '#047857';
@@ -654,7 +654,7 @@ TGC Connect</div>
                         windowRemainingSeconds = nw.seconds_until_open || 0;
                         startWindowCountdown(false);
                     } else {
-                        subtext.textContent = 'Attendance punches are open daily from 09:00-09:20 AM and 05:30-05:50 PM.';
+                        subtext.textContent = 'Attendance punches open daily in scheduled hourly windows (09:00–09:20, 10:00–10:20, 11:00–11:20, 12:00–12:20, 01:00–01:20 PM, and 05:30–05:50 PM).';
                         subtext.style.color = '#78350f';
                         timerEl.textContent = 'CLOSED';
                         timerEl.style.color = '#d97706';
