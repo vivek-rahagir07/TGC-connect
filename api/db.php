@@ -46,9 +46,96 @@ try {
         if (empty($cols)) {
             $pdo->exec("ALTER TABLE `users` ADD COLUMN `company` VARCHAR(255) DEFAULT 'Getting Roots Coaching & Training Pvt. Ltd.' AFTER `department`");
         }
-    } catch (Exception $e) {
-        // Silently skip if users table doesn't exist yet or already altered
-    }
+    } catch (Exception $e) {}
+
+    // Idempotent Migration: Departments table
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS `departments` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `name` VARCHAR(100) NOT NULL UNIQUE,
+                `description` VARCHAR(255) DEFAULT NULL,
+                `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        $deptCount = (int) $pdo->query("SELECT COUNT(*) FROM `departments`")->fetchColumn();
+        if ($deptCount === 0) {
+            $pdo->exec("
+                INSERT IGNORE INTO `departments` (`name`, `description`) VALUES
+                ('Engineering', 'Software, IT & Systems Architecture'),
+                ('Design & UI/UX', 'Product Design, UI/UX & Creative Media'),
+                ('Operations', 'Business Operations & Delivery Management'),
+                ('Marketing', 'Digital Marketing, Growth & Branding'),
+                ('Human Resources', 'People Operations, Talent & Culture'),
+                ('Sales & Business Dev', 'Enterprise Sales, Client Acquisition & Partnerships'),
+                ('Finance & Accounts', 'Financial Planning, Payroll & Accounting'),
+                ('Administration', 'Facilities, Office Logistics & Admin Support')
+            ");
+        }
+    } catch (Exception $e) {}
+
+    // Idempotent Migration: Designations table
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS `designations` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `department_id` INT DEFAULT NULL,
+                `name` VARCHAR(100) NOT NULL,
+                `description` VARCHAR(255) DEFAULT NULL,
+                `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (`department_id`) REFERENCES `departments`(`id`) ON DELETE SET NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        $desigCount = (int) $pdo->query("SELECT COUNT(*) FROM `designations`")->fetchColumn();
+        if ($desigCount === 0) {
+            $pdo->exec("
+                INSERT IGNORE INTO `designations` (`name`, `description`) VALUES
+                ('Senior Software Engineer', 'Core Backend & Frontend Engineering'),
+                ('UI/UX Designer', 'Product Visuals, Wireframes & UX Research'),
+                ('Operations Executive', 'Operational Excellence & Process Execution'),
+                ('Marketing Specialist', 'Growth Marketing & Campaign Strategy'),
+                ('HR Manager', 'HR Compliance & Talent Development'),
+                ('Business Development Manager', 'B2B Sales & Client Relations'),
+                ('Accountant', 'Books, Tax & Financial Reporting'),
+                ('Office Administrator', 'General Workplace & Logistics Administration')
+            ");
+        }
+    } catch (Exception $e) {}
+
+    // Idempotent Migration: Leave Quotas Comp Off columns
+    try {
+        $cols = $pdo->query("SHOW COLUMNS FROM `leave_quotas` LIKE 'comp_off_total'")->fetchAll();
+        if (empty($cols)) {
+            $pdo->exec("ALTER TABLE `leave_quotas` ADD COLUMN `comp_off_total` DECIMAL(5,1) DEFAULT 0.0 AFTER `earned_leave_total`");
+            $pdo->exec("ALTER TABLE `leave_quotas` ADD COLUMN `comp_off_used` DECIMAL(5,1) DEFAULT 0.0 AFTER `earned_leave_used`");
+        }
+    } catch (Exception $e) {}
+
+    // Idempotent Migration: Leaves table leave_type to include comp_off
+    try {
+        $pdo->exec("ALTER TABLE `leaves` MODIFY COLUMN `leave_type` VARCHAR(50) NOT NULL");
+    } catch (Exception $e) {}
+
+    // Idempotent Migration: Rosters table
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS `rosters` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `user_id` INT NOT NULL,
+                `roster_date` DATE NOT NULL,
+                `shift_name` VARCHAR(100) NOT NULL DEFAULT 'General',
+                `start_time` TIME DEFAULT '09:30:00',
+                `end_time` TIME DEFAULT '18:30:00',
+                `notes` VARCHAR(255) DEFAULT NULL,
+                `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                UNIQUE KEY `uk_roster_user_date` (`user_id`, `roster_date`),
+                INDEX `idx_roster_date` (`roster_date`),
+                FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    } catch (Exception $e) {}
+
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode([

@@ -187,7 +187,7 @@ switch ($action) {
         }
 
         $sql = "
-            SELECT u.*, q.casual_leave_total, q.casual_leave_used, q.sick_leave_total, q.sick_leave_used, q.earned_leave_total, q.earned_leave_used {$selectPresence}
+            SELECT u.*, q.casual_leave_total, q.casual_leave_used, q.sick_leave_total, q.sick_leave_used, q.earned_leave_total, q.earned_leave_used, COALESCE(q.comp_off_total, 0.0) as comp_off_total, COALESCE(q.comp_off_used, 0.0) as comp_off_used {$selectPresence}
             FROM users u
             LEFT JOIN leave_quotas q ON u.id = q.user_id AND q.year = {$currentYear}
             {$joinPresence}
@@ -486,6 +486,7 @@ switch ($action) {
         $clTotal = floatval($input['casual_leave_total'] ?? 12.0);
         $slTotal = floatval($input['sick_leave_total'] ?? 12.0);
         $elTotal = floatval($input['earned_leave_total'] ?? 12.0);
+        $coTotal = floatval($input['comp_off_total'] ?? 0.0);
 
         if (!$userId) {
             sendResponse(false, ['message' => 'User ID is required.'], 400);
@@ -496,14 +497,14 @@ switch ($action) {
         $existing = $stmt->fetch();
 
         if ($existing) {
-            $stmtUpdate = $pdo->prepare("UPDATE leave_quotas SET casual_leave_total = ?, sick_leave_total = ?, earned_leave_total = ? WHERE id = ?");
-            $stmtUpdate->execute([$clTotal, $slTotal, $elTotal, $existing['id']]);
+            $stmtUpdate = $pdo->prepare("UPDATE leave_quotas SET casual_leave_total = ?, sick_leave_total = ?, earned_leave_total = ?, comp_off_total = ? WHERE id = ?");
+            $stmtUpdate->execute([$clTotal, $slTotal, $elTotal, $coTotal, $existing['id']]);
         } else {
-            $stmtInsert = $pdo->prepare("INSERT INTO leave_quotas (user_id, year, casual_leave_total, sick_leave_total, earned_leave_total) VALUES (?, ?, ?, ?, ?)");
-            $stmtInsert->execute([$userId, $year, $clTotal, $slTotal, $elTotal]);
+            $stmtInsert = $pdo->prepare("INSERT INTO leave_quotas (user_id, year, casual_leave_total, sick_leave_total, earned_leave_total, comp_off_total) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmtInsert->execute([$userId, $year, $clTotal, $slTotal, $elTotal, $coTotal]);
         }
 
-        logAdminAction($pdo, $user['id'], 'update_leave_quota', $userId, "Updated leave quotas (CL: {$clTotal}, SL: {$slTotal}, EL: {$elTotal}) for user #{$userId}.");
+        logAdminAction($pdo, $user['id'], 'update_leave_quota', $userId, "Updated leave quotas (CL: {$clTotal}, SL: {$slTotal}, EL: {$elTotal}, Comp Off: {$coTotal}) for user #{$userId}.");
 
         sendResponse(true, ['message' => 'Leave quotas updated successfully.']);
         break;
@@ -612,6 +613,349 @@ switch ($action) {
         ");
         sendResponse(true, ['logs' => $stmt->fetchAll()]);
         break;
+
+    case 'reset_employee_password':
+        $targetId = intval($input['user_id'] ?? 0);
+        $newPass = trim($input['password'] ?? '');
+        $forceReset = !empty($input['force_reset']) ? 1 : 0;
+
+        if (!$targetId || empty($newPass)) {
+            sendResponse(false, ['message' => 'Employee ID and new password are required.'], 400);
+        }
+
+        if (strlen($newPass) < 6) {
+            sendResponse(false, ['message' => 'Password must be at least 6 characters long.'], 400);
+        }
+
+        $stmtU = $pdo->prepare("SELECT name, email FROM users WHERE id = ?");
+        $stmtU->execute([$targetId]);
+        $targetUser = $stmtU->fetch();
+        if (!$targetUser) {
+            sendResponse(false, ['message' => 'Candidate / employee not found.'], 404);
+        }
+
+        $hashed = password_hash($newPass, PASSWORD_DEFAULT);
+        $stmtUpdate = $pdo->prepare("UPDATE users SET password = ?, first_login_required = ? WHERE id = ?");
+        $stmtUpdate->execute([$hashed, $forceReset, $targetId]);
+
+        logAdminAction($pdo, $user['id'], 'admin_reset_password', $targetId, "Admin reset password for candidate {$targetUser['name']} ({$targetUser['email']}).");
+
+        sendResponse(true, [
+            'message' => "Password reset successfully for {$targetUser['name']}!",
+            'user_id' => $targetId,
+            'name' => $targetUser['name'],
+            'email' => $targetUser['email'],
+            'temp_password' => $newPass
+        ]);
+        break;
+
+    case 'departments':
+        try {
+            $stmt = $pdo->query("
+                SELECT d.*, COUNT(u.id) as employee_count
+                FROM departments d
+                LEFT JOIN users u ON LOWER(d.name) = LOWER(u.department) AND u.status = 'active'
+                GROUP BY d.id
+                ORDER BY d.name ASC
+            ");
+            $depts = $stmt->fetchAll();
+        } catch (Exception $e) {
+            $depts = [];
+        }
+        sendResponse(true, ['departments' => $depts]);
+        break;
+
+    case 'add_department':
+        $name = trim($input['name'] ?? '');
+        $desc = trim($input['description'] ?? '');
+
+        if (empty($name)) {
+            sendResponse(false, ['message' => 'Department name is required.'], 400);
+        }
+
+        try {
+            $stmt = $pdo->prepare("INSERT INTO departments (name, description) VALUES (?, ?)");
+            $stmt->execute([$name, $desc]);
+            $newId = $pdo->lastInsertId();
+
+            logAdminAction($pdo, $user['id'], 'add_department', null, "Added department '{$name}'.");
+
+            sendResponse(true, [
+                'message' => "Department '{$name}' created successfully!",
+                'department' => ['id' => $newId, 'name' => $name, 'description' => $desc, 'employee_count' => 0]
+            ]);
+        } catch (PDOException $e) {
+            if ($e->getCode() == 23000) {
+                sendResponse(false, ['message' => "A department named '{$name}' already exists."], 409);
+            }
+            sendResponse(false, ['message' => 'Could not create department: ' . $e->getMessage()], 500);
+        }
+        break;
+
+    case 'delete_department':
+        $deptId = intval($input['id'] ?? ($_GET['id'] ?? 0));
+        if (!$deptId) {
+            sendResponse(false, ['message' => 'Department ID is required.'], 400);
+        }
+
+        $stmtD = $pdo->prepare("SELECT name FROM departments WHERE id = ?");
+        $stmtD->execute([$deptId]);
+        $dept = $stmtD->fetch();
+        if (!$dept) {
+            sendResponse(false, ['message' => 'Department not found.'], 404);
+        }
+
+        // Check if employees are assigned to this department
+        $stmtCheck = $pdo->prepare("SELECT COUNT(*) FROM users WHERE LOWER(department) = LOWER(?) AND status = 'active'");
+        $stmtCheck->execute([$dept['name']]);
+        $empCount = (int) $stmtCheck->fetchColumn();
+
+        if ($empCount > 0) {
+            sendResponse(false, ['message' => "Cannot delete '{$dept['name']}' because {$empCount} active employee(s) are assigned to it. Please reassign them first."], 422);
+        }
+
+        $stmtDel = $pdo->prepare("DELETE FROM departments WHERE id = ?");
+        $stmtDel->execute([$deptId]);
+
+        logAdminAction($pdo, $user['id'], 'delete_department', null, "Deleted department '{$dept['name']}' (#{$deptId}).");
+
+        sendResponse(true, ['message' => "Department '{$dept['name']}' removed successfully."]);
+        break;
+
+    case 'designations':
+        try {
+            $deptFilter = intval($_GET['department_id'] ?? 0);
+            if ($deptFilter > 0) {
+                $stmt = $pdo->prepare("
+                    SELECT des.*, d.name as department_name
+                    FROM designations des
+                    LEFT JOIN departments d ON des.department_id = d.id
+                    WHERE des.department_id = ?
+                    ORDER BY des.name ASC
+                ");
+                $stmt->execute([$deptFilter]);
+            } else {
+                $stmt = $pdo->query("
+                    SELECT des.*, d.name as department_name
+                    FROM designations des
+                    LEFT JOIN departments d ON des.department_id = d.id
+                    ORDER BY des.name ASC
+                ");
+            }
+            $desigs = $stmt->fetchAll();
+        } catch (Exception $e) {
+            $desigs = [];
+        }
+        sendResponse(true, ['designations' => $desigs]);
+        break;
+
+    case 'add_designation':
+        $name = trim($input['name'] ?? '');
+        $deptId = !empty($input['department_id']) ? intval($input['department_id']) : null;
+        $desc = trim($input['description'] ?? '');
+
+        if (empty($name)) {
+            sendResponse(false, ['message' => 'Designation name is required.'], 400);
+        }
+
+        try {
+            $stmt = $pdo->prepare("INSERT INTO designations (name, department_id, description) VALUES (?, ?, ?)");
+            $stmt->execute([$name, $deptId, $desc]);
+            $newId = $pdo->lastInsertId();
+
+            logAdminAction($pdo, $user['id'], 'add_designation', null, "Added designation '{$name}'.");
+
+            sendResponse(true, [
+                'message' => "Designation '{$name}' added successfully!",
+                'designation' => ['id' => $newId, 'name' => $name, 'department_id' => $deptId, 'description' => $desc]
+            ]);
+        } catch (Exception $e) {
+            sendResponse(false, ['message' => 'Could not add designation: ' . $e->getMessage()], 500);
+        }
+        break;
+
+    case 'delete_designation':
+        $desigId = intval($input['id'] ?? ($_GET['id'] ?? 0));
+        if (!$desigId) {
+            sendResponse(false, ['message' => 'Designation ID is required.'], 400);
+        }
+
+        $stmtD = $pdo->prepare("DELETE FROM designations WHERE id = ?");
+        $stmtD->execute([$desigId]);
+
+        logAdminAction($pdo, $user['id'], 'delete_designation', null, "Deleted designation #{$desigId}.");
+
+        sendResponse(true, ['message' => 'Designation removed successfully.']);
+        break;
+
+    case 'roster_list':
+        $startDate = trim($_GET['start_date'] ?? date('Y-m-d', strtotime('monday this week')));
+        $endDate = trim($_GET['end_date'] ?? date('Y-m-d', strtotime('sunday this week')));
+        $dept = trim($_GET['department'] ?? 'all');
+        $search = trim($_GET['search'] ?? '');
+
+        $sql = "
+            SELECT r.*, u.name as employee_name, u.email as employee_email, u.department, u.job_profile, u.photo_path
+            FROM rosters r
+            JOIN users u ON r.user_id = u.id
+            WHERE r.roster_date BETWEEN ? AND ?
+        ";
+        $params = [$startDate, $endDate];
+
+        if ($dept !== 'all' && !empty($dept)) {
+            $sql .= " AND LOWER(u.department) = LOWER(?)";
+            $params[] = $dept;
+        }
+
+        if (!empty($search)) {
+            $sql .= " AND (u.name LIKE ? OR u.email LIKE ?)";
+            $params[] = "%{$search}%";
+            $params[] = "%{$search}%";
+        }
+
+        $sql .= " ORDER BY r.roster_date ASC, u.name ASC";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $rosters = $stmt->fetchAll();
+
+        sendResponse(true, [
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'rosters' => $rosters
+        ]);
+        break;
+
+    case 'save_roster':
+        $empId = intval($input['user_id'] ?? 0);
+        $date = trim($input['roster_date'] ?? '');
+        $shiftName = trim($input['shift_name'] ?? 'General');
+        $startTime = !empty($input['start_time']) ? trim($input['start_time']) : null;
+        $endTime = !empty($input['end_time']) ? trim($input['end_time']) : null;
+        $notes = trim($input['notes'] ?? '');
+
+        if (!$empId || !$date) {
+            sendResponse(false, ['message' => 'Employee ID and roster date are required.'], 400);
+        }
+
+        $stmt = $pdo->prepare("
+            INSERT INTO rosters (user_id, roster_date, shift_name, start_time, end_time, notes)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                shift_name = VALUES(shift_name),
+                start_time = VALUES(start_time),
+                end_time = VALUES(end_time),
+                notes = VALUES(notes)
+        ");
+        $stmt->execute([$empId, $date, $shiftName, $startTime, $endTime, $notes]);
+
+        logAdminAction($pdo, $user['id'], 'save_roster', $empId, "Updated duty roster for user #{$empId} on {$date} to {$shiftName}.");
+
+        sendResponse(true, ['message' => "Roster saved for {$date}."]);
+        break;
+
+    case 'bulk_assign_roster':
+        $empIds = $input['user_ids'] ?? [];
+        $startDate = trim($input['start_date'] ?? '');
+        $endDate = trim($input['end_date'] ?? '');
+        $shiftName = trim($input['shift_name'] ?? 'General');
+        $startTime = !empty($input['start_time']) ? trim($input['start_time']) : '09:30:00';
+        $endTime = !empty($input['end_time']) ? trim($input['end_time']) : '18:30:00';
+        $weeklyOffDays = $input['weekly_off_days'] ?? [0]; // 0=Sun
+        $dept = trim($input['department'] ?? 'all');
+
+        if (empty($empIds) && $dept !== 'all') {
+            $stmtUsers = $pdo->prepare("SELECT id FROM users WHERE LOWER(department) = LOWER(?) AND status = 'active' AND role = 'employee'");
+            $stmtUsers->execute([$dept]);
+            $empIds = $stmtUsers->fetchAll(PDO::FETCH_COLUMN);
+        } elseif (empty($empIds) && $dept === 'all') {
+            $stmtUsers = $pdo->query("SELECT id FROM users WHERE status = 'active' AND role = 'employee'");
+            $empIds = $stmtUsers->fetchAll(PDO::FETCH_COLUMN);
+        }
+
+        if (empty($empIds) || !$startDate || !$endDate) {
+            sendResponse(false, ['message' => 'Employees and valid date range are required.'], 400);
+        }
+
+        $startTs = strtotime($startDate);
+        $endTs = strtotime($endDate);
+        if ($endTs < $startTs) {
+            sendResponse(false, ['message' => 'End date cannot be earlier than start date.'], 400);
+        }
+
+        $stmtUpsert = $pdo->prepare("
+            INSERT INTO rosters (user_id, roster_date, shift_name, start_time, end_time, notes)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                shift_name = VALUES(shift_name),
+                start_time = VALUES(start_time),
+                end_time = VALUES(end_time),
+                notes = VALUES(notes)
+        ");
+
+        $assignedCount = 0;
+        for ($t = $startTs; $t <= $endTs; $t += 86400) {
+            $curDate = date('Y-m-d', $t);
+            $dayOfWeek = (int) date('w', $t); // 0=Sun, 6=Sat
+
+            $isOff = in_array($dayOfWeek, $weeklyOffDays);
+            $curShift = $isOff ? 'Weekly Off' : $shiftName;
+            $curStart = $isOff ? null : $startTime;
+            $curEnd   = $isOff ? null : $endTime;
+            $curNotes = $isOff ? 'Weekly Off' : 'Scheduled Shift';
+
+            foreach ($empIds as $uId) {
+                $stmtUpsert->execute([$uId, $curDate, $curShift, $curStart, $curEnd, $curNotes]);
+                $assignedCount++;
+            }
+        }
+
+        logAdminAction($pdo, $user['id'], 'bulk_assign_roster', null, "Bulk assigned {$assignedCount} roster shifts between {$startDate} and {$endDate}.");
+
+        sendResponse(true, [
+            'message' => "Successfully scheduled {$assignedCount} shift assignments across selected dates!",
+            'assigned_count' => $assignedCount
+        ]);
+        break;
+
+    case 'export_roster_csv':
+        $startDate = trim($_GET['start_date'] ?? date('Y-m-d', strtotime('monday this week')));
+        $endDate = trim($_GET['end_date'] ?? date('Y-m-d', strtotime('sunday this week')));
+
+        $stmt = $pdo->prepare("
+            SELECT r.roster_date, u.name as employee_name, u.email, u.company, u.department, u.job_profile,
+                   r.shift_name, r.start_time, r.end_time, r.notes
+            FROM rosters r
+            JOIN users u ON r.user_id = u.id
+            WHERE r.roster_date BETWEEN ? AND ?
+            ORDER BY r.roster_date ASC, u.name ASC
+        ");
+        $stmt->execute([$startDate, $endDate]);
+        $rows = $stmt->fetchAll();
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header("Content-Disposition: attachment; filename=duty_roster_{$startDate}_to_{$endDate}.csv");
+        $fp = fopen('php://output', 'w');
+        fprintf($fp, chr(0xEF).chr(0xBB).chr(0xBF));
+        fputcsv($fp, ['Date', 'Employee Name', 'Email', 'Company', 'Department', 'Job Profile', 'Shift Name', 'Start Time', 'End Time', 'Notes']);
+
+        foreach ($rows as $r) {
+            fputcsv($fp, [
+                $r['roster_date'],
+                $r['employee_name'],
+                $r['email'],
+                $r['company'] ?: 'Getting Roots Coaching & Training Pvt. Ltd.',
+                $r['department'],
+                $r['job_profile'],
+                $r['shift_name'],
+                $r['start_time'] ?: '-',
+                $r['end_time'] ?: '-',
+                $r['notes'] ?: '-'
+            ]);
+        }
+        fclose($fp);
+        exit;
+
 
     default:
         sendResponse(false, ['message' => 'Invalid admin action.'], 400);

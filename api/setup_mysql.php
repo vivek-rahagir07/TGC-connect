@@ -66,11 +66,17 @@ try {
                 $pdo->exec("ALTER TABLE `leave_quotas` MODIFY COLUMN `sick_leave_total` DECIMAL(5,1) DEFAULT 12.0");
                 logMsg($report, "Migrated `leave_quotas` table: Added `earned_leave_total` & `earned_leave_used`.", $isCli);
             }
+            $coCols = $pdo->query("SHOW COLUMNS FROM `leave_quotas` LIKE 'comp_off_total'")->fetchAll();
+            if (empty($coCols)) {
+                $pdo->exec("ALTER TABLE `leave_quotas` ADD COLUMN `comp_off_total` DECIMAL(5,1) DEFAULT 0.0 AFTER `earned_leave_total`");
+                $pdo->exec("ALTER TABLE `leave_quotas` ADD COLUMN `comp_off_used` DECIMAL(5,1) DEFAULT 0.0 AFTER `earned_leave_used`");
+                logMsg($report, "Migrated `leave_quotas` table: Added `comp_off_total` & `comp_off_used`.", $isCli);
+            }
         }
         $leavesCheck = $pdo->query("SHOW TABLES LIKE 'leaves'")->fetchAll();
         if (!empty($leavesCheck)) {
-            $pdo->exec("ALTER TABLE `leaves` MODIFY COLUMN `leave_type` ENUM('casual', 'sick', 'earned') NOT NULL");
-            logMsg($report, "Migrated `leaves` table: Enabled `earned` leave type.", $isCli);
+            $pdo->exec("ALTER TABLE `leaves` MODIFY COLUMN `leave_type` ENUM('casual', 'sick', 'earned', 'comp_off') NOT NULL");
+            logMsg($report, "Migrated `leaves` table: Enabled `earned` and `comp_off` leave types.", $isCli);
         }
     } catch (Exception $migEx) {
         logMsg($report, "Migration note: " . $migEx->getMessage(), $isCli);

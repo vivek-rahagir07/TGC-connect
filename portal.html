@@ -64,11 +64,11 @@
                 </div>
             </div>
 
-            <!-- Today's Attendance & Leave Quota Grid -->
-            <div style="display: grid; grid-template-columns: 1fr 1.35fr; gap: 1.25rem;">
+            <!-- Today's Attendance & Leave Quota Grid (Balanced Heights) -->
+            <div class="equal-height-grid" style="display: grid; grid-template-columns: 1fr 1.35fr; gap: 1.25rem; align-items: stretch;">
                 
                 <!-- Today Attendance Card -->
-                <div class="card animate-fade-in delay-1">
+                <div class="card card-stretch animate-fade-in delay-1">
                     <div class="card-header">
                         <div class="card-title">
                             <i data-lucide="clock" style="color: var(--primary);"></i> Today's Attendance Punch
@@ -107,7 +107,7 @@
                 </div>
 
                 <!-- Leave Quota & Application Quick Action -->
-                <div class="card animate-fade-in delay-2">
+                <div class="card card-stretch animate-fade-in delay-2">
                     <div class="card-header">
                         <div class="card-title">
                             <i data-lucide="calendar" style="color: var(--primary);"></i> Leave Quota & Balances
@@ -117,7 +117,7 @@
                         </button>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+                    <div class="leave-quota-quad-grid" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem;">
                         <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-sm); padding: 1.1rem;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <div style="font-size: 0.74rem; font-weight: 700; color: #1e40af; text-transform: uppercase; letter-spacing: 0.5px;">Casual Leave (CL)</div>
@@ -159,6 +159,20 @@
                                 <span id="elTotal" style="font-size: 0.78rem; color: #d97706; font-weight: 600;">/ -- accrued</span>
                             </div>
                         </div>
+
+                        <div style="background: #fdf4ff; border: 1px solid #f0abfc; border-radius: var(--radius-sm); padding: 1.1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="font-size: 0.74rem; font-weight: 700; color: #86198f; text-transform: uppercase; letter-spacing: 0.5px;">Comp Off (CO)</div>
+                                <span style="font-size: 0.7rem; font-weight: 600; color: #c026d3; background: #fae8ff; padding: 2px 6px; border-radius: 4px;">Earned</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 0.5rem;">
+                                <div>
+                                    <span id="coRemaining" style="font-size: 1.75rem; font-weight: 700; color: #701a75; font-family: var(--font-mono);">0</span>
+                                    <span style="font-size: 0.74rem; color: #86198f; font-weight: 600; margin-left: 2px;">avail</span>
+                                </div>
+                                <span id="coTotal" style="font-size: 0.78rem; color: #c026d3; font-weight: 600;">/ 0 credited</span>
+                            </div>
+                        </div>
                     </div>
 
                     <div style="font-size: 0.88rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.65rem;">
@@ -176,10 +190,11 @@
                     <div class="card-title">
                         <i data-lucide="history" style="color: var(--primary);"></i> Attendance Log & Monthly Salary Slips
                     </div>
-                    <div style="display: flex; gap: 0.5rem;">
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                         <button type="button" id="tabAttendanceBtn" onclick="switchTab('attendance')" class="btn btn-primary btn-sm">Attendance Log</button>
                         <button type="button" id="tabSalaryBtn" onclick="switchTab('salary')" class="btn btn-secondary btn-sm">Salary Slips</button>
                         <button type="button" id="tabAssetsBtn" onclick="switchTab('assets')" class="btn btn-secondary btn-sm">My Issued Assets</button>
+                        <button type="button" id="tabRosterBtn" onclick="switchTab('roster')" class="btn btn-secondary btn-sm"><i data-lucide="calendar-clock" style="width: 15px;"></i> Duty Roster & Shifts</button>
                     </div>
                 </div>
 
@@ -239,6 +254,42 @@
                         </tbody>
                     </table>
                 </div>
+
+                <div id="tabRosterContent" style="display: none;">
+                    <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 1.1rem 1.25rem; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                        <div>
+                            <div style="font-size: 0.74rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Today's Assigned Shift Timing</div>
+                            <div id="todayShiftDisplay" style="display: flex; align-items: center; gap: 0.6rem; margin-top: 0.25rem;">
+                                <span id="todayShiftBadge" class="badge badge-shift-general" style="font-size: 0.88rem; padding: 0.35rem 0.8rem; font-weight: 800;">General Shift</span>
+                                <span id="todayShiftTimings" style="font-family: var(--font-mono); font-weight: 700; color: var(--text-main); font-size: 0.95rem;">09:30 - 18:30</span>
+                            </div>
+                        </div>
+                        <div style="font-size: 0.82rem; color: var(--text-muted); max-width: 340px; line-height: 1.45;">
+                            ℹ️ <strong>Comp Off Notice:</strong> If you work and punch in on your scheduled <strong>Weekly Off</strong> or an official holiday, you are eligible for <strong>Compensatory Off (Comp Off)</strong> credit!
+                        </div>
+                    </div>
+
+                    <h4 style="font-size: 0.95rem; font-weight: 800; color: var(--text-main); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.45rem;">
+                        <i data-lucide="calendar" style="width: 16px; color: var(--primary);"></i> My Shift Schedule for the Week
+                    </h4>
+                    <div class="table-responsive">
+                        <table class="custom-table roster-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Day</th>
+                                    <th>Shift Name</th>
+                                    <th>Hours / Timing</th>
+                                    <th>Status / Instructions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="myRosterTableBody">
+                                <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Loading duty roster...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
             </div>
 
         </div>
@@ -261,6 +312,7 @@
                             <option value="casual">Casual Leave (CL) — 1 day/mo</option>
                             <option value="sick">Sick Leave (SL) — 1 day/mo</option>
                             <option value="earned">Earned Leave (EL) — 1 day/mo</option>
+                            <option value="comp_off">Compensatory Off (Comp Off) — Earned</option>
                         </select>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
@@ -409,6 +461,7 @@
             await loadUserProfile();
             loadTodayAttendance();
             loadLeaveQuotas();
+            loadMyRoster();
             loadRecentLeaves();
             loadAttendanceHistory();
             loadSalarySlips();
@@ -476,13 +529,21 @@
             document.getElementById('tabAttendanceContent').style.display = (tab === 'attendance') ? 'block' : 'none';
             document.getElementById('tabSalaryContent').style.display = (tab === 'salary') ? 'block' : 'none';
             document.getElementById('tabAssetsContent').style.display = (tab === 'assets') ? 'block' : 'none';
+            if (document.getElementById('tabRosterContent')) {
+                document.getElementById('tabRosterContent').style.display = (tab === 'roster') ? 'block' : 'none';
+            }
 
             document.getElementById('tabAttendanceBtn').className = (tab === 'attendance') ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
             document.getElementById('tabSalaryBtn').className = (tab === 'salary') ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
             document.getElementById('tabAssetsBtn').className = (tab === 'assets') ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+            if (document.getElementById('tabRosterBtn')) {
+                document.getElementById('tabRosterBtn').className = (tab === 'roster') ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+            }
 
             if (tab === 'assets') {
                 loadMyItems();
+            } else if (tab === 'roster') {
+                loadMyRoster();
             }
         }
 
@@ -634,6 +695,11 @@
 
                 document.getElementById('elRemaining').textContent = elAvail;
                 document.getElementById('elTotal').textContent = `/ ${q.earned_leave_accrued ?? q.earned_leave_total} accrued (${q.earned_leave_total} yr)`;
+
+                const coEl = document.getElementById('coRemaining');
+                if (coEl) coEl.textContent = q.comp_off_available !== undefined ? q.comp_off_available : 0;
+                const coTotEl = document.getElementById('coTotal');
+                if (coTotEl) coTotEl.textContent = `/ ${q.comp_off_total !== undefined ? q.comp_off_total : 0} credited`;
             }
         }
 
@@ -677,6 +743,7 @@
                 showToast(res.data.message, 'success');
                 closeModal('applyLeaveModal');
                 loadLeaveQuotas();
+            loadMyRoster();
                 loadRecentLeaves();
             } else {
                 playSound('error');
@@ -685,6 +752,81 @@
 
             btn.disabled = false;
             btn.textContent = 'Submit Application';
+        }
+
+        async function loadMyRoster() {
+            try {
+                const res = await apiRequest('attendance.php?action=my_roster');
+                if (res.ok && res.data.success) {
+                    const todayRoster = res.data.today_roster;
+                    const shiftBadge = document.getElementById('todayShiftBadge');
+                    const shiftTimings = document.getElementById('todayShiftTimings');
+
+                    if (shiftBadge && shiftTimings) {
+                        if (todayRoster) {
+                            shiftBadge.textContent = todayRoster.shift_name || 'General';
+                            let badgeClass = 'badge-shift-general';
+                            const sName = (todayRoster.shift_name || '').toLowerCase();
+                            if (sName.includes('morning')) badgeClass = 'badge-shift-morning';
+                            else if (sName.includes('evening')) badgeClass = 'badge-shift-evening';
+                            else if (sName.includes('night')) badgeClass = 'badge-shift-night';
+                            else if (sName.includes('off')) badgeClass = 'badge-shift-off';
+                            shiftBadge.className = `badge ${badgeClass}`;
+
+                            if (sName.includes('off')) {
+                                shiftTimings.textContent = 'Weekly Off (Rest Day)';
+                            } else if (todayRoster.start_time && todayRoster.end_time) {
+                                shiftTimings.textContent = `${todayRoster.start_time.slice(0, 5)} - ${todayRoster.end_time.slice(0, 5)}`;
+                            } else {
+                                shiftTimings.textContent = 'Standard Shift Hours';
+                            }
+                        } else {
+                            shiftBadge.textContent = 'General Shift';
+                            shiftBadge.className = 'badge badge-shift-general';
+                            shiftTimings.textContent = '09:30 - 18:30 (Default)';
+                        }
+                    }
+
+                    const tbody = document.getElementById('myRosterTableBody');
+                    if (tbody) {
+                        const rosters = res.data.rosters || [];
+                        if (rosters.length === 0) {
+                            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding: 1.5rem;">No scheduled roster found for current week. Default shift: 09:30 - 18:30.</td></tr>`;
+                            return;
+                        }
+                        const daysMap = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                        tbody.innerHTML = rosters.map(r => {
+                            const d = new Date(r.roster_date + 'T00:00:00');
+                            const dayName = daysMap[d.getDay()];
+                            const isToday = (r.roster_date === new Date().toISOString().split('T')[0]);
+                            const isOff = (r.shift_name || '').toLowerCase().includes('off');
+                            let badgeCls = 'badge-shift-general';
+                            const sn = (r.shift_name || '').toLowerCase();
+                            if (sn.includes('morning')) badgeCls = 'badge-shift-morning';
+                            else if (sn.includes('evening')) badgeCls = 'badge-shift-evening';
+                            else if (sn.includes('night')) badgeCls = 'badge-shift-night';
+                            else if (sn.includes('off')) badgeCls = 'badge-shift-off';
+
+                            const timings = isOff ? 'Weekly Off' : (r.start_time && r.end_time ? `${r.start_time.slice(0, 5)} - ${r.end_time.slice(0, 5)}` : 'Standard Hours');
+
+                            return `
+                                <tr style="${isToday ? 'background: rgba(79, 70, 229, 0.05); font-weight: 600;' : ''}">
+                                    <td>
+                                        ${r.roster_date}
+                                        ${isToday ? '<span class="badge badge-primary" style="font-size:0.68rem; margin-left: 0.35rem;">Today</span>' : ''}
+                                    </td>
+                                    <td><strong>${dayName}</strong></td>
+                                    <td><span class="badge ${badgeCls}">${r.shift_name}</span></td>
+                                    <td style="font-family: var(--font-mono); font-size: 0.85rem;">${timings}</td>
+                                    <td style="font-size: 0.84rem; color: var(--text-muted);">${r.notes || (isOff ? 'Scheduled Weekly Off' : 'Scheduled Shift')}</td>
+                                </tr>
+                            `;
+                        }).join('');
+                    }
+                }
+            } catch (err) {
+                console.error('Error loading my roster:', err);
+            }
         }
 
         function openProfileEditModal() {

@@ -450,8 +450,26 @@ body::after {
 /* Metric Cards Grid - Sleek SaaS Style */
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 1rem;
+}
+
+@media (max-width: 1200px) {
+  .metrics-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .metric-card {
@@ -1338,3 +1356,217 @@ body::after {
   .main-container { padding: 1.25rem 1rem; }
 }
 
+
+
+/* ==========================================================================
+   User Navigation Dropdown & Profile Menu
+   ========================================================================== */
+.user-nav-dropdown {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.user-nav-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.35rem 0.85rem;
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 9999px;
+  box-shadow: var(--shadow-xs);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  user-select: none;
+}
+
+.user-nav-trigger:hover,
+.user-nav-trigger.active {
+  border-color: var(--primary);
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.12);
+  background: #f8fafc;
+}
+
+.user-nav-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 260px;
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: 0 16px 36px -4px rgba(15, 23, 42, 0.16), 0 4px 12px rgba(0, 0, 0, 0.05);
+  padding: 0.45rem;
+  display: none;
+  flex-direction: column;
+  z-index: 1050;
+  animation: userDropdownFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.user-nav-menu.show {
+  display: flex;
+}
+
+@keyframes userDropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.user-nav-header {
+  padding: 0.65rem 0.75rem 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 0.35rem;
+  background: #f8fafc;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+.user-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  text-decoration: none;
+}
+
+.user-nav-item:hover {
+  background: #f1f5f9;
+  color: var(--primary);
+}
+
+.user-nav-item.danger {
+  color: var(--danger);
+}
+
+.user-nav-item.danger:hover {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.user-nav-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 0.3rem 0;
+}
+
+/* ==========================================================================
+   Even Blocks & Layout Balance Utilities
+   ========================================================================== */
+.equal-height-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+@media (max-width: 900px) {
+  .equal-height-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card-stretch {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+}
+
+.leave-quota-quad-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+@media (max-width: 1024px) {
+  .leave-quota-quad-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .leave-quota-quad-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.leave-balance-block {
+  border-radius: var(--radius-sm);
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 106px;
+  box-sizing: border-box;
+}
+
+/* Shift Badges for Duty Roster */
+.badge-shift-morning {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.badge-shift-general {
+  background: #e0e7ff;
+  color: #4338ca;
+  border: 1px solid #c7d2fe;
+}
+
+.badge-shift-evening {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.badge-shift-night {
+  background: #ede9fe;
+  color: #6d28d9;
+  border: 1px solid #ddd6fe;
+}
+
+.badge-shift-off {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+}
+
+.badge-shift-remote {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+/* Duty Roster Schedule Table */
+.roster-table th, .roster-table td {
+  padding: 0.75rem 0.65rem;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.roster-table td:first-child {
+  text-align: left;
+}
+
+.roster-cell-shift {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}

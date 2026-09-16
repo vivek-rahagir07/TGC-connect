@@ -320,20 +320,46 @@ async function checkAuthNav() {
       }
     }
 
+    window.currentUser = u;
     if (navUserArea) {
       navUserArea.innerHTML = `
-        <div class="user-profile-badge">
-          <div class="avatar-sm">
-            ${u.photo_url ? `<img src="${u.photo_url}" style="width: 100%; height: 100%; object-fit: cover;">` : u.name.charAt(0)}
+        <div class="user-nav-dropdown" id="userNavDropdownWrap">
+          <div class="user-nav-trigger" id="userNavTriggerBtn" onclick="toggleUserDropdown(event)">
+            <div class="avatar-sm" style="width: 32px; height: 32px;">
+              ${u.photo_url ? `<img src="${u.photo_url}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">` : u.name.charAt(0)}
+            </div>
+            <div style="line-height: 1.2; text-align: left;">
+              <div style="font-size: 0.82rem; font-weight: 800; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${u.name}</div>
+              <div style="font-size: 0.68rem; color: var(--text-muted); text-transform: capitalize;">${u.role}</div>
+            </div>
+            <i data-lucide="chevron-down" style="width: 14px; height: 14px; color: var(--text-muted); margin-left: 2px;"></i>
           </div>
-          <div style="line-height: 1.2;">
-            <div style="font-size: 0.85rem; font-weight: 800;">${u.name}</div>
-            <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: capitalize;">${u.role}</div>
+
+          <div class="user-nav-menu" id="userNavDropdownMenu">
+            <div class="user-nav-header">
+              <div style="font-weight: 800; font-size: 0.88rem; color: var(--text-main);">${u.name}</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${u.email}</div>
+              <div style="display: flex; gap: 0.35rem; margin-top: 0.45rem; flex-wrap: wrap;">
+                <span class="badge badge-primary" style="font-size: 0.65rem; padding: 2px 6px;">${u.role.toUpperCase()}</span>
+                <span class="badge badge-secondary" style="font-size: 0.65rem; padding: 2px 6px;">${u.department || 'Operations'}</span>
+              </div>
+            </div>
+
+            <button type="button" class="user-nav-item" onclick="openGlobalProfileModal()">
+              <i data-lucide="user" style="width: 15px; color: var(--primary);"></i> View Profile
+            </button>
+
+            <button type="button" class="user-nav-item" onclick="openGlobalResetPassModal()">
+              <i data-lucide="key-round" style="width: 15px; color: #f59e0b;"></i> Reset Password
+            </button>
+
+            <div class="user-nav-divider"></div>
+
+            <button type="button" class="user-nav-item danger" onclick="handleLogout()">
+              <i data-lucide="log-out" style="width: 15px;"></i> Sign Out
+            </button>
           </div>
         </div>
-        <button onclick="handleLogout()" class="btn btn-secondary btn-sm" title="Logout">
-          <i data-lucide="log-out" style="width: 16px;"></i>
-        </button>
       `;
     }
   } else {
@@ -420,3 +446,218 @@ function getCompanyShortName(fullName) {
 }
 
 
+
+
+// User Dropdown Controller & Global Modals (View Profile, Reset Password)
+function toggleUserDropdown(event) {
+  if (event) event.stopPropagation();
+  const menu = document.getElementById('userNavDropdownMenu');
+  const trigger = document.getElementById('userNavTriggerBtn');
+  if (!menu) return;
+
+  const isShown = menu.classList.contains('show');
+  if (isShown) {
+    menu.classList.remove('show');
+    if (trigger) trigger.classList.remove('active');
+  } else {
+    menu.classList.add('show');
+    if (trigger) trigger.classList.add('active');
+  }
+}
+
+// Global click-outside listener for user menu
+document.addEventListener('click', (e) => {
+  const wrap = document.getElementById('userNavDropdownWrap');
+  const menu = document.getElementById('userNavDropdownMenu');
+  const trigger = document.getElementById('userNavTriggerBtn');
+  if (menu && menu.classList.contains('show')) {
+    if (!wrap || !wrap.contains(e.target)) {
+      menu.classList.remove('show');
+      if (trigger) trigger.classList.remove('active');
+    }
+  }
+});
+
+// View Profile Global Modal
+function openGlobalProfileModal() {
+  const menu = document.getElementById('userNavDropdownMenu');
+  if (menu) menu.classList.remove('show');
+
+  let modal = document.getElementById('globalProfileModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'globalProfileModal';
+    modal.className = 'modal-overlay';
+    document.body.appendChild(modal);
+  }
+
+  const u = window.currentUser || {};
+  const initial = u.name ? u.name.charAt(0).toUpperCase() : 'U';
+
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width: 520px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <div style="width: 32px; height: 32px; border-radius: 50%; background: #e0e7ff; color: var(--primary); display: flex; align-items: center; justify-content: center;">
+            <i data-lucide="user-check" style="width: 17px;"></i>
+          </div>
+          <h3 style="font-size: 1.15rem; font-weight: 800; margin: 0;">Employee Profile</h3>
+        </div>
+        <button class="close-btn" onclick="closeGlobalModal('globalProfileModal')">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 1.25rem;">
+        <div style="display: flex; align-items: center; gap: 1rem; background: var(--bg-main); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color); margin-bottom: 1.2rem;">
+          <div style="width: 54px; height: 54px; border-radius: 50%; background: #4f46e5; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; font-weight: 800; overflow: hidden; flex-shrink: 0;">
+            ${u.photo_url ? `<img src="${u.photo_url}" style="width: 100%; height: 100%; object-fit: cover;">` : initial}
+          </div>
+          <div>
+            <div style="font-size: 1.1rem; font-weight: 800; color: var(--text-main);">${u.name || '-'}</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">${u.email || '-'}</div>
+            <div style="display: flex; gap: 0.4rem; margin-top: 0.35rem;">
+              <span class="badge badge-primary" style="font-size: 0.68rem;">${(u.role || 'employee').toUpperCase()}</span>
+              <span class="badge badge-success" style="font-size: 0.68rem;">${u.status || 'Active'}</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; font-size: 0.86rem;">
+          <div style="background: #fff; padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+            <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Company</div>
+            <div style="font-weight: 700; color: var(--text-main); margin-top: 2px;">${u.company || 'Getting Roots Coaching & Training'}</div>
+          </div>
+          <div style="background: #fff; padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+            <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Department</div>
+            <div style="font-weight: 700; color: var(--text-main); margin-top: 2px;">${u.department || 'Operations'}</div>
+          </div>
+          <div style="background: #fff; padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+            <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Job Profile / Role</div>
+            <div style="font-weight: 700; color: var(--text-main); margin-top: 2px;">${u.job_profile || 'Team Member'}</div>
+          </div>
+          <div style="background: #fff; padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+            <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Phone</div>
+            <div style="font-weight: 700; color: var(--text-main); margin-top: 2px;">${u.phone || '-'}</div>
+          </div>
+          <div style="background: #fff; padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+            <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Date of Joining</div>
+            <div style="font-weight: 700; color: var(--text-main); margin-top: 2px;">${u.date_of_joining || '-'}</div>
+          </div>
+          <div style="background: #fff; padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+            <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Date of Birth</div>
+            <div style="font-weight: 700; color: var(--text-main); margin-top: 2px;">${u.dob || '-'}</div>
+          </div>
+        </div>
+
+        ${u.address ? `
+          <div style="background: #fff; padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color); margin-top: 0.85rem; font-size: 0.85rem;">
+            <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Workplace / Residential Address</div>
+            <div style="font-weight: 600; color: var(--text-main); margin-top: 2px;">${u.address}</div>
+          </div>
+        ` : ''}
+      </div>
+      <div class="modal-footer" style="padding: 0.85rem 1.25rem; background: #fafafa; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeGlobalModal('globalProfileModal')">Close</button>
+      </div>
+    </div>
+  `;
+
+  modal.classList.add('active');
+  if (window.lucide) lucide.createIcons();
+}
+
+// Reset Password Global Modal
+function openGlobalResetPassModal() {
+  const menu = document.getElementById('userNavDropdownMenu');
+  if (menu) menu.classList.remove('show');
+
+  let modal = document.getElementById('globalResetPassModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'globalResetPassModal';
+    modal.className = 'modal-overlay';
+    document.body.appendChild(modal);
+  }
+
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width: 440px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <div style="width: 32px; height: 32px; border-radius: 50%; background: #fef3c7; color: #b45309; display: flex; align-items: center; justify-content: center;">
+            <i data-lucide="key-round" style="width: 17px;"></i>
+          </div>
+          <h3 style="font-size: 1.15rem; font-weight: 800; margin: 0;">Reset / Change Password</h3>
+        </div>
+        <button class="close-btn" onclick="closeGlobalModal('globalResetPassModal')">&times;</button>
+      </div>
+      <form onsubmit="handleGlobalChangePassword(event)">
+        <div class="modal-body" style="padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem;">
+          <div class="form-group">
+            <label class="form-label">Current Password *</label>
+            <input type="password" id="globalCurrentPass" class="form-control" placeholder="Enter your current password" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">New Password *</label>
+            <input type="password" id="globalNewPass" class="form-control" placeholder="At least 6 characters" minlength="6" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Confirm New Password *</label>
+            <input type="password" id="globalConfirmPass" class="form-control" placeholder="Confirm your new password" minlength="6" required>
+          </div>
+
+          <div id="globalPassErrorMsg" style="display: none; padding: 0.6rem; border-radius: var(--radius-sm); font-size: 0.82rem; background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2);"></div>
+        </div>
+        <div class="modal-footer" style="padding: 0.85rem 1.25rem; background: #fafafa; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="closeGlobalModal('globalResetPassModal')">Cancel</button>
+          <button type="submit" id="globalPassSubmitBtn" class="btn btn-primary btn-sm">Update Password</button>
+        </div>
+      </form>
+    </div>
+  `;
+
+  modal.classList.add('active');
+  if (window.lucide) lucide.createIcons();
+}
+
+async function handleGlobalChangePassword(e) {
+  e.preventDefault();
+  const currentPass = document.getElementById('globalCurrentPass').value;
+  const newPass = document.getElementById('globalNewPass').value;
+  const confirmPass = document.getElementById('globalConfirmPass').value;
+  const errorBox = document.getElementById('globalPassErrorMsg');
+  const btn = document.getElementById('globalPassSubmitBtn');
+
+  if (newPass !== confirmPass) {
+    errorBox.textContent = 'New passwords do not match. Please re-enter.';
+    errorBox.style.display = 'block';
+    return;
+  }
+
+  errorBox.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = 'Updating...';
+
+  const res = await apiRequest('auth.php?action=change_password', 'POST', {
+    current_password: currentPass,
+    new_password: newPass,
+    confirm_password: confirmPass
+  });
+
+  btn.disabled = false;
+  btn.textContent = 'Update Password';
+
+  if (res.ok && res.data.success) {
+    playSound('success');
+    showToast(res.data.message || 'Password changed successfully!', 'success');
+    closeGlobalModal('globalResetPassModal');
+  } else {
+    playSound('error');
+    errorBox.textContent = res.data.message || 'Could not update password. Please verify current password.';
+    errorBox.style.display = 'block';
+  }
+}
+
+function closeGlobalModal(id) {
+  const modal = document.getElementById(id);
+  if (modal) modal.classList.remove('active');
+}

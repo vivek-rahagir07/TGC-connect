@@ -1205,6 +1205,36 @@ switch ($action) {
         fclose($fp);
         exit;
 
+    case 'my_roster':
+        $user = getCurrentUser($pdo);
+        if (!$user) {
+            sendResponse(false, ['message' => 'Unauthorized'], 401);
+        }
+
+        $startDate = trim($_GET['start_date'] ?? date('Y-m-d', strtotime('monday this week')));
+        $endDate = trim($_GET['end_date'] ?? date('Y-m-d', strtotime('sunday this week')));
+
+        $stmt = $pdo->prepare("
+            SELECT * FROM rosters
+            WHERE user_id = ? AND roster_date BETWEEN ? AND ?
+            ORDER BY roster_date ASC
+        ");
+        $stmt->execute([$user['id'], $startDate, $endDate]);
+        $rosterList = $stmt->fetchAll();
+
+        // Today's roster specifically
+        $stmtToday = $pdo->prepare("SELECT * FROM rosters WHERE user_id = ? AND roster_date = ?");
+        $stmtToday->execute([$user['id'], date('Y-m-d')]);
+        $todayRoster = $stmtToday->fetch() ?: null;
+
+        sendResponse(true, [
+            'today_roster' => $todayRoster,
+            'rosters' => $rosterList,
+            'start_date' => $startDate,
+            'end_date' => $endDate
+        ]);
+        break;
+
     default:
         sendResponse(false, ['message' => 'Invalid attendance action.'], 400);
         break;

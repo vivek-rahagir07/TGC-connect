@@ -251,6 +251,55 @@ switch ($action) {
         ]);
         break;
 
+    case 'public_departments':
+        try {
+            $stmt = $pdo->query("SELECT id, name, description FROM departments ORDER BY name ASC");
+            $depts = $stmt->fetchAll();
+        } catch (Exception $e) {
+            $depts = [];
+        }
+        if (empty($depts)) {
+            $defaults = ['Engineering', 'Design & UI/UX', 'Operations', 'Marketing', 'Human Resources', 'Sales & Business Dev', 'Finance & Accounts', 'Administration'];
+            $depts = array_map(function($d) { return ['name' => $d]; }, $defaults);
+        }
+        sendResponse(true, ['departments' => $depts]);
+        break;
+
+    case 'change_password':
+        $user = getCurrentUser($pdo);
+        if (!$user) {
+            sendResponse(false, ['message' => 'Unauthorized. Please log in first.'], 401);
+        }
+        $currentPassword = trim($input['current_password'] ?? '');
+        $newPassword = trim($input['new_password'] ?? '');
+        $confirmPassword = trim($input['confirm_password'] ?? '');
+
+        if (empty($newPassword) || strlen($newPassword) < 6) {
+            sendResponse(false, ['message' => 'New password must be at least 6 characters long.'], 400);
+        }
+        if (!empty($confirmPassword) && $newPassword !== $confirmPassword) {
+            sendResponse(false, ['message' => 'New password and confirmation do not match.'], 400);
+        }
+
+        // Verify current password if set and not in first-login forced mode
+        if (!empty($user['password']) && empty($user['first_login_required'])) {
+            if (empty($currentPassword)) {
+                sendResponse(false, ['message' => 'Current password is required.'], 400);
+            }
+            if (!password_verify($currentPassword, $user['password'])) {
+                sendResponse(false, ['message' => 'Current password is incorrect.'], 400);
+            }
+        }
+
+        $hashed = password_hash($newPassword, PASSWORD_DEFAULT);
+        $stmt = $pdo->prepare("UPDATE users SET password = ?, first_login_required = 0 WHERE id = ?");
+        $stmt->execute([$hashed, $user['id']]);
+
+        logAdminAction($pdo, $user['id'], 'password_changed', $user['id'], "User #{$user['id']} ({$user['name']}) updated their account password.");
+
+        sendResponse(true, ['message' => 'Your password has been successfully updated!']);
+        break;
+
     case 'logout':
         $_SESSION = [];
         if (session_id() != "" || isset($_COOKIE[session_name()])) {

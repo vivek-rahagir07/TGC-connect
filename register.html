@@ -235,7 +235,23 @@
 
     <script src="js/app.js"></script>
     <script>
+        async function loadRegistrationDepartments() {
+            const select = document.getElementById('regDepartment');
+            if (!select) return;
+            try {
+                const res = await apiRequest('auth.php?action=public_departments');
+                if (res.ok && res.data.success && Array.isArray(res.data.departments) && res.data.departments.length > 0) {
+                    const currentVal = select.value;
+                    select.innerHTML = res.data.departments.map(d => `<option value="${d.name}">${d.name}</option>`).join('');
+                    if (currentVal) select.value = currentVal;
+                }
+            } catch (e) {
+                console.warn('Could not load dynamic departments, using defaults:', e);
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
+            loadRegistrationDepartments();
             document.getElementById('regDoj').value = new Date().toISOString().split('T')[0];
             initLiveCamera();
         });

@@ -218,6 +218,12 @@
                 <button type="button" id="tabHoliBtn" onclick="showAdminTab('holidays')" class="btn btn-secondary btn-sm">
                     <i data-lucide="sparkles" style="width: 15px;"></i> Holidays
                 </button>
+                <button type="button" id="tabRosterBtn" onclick="showAdminTab('roster')" class="btn btn-secondary btn-sm">
+                    <i data-lucide="calendar-clock" style="width: 15px;"></i> Duty Roster
+                </button>
+                <button type="button" id="tabDeptBtn" onclick="showAdminTab('departments')" class="btn btn-secondary btn-sm">
+                    <i data-lucide="building-2" style="width: 15px;"></i> Departments & Roles
+                </button>
                 <button type="button" id="tabLogsBtn" onclick="showAdminTab('logs')" class="btn btn-secondary btn-sm">
                     <i data-lucide="shield" style="width: 15px;"></i> Audit Trail
                 </button>
@@ -687,6 +693,138 @@
                 </div>
             </div>
 
+            <!-- Tab 8: Duty Roster & Shift Scheduling -->
+            <div id="sectionRoster" class="card" style="display: none;">
+                <div class="card-header" style="flex-wrap: wrap; gap: 1rem;">
+                    <div class="card-title">
+                        <i data-lucide="calendar-clock" style="color: var(--primary);"></i> Staff Duty Roster & Shift Scheduling
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="exportAdminRosterCsv()">
+                            <i data-lucide="download" style="width: 14px;"></i> Export Roster CSV
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="openAssignShiftModal()">
+                            <i data-lucide="user-plus" style="width: 14px;"></i> Assign Single Shift
+                        </button>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="openBulkRosterModal()">
+                            <i data-lucide="layers" style="width: 14px;"></i> + Bulk Schedule Shifts
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Roster Control Toolbar -->
+                <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.9rem 1.15rem; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.85rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                        <button type="button" onclick="setRosterWeekPreset(-1)" class="btn btn-secondary btn-sm" title="Previous Week">
+                            <i data-lucide="chevron-left" style="width: 14px;"></i> Prev Week
+                        </button>
+                        <button type="button" onclick="setRosterWeekPreset(0)" class="btn btn-secondary btn-sm">
+                            This Week
+                        </button>
+                        <button type="button" onclick="setRosterWeekPreset(1)" class="btn btn-secondary btn-sm" title="Next Week">
+                            Next Week <i data-lucide="chevron-right" style="width: 14px;"></i>
+                        </button>
+                        <div style="display: flex; align-items: center; gap: 0.35rem; margin-left: 0.5rem;">
+                            <input type="date" id="rosterStartDate" class="form-control" style="width: 140px; height: 32px; font-size: 0.78rem; padding: 2px 6px;" onchange="loadAdminRoster()">
+                            <span style="font-size: 0.75rem; color: var(--text-muted);">to</span>
+                            <input type="date" id="rosterEndDate" class="form-control" style="width: 140px; height: 32px; font-size: 0.78rem; padding: 2px 6px;" onchange="loadAdminRoster()">
+                        </div>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+                        <select id="rosterFilterDept" class="form-control" style="width: 175px; height: 32px; font-size: 0.78rem; padding: 2px 6px;" onchange="loadAdminRoster()">
+                            <option value="all">All Departments</option>
+                        </select>
+                        <input type="text" id="rosterSearchInput" class="form-control" placeholder="Search staff name..." style="width: 175px; height: 32px; font-size: 0.78rem; padding: 2px 8px;" oninput="loadAdminRoster()">
+                    </div>
+                </div>
+
+                <!-- Duty Roster Matrix Table -->
+                <div class="table-responsive">
+                    <table class="custom-table roster-table">
+                        <thead id="adminRosterTableHead">
+                            <tr>
+                                <th>Staff Member</th>
+                                <th>Department</th>
+                                <th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminRosterTableBody">
+                            <tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2rem;">Loading duty roster matrix...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab 9: Department & Designation Management -->
+            <div id="sectionDepartments" class="card" style="display: none;">
+                <div class="card-header" style="flex-wrap: wrap; gap: 1rem;">
+                    <div class="card-title">
+                        <i data-lucide="building-2" style="color: var(--primary);"></i> Company Departments & Designations
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="openAddDesignationModal()">
+                            <i data-lucide="tag" style="width: 14px;"></i> + Add Designation
+                        </button>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="openAddDepartmentModal()">
+                            <i data-lucide="plus" style="width: 14px;"></i> + Add Department
+                        </button>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;" class="equal-height-grid">
+                    <!-- Departments Column -->
+                    <div style="display: flex; flex-direction: column;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                            <h4 style="font-size: 1rem; font-weight: 800; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 0.45rem;">
+                                <i data-lucide="briefcase" style="width: 16px; color: var(--primary);"></i> Active Departments
+                            </h4>
+                            <span id="deptCountBadge" class="badge badge-primary">0 Active</span>
+                        </div>
+                        <div class="table-responsive" style="border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+                            <table class="custom-table">
+                                <thead>
+                                    <tr>
+                                        <th>Department</th>
+                                        <th>Employees</th>
+                                        <th>Description</th>
+                                        <th style="text-align: right;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="departmentsTableBody">
+                                    <tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Loading departments...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Designations Column -->
+                    <div style="display: flex; flex-direction: column;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                            <h4 style="font-size: 1rem; font-weight: 800; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 0.45rem;">
+                                <i data-lucide="award" style="width: 16px; color: var(--primary);"></i> Staff Designations & Roles
+                            </h4>
+                            <span id="desigCountBadge" class="badge badge-secondary">0 Roles</span>
+                        </div>
+                        <div class="table-responsive" style="border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+                            <table class="custom-table">
+                                <thead>
+                                    <tr>
+                                        <th>Role / Designation</th>
+                                        <th>Department</th>
+                                        <th>Description</th>
+                                        <th style="text-align: right;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="designationsTableBody">
+                                    <tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Loading designations...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </main>
 
@@ -1153,8 +1291,12 @@
                         <label class="form-label">Earned Leave (EL) Allotted Days *</label>
                         <input type="number" step="0.5" id="quotaElInput" class="form-control" required>
                     </div>
+                    <div class="form-group">
+                        <label class="form-label">Compensatory Off (Comp Off) Credited Days *</label>
+                        <input type="number" step="0.5" id="quotaCoInput" class="form-control" value="0" required>
+                    </div>
                     <div style="font-size: 0.8rem; color: var(--text-muted); background: var(--bg-main); padding: 0.6rem 0.8rem; border-radius: var(--radius-sm);">
-                        ℹ️ <strong>Monthly Accrual:</strong> Employees automatically receive 1/12th (1.0 day) each month across the 1-year cycle, with unused balances shifting forward.
+                        ℹ️ <strong>Monthly Accrual & Comp Off:</strong> CL, SL, EL accrue 1.0 day/mo across the cycle. Comp Off credits are added when employees work extra shifts or weekly offs.
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -1608,6 +1750,8 @@
             loadAttendanceMap();
             loadPendingApprovals();
             loadEmployees();
+            loadAdminDepartments();
+            setRosterWeekPreset(0);
             loadAttendanceLogs();
             loadAdminLeaves();
             loadAdminPayroll();
@@ -1647,14 +1791,22 @@
 
         function showAdminTab(tab) {
             playSound('click');
-            const tabs = ['approvals', 'employees', 'attendance', 'leaves', 'payroll', 'inventory', 'holidays', 'logs'];
+            const tabs = ['approvals', 'employees', 'attendance', 'leaves', 'payroll', 'inventory', 'holidays', 'logs', 'roster', 'departments'];
             tabs.forEach(t => {
                 const sec = document.getElementById(`section${t.charAt(0).toUpperCase() + t.slice(1)}`);
-                const btn = document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1, 3)}Btn`) || document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1)}Btn`);
+                const btn = document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1, 3)}Btn`) || 
+                            document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1)}Btn`) ||
+                            (t === 'departments' ? document.getElementById('tabDeptBtn') : null) ||
+                            (t === 'roster' ? document.getElementById('tabRosterBtn') : null);
                 if (sec) sec.style.display = (t === tab) ? 'block' : 'none';
                 if (btn) btn.className = (t === tab) ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
             });
             if (tab === 'inventory') loadInventoryData();
+            if (tab === 'roster') loadAdminRoster();
+            if (tab === 'departments') {
+                loadAdminDepartments();
+                loadAdminDesignations();
+            }
         }
 
         let previousPendingRegistrations = null;
@@ -2187,9 +2339,11 @@
                                 <span title="Sick Leave">SL: <strong>${Math.round(emp.sick_leave_total || 12) - Math.round(emp.sick_leave_used || 0)}</strong>/${Math.round(emp.sick_leave_total || 12)}</span>
                                 <span style="color: var(--border-color); margin: 0 4px;">&bull;</span>
                                 <span title="Earned Leave">EL: <strong>${Math.round(emp.earned_leave_total || 12) - Math.round(emp.earned_leave_used || 0)}</strong>/${Math.round(emp.earned_leave_total || 12)}</span>
+                                <span style="color: var(--border-color); margin: 0 4px;">&bull;</span>
+                                <span title="Compensatory Off" style="color: #9333ea; font-weight: 700;">CO: <strong>${Math.round(emp.comp_off_total || 0) - Math.round(emp.comp_off_used || 0)}</strong>/${Math.round(emp.comp_off_total || 0)}</span>
                             </div>
                             <div style="margin-top: 0.25rem;">
-                                <a href="javascript:void(0)" onclick="openQuotaModal(${emp.id}, '${emp.name.replace(/'/g, "\\'")}', ${emp.casual_leave_total || 12}, ${emp.sick_leave_total || 12}, ${emp.earned_leave_total || 12})" style="font-size: 0.75rem; color: var(--primary); font-weight: 700;">Edit Quotas</a>
+                                <a href="javascript:void(0)" onclick="openQuotaModal(${emp.id}, '${emp.name.replace(/'/g, "\\'")}', ${emp.casual_leave_total || 12}, ${emp.sick_leave_total || 12}, ${emp.earned_leave_total || 12}, ${emp.comp_off_total || 0})" style="font-size: 0.75rem; color: var(--primary); font-weight: 700;">Edit Quotas</a>
                             </div>
                         </td>
                         <td style="white-space: nowrap;"><span class="badge badge-${emp.status === 'active' ? 'success' : (emp.status === 'pending_approval' ? 'warning' : 'danger')}">${emp.status}</span></td>
@@ -2197,6 +2351,9 @@
                             <div style="display: inline-flex; gap: 0.35rem; align-items: center;">
                                 <button onclick="viewCandidateHistory(${emp.id})" class="btn btn-secondary btn-sm" title="View Logs & History" style="color: var(--primary); font-weight: 700; border-color: rgba(79,70,229,0.35); background: rgba(79,70,229,0.06); padding: 0.35rem 0.6rem; font-size: 0.78rem;">
                                     <i data-lucide="user-check" style="width: 13px; height: 13px; vertical-align: -2px;"></i> Logs
+                                </button>
+                                <button onclick="openCandidateResetPassModal(${emp.id}, '${emp.name.replace(/'/g, "\\'")}', '${emp.email.replace(/'/g, "\\'")}')" class="btn btn-secondary btn-sm" title="Reset Candidate Password" style="color: #b45309; border-color: #fde68a; background: #fffbeb; padding: 0.35rem 0.5rem;">
+                                    <i data-lucide="key-round" style="width: 14px; height: 14px; vertical-align: -2px;"></i>
                                 </button>
                                 <button onclick="openAdminMarkForEmployee(${emp.id}, '${emp.name.replace(/'/g, "\\'")}')" class="btn btn-secondary btn-sm" title="Punch Attendance (Anytime)" style="color: #059669; border-color: #a7f3d0; padding: 0.35rem 0.5rem;">
                                     <i data-lucide="check-circle-2" style="width: 14px; height: 14px; vertical-align: -2px;"></i>
@@ -2533,12 +2690,14 @@
             }
         }
 
-        function openQuotaModal(userId, name, cl, sl, el) {
+        function openQuotaModal(userId, name, cl, sl, el, co) {
             document.getElementById('quotaUserId').value = userId;
             document.getElementById('quotaEmpLabel').textContent = `Staff: ${name}`;
             document.getElementById('quotaClInput').value = cl !== undefined ? cl : 12;
             document.getElementById('quotaSlInput').value = sl !== undefined ? sl : 12;
             document.getElementById('quotaElInput').value = el !== undefined ? el : 12;
+            const coInput = document.getElementById('quotaCoInput');
+            if (coInput) coInput.value = co !== undefined ? co : 0;
             openModal('editQuotaModal');
         }
 
@@ -2548,7 +2707,8 @@
                 user_id: document.getElementById('quotaUserId').value,
                 casual_leave_total: parseFloat(document.getElementById('quotaClInput').value),
                 sick_leave_total: parseFloat(document.getElementById('quotaSlInput').value),
-                earned_leave_total: parseFloat(document.getElementById('quotaElInput').value)
+                earned_leave_total: parseFloat(document.getElementById('quotaElInput').value),
+                comp_off_total: parseFloat(document.getElementById('quotaCoInput') ? document.getElementById('quotaCoInput').value : 0)
             };
             const res = await apiRequest('admin.php?action=update_leave_quota', 'POST', payload);
             if (res.ok && res.data.success) {
@@ -3975,6 +4135,807 @@
             div.textContent = text;
             return div.innerHTML;
         }
+
+        // ==========================================
+        // Candidate Password Reset Functions
+        // ==========================================
+        function openCandidateResetPassModal(id, name, email) {
+            playSound('click');
+            document.getElementById('resetCandidateUserId').value = id;
+            document.getElementById('resetCandidateNameDisplay').textContent = name;
+            document.getElementById('resetCandidateEmailDisplay').textContent = email;
+            document.getElementById('resetCandidateNewPass').value = '';
+            document.getElementById('resetCandidateForceNext').checked = true;
+            document.getElementById('resetSuccessBanner').style.display = 'none';
+            generateCandidatePassword();
+            openModal('resetCandidatePasswordModal');
+        }
+
+        function generateCandidatePassword() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
+            let pass = 'TGC#';
+            for (let i = 0; i < 4; i++) {
+                pass += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            pass += '!';
+            document.getElementById('resetCandidateNewPass').value = pass;
+        }
+
+        function copyCandidatePassInput() {
+            const val = document.getElementById('resetCandidateNewPass').value;
+            if (!val) return;
+            navigator.clipboard.writeText(val);
+            showToast('Password copied to clipboard!', 'success');
+        }
+
+        async function handleCandidatePasswordReset(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmitResetCandidatePass');
+            const userId = document.getElementById('resetCandidateUserId').value;
+            const pass = document.getElementById('resetCandidateNewPass').value.trim();
+            const forceReset = document.getElementById('resetCandidateForceNext').checked ? 1 : 0;
+            const name = document.getElementById('resetCandidateNameDisplay').textContent;
+            const email = document.getElementById('resetCandidateEmailDisplay').textContent;
+
+            if (!pass || pass.length < 6) {
+                showToast('Password must be at least 6 characters long.', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Resetting...';
+
+            const res = await apiRequest('admin.php?action=reset_employee_password', 'POST', {
+                user_id: userId,
+                password: pass,
+                force_reset: forceReset
+            });
+
+            btn.disabled = false;
+            btn.textContent = 'Apply Password Reset';
+
+            if (res.ok && res.data.success) {
+                playSound('success');
+                showToast(res.data.message || 'Password reset successfully!', 'success');
+
+                const snippet = `Hello ${name},\nYour TGC Connect login credentials have been reset:\nPortal: ${window.location.origin + window.location.pathname.replace('admin.html', '')}login.html\nEmail: ${email}\nTemporary Password: ${pass}\n*Please change your password upon your next login.*`;
+                document.getElementById('candidateCredentialsSnippet').value = snippet;
+                document.getElementById('resetSuccessBanner').style.display = 'block';
+                lucide.createIcons();
+            } else {
+                playSound('error');
+                showToast(res.data.message || 'Error resetting password', 'error');
+            }
+        }
+
+        function copyCredentialsSnippet() {
+            const text = document.getElementById('candidateCredentialsSnippet').value;
+            if (!text) return;
+            navigator.clipboard.writeText(text);
+            showToast('Candidate login instructions copied! Ready to share via WhatsApp / Email.', 'success');
+        }
+
+        // ==========================================
+        // Department & Designation Management
+        // ==========================================
+        let allDepartmentsCache = [];
+        let allDesignationsCache = [];
+
+        async function loadAdminDepartments() {
+            const tbody = document.getElementById('departmentsTableBody');
+            const res = await apiRequest('admin.php?action=departments');
+            if (res.ok && res.data.success) {
+                allDepartmentsCache = res.data.departments || [];
+                const badge = document.getElementById('deptCountBadge');
+                if (badge) badge.textContent = `${allDepartmentsCache.length} Active`;
+
+                if (tbody) {
+                    if (allDepartmentsCache.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No departments configured yet.</td></tr>';
+                    } else {
+                        tbody.innerHTML = allDepartmentsCache.map(d => `
+                            <tr>
+                                <td><strong>${escapeHtml(d.name)}</strong></td>
+                                <td><span class="badge badge-primary" style="font-size:0.75rem;">${d.employee_count || 0} Staff</span></td>
+                                <td style="font-size: 0.82rem; color: var(--text-muted);">${escapeHtml(d.description || '-')}</td>
+                                <td style="text-align: right; white-space: nowrap;">
+                                    ${(d.employee_count || 0) === 0 ? `
+                                        <button onclick="deleteAdminDepartment(${d.id}, '${d.name.replace(/'/g, "\\'")}', 0)" class="btn btn-danger btn-sm" title="Delete Empty Department" style="padding: 0.25rem 0.5rem;">
+                                            <i data-lucide="trash-2" style="width: 13px;"></i>
+                                        </button>
+                                    ` : `
+                                        <span title="Cannot delete: active staff assigned" style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Active</span>
+                                    `}
+                                </td>
+                            </tr>
+                        `).join('');
+                        lucide.createIcons();
+                    }
+                }
+
+                // Synchronize dropdowns across the application
+                syncDepartmentDropdowns();
+            }
+        }
+
+        function syncDepartmentDropdowns() {
+            const deptOptionsHtml = allDepartmentsCache.map(d => `<option value="${escapeHtml(d.name)}">${escapeHtml(d.name)}</option>`).join('');
+
+            // 1. Onboarding Dept select
+            const onboardDept = document.getElementById('adminOnboardDept');
+            if (onboardDept) {
+                const cur = onboardDept.value;
+                onboardDept.innerHTML = deptOptionsHtml;
+                if (cur) onboardDept.value = cur;
+            }
+
+            // 2. Edit Employee Dept select
+            const editDept = document.getElementById('editEmpDept');
+            if (editDept) {
+                const cur = editDept.value;
+                editDept.innerHTML = deptOptionsHtml;
+                if (cur) editDept.value = cur;
+            }
+
+            // 3. Roster Filter Dept select
+            const rosterDept = document.getElementById('rosterFilterDept');
+            if (rosterDept) {
+                const cur = rosterDept.value;
+                rosterDept.innerHTML = '<option value="all">All Departments</option>' + deptOptionsHtml;
+                if (cur) rosterDept.value = cur;
+            }
+
+            // 4. Bulk Roster Dept select
+            const bulkDept = document.getElementById('bulkRosterDeptSelect');
+            if (bulkDept) {
+                const cur = bulkDept.value;
+                bulkDept.innerHTML = '<option value="all">All Registered Active Employees</option>' + deptOptionsHtml;
+                if (cur) bulkDept.value = cur;
+            }
+
+            // 5. Designation Modal Dept select
+            const desigModalDept = document.getElementById('newDesigDeptSelect');
+            if (desigModalDept) {
+                desigModalDept.innerHTML = '<option value="">-- Select Department --</option>' +
+                    allDepartmentsCache.map(d => `<option value="${d.id}">${escapeHtml(d.name)}</option>`).join('');
+            }
+        }
+
+        function openAddDepartmentModal() {
+            playSound('click');
+            document.getElementById('newDeptName').value = '';
+            document.getElementById('newDeptDesc').value = '';
+            openModal('addDepartmentModal');
+        }
+
+        async function handleAddDepartment(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmitAddDept');
+            const name = document.getElementById('newDeptName').value.trim();
+            const desc = document.getElementById('newDeptDesc').value.trim();
+
+            if (!name) return;
+            btn.disabled = true;
+
+            const res = await apiRequest('admin.php?action=add_department', 'POST', { name, description: desc });
+            btn.disabled = false;
+
+            if (res.ok && res.data.success) {
+                playSound('success');
+                showToast(res.data.message || 'Department created!', 'success');
+                closeModal('addDepartmentModal');
+                loadAdminDepartments();
+            } else {
+                playSound('error');
+                showToast(res.data.message || 'Error creating department', 'error');
+            }
+        }
+
+        async function deleteAdminDepartment(id, name, count) {
+            if (count > 0) {
+                showToast(`Cannot delete ${name}: ${count} active staff assigned.`, 'warning');
+                return;
+            }
+            if (!confirm(`Are you sure you want to delete department "${name}"?`)) return;
+
+            const res = await apiRequest('admin.php?action=delete_department', 'POST', { id });
+            if (res.ok && res.data.success) {
+                playSound('success');
+                showToast(res.data.message || 'Department deleted', 'success');
+                loadAdminDepartments();
+            } else {
+                playSound('error');
+                showToast(res.data.message || 'Error deleting department', 'error');
+            }
+        }
+
+        async function loadAdminDesignations() {
+            const tbody = document.getElementById('designationsTableBody');
+            const res = await apiRequest('admin.php?action=designations');
+            if (res.ok && res.data.success) {
+                allDesignationsCache = res.data.designations || [];
+                const badge = document.getElementById('desigCountBadge');
+                if (badge) badge.textContent = `${allDesignationsCache.length} Roles`;
+
+                if (tbody) {
+                    if (allDesignationsCache.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No designations created yet.</td></tr>';
+                    } else {
+                        tbody.innerHTML = allDesignationsCache.map(d => `
+                            <tr>
+                                <td><strong>${escapeHtml(d.name)}</strong></td>
+                                <td><span class="badge badge-secondary" style="font-size:0.75rem;">${escapeHtml(d.department_name || 'General')}</span></td>
+                                <td style="font-size: 0.82rem; color: var(--text-muted);">${escapeHtml(d.description || '-')}</td>
+                                <td style="text-align: right;">
+                                    <button onclick="deleteAdminDesignation(${d.id}, '${d.name.replace(/'/g, "\\'")}')" class="btn btn-danger btn-sm" title="Delete Role" style="padding: 0.25rem 0.5rem;">
+                                        <i data-lucide="trash-2" style="width: 13px;"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('');
+                        lucide.createIcons();
+                    }
+                }
+            }
+        }
+
+        function openAddDesignationModal() {
+            playSound('click');
+            document.getElementById('newDesigName').value = '';
+            document.getElementById('newDesigDesc').value = '';
+            syncDepartmentDropdowns();
+            openModal('addDesignationModal');
+        }
+
+        async function handleAddDesignation(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmitAddDesig');
+            const name = document.getElementById('newDesigName').value.trim();
+            const deptId = document.getElementById('newDesigDeptSelect').value;
+            const desc = document.getElementById('newDesigDesc').value.trim();
+
+            if (!name) return;
+            btn.disabled = true;
+
+            const res = await apiRequest('admin.php?action=add_designation', 'POST', {
+                name,
+                department_id: deptId || null,
+                description: desc
+            });
+            btn.disabled = false;
+
+            if (res.ok && res.data.success) {
+                playSound('success');
+                showToast(res.data.message || 'Designation created!', 'success');
+                closeModal('addDesignationModal');
+                loadAdminDesignations();
+            } else {
+                playSound('error');
+                showToast(res.data.message || 'Error creating designation', 'error');
+            }
+        }
+
+        async function deleteAdminDesignation(id, name) {
+            if (!confirm(`Are you sure you want to delete designation "${name}"?`)) return;
+            const res = await apiRequest('admin.php?action=delete_designation', 'POST', { id });
+            if (res.ok && res.data.success) {
+                playSound('success');
+                showToast(res.data.message || 'Designation deleted', 'success');
+                loadAdminDesignations();
+            } else {
+                playSound('error');
+                showToast(res.data.message || 'Error deleting designation', 'error');
+            }
+        }
+
+        // ==========================================
+        // Duty Roster & Shift Scheduling Engine
+        // ==========================================
+        let rosterWeekOffset = 0;
+
+        function setRosterWeekPreset(offset) {
+            rosterWeekOffset = (offset === 0) ? 0 : (rosterWeekOffset + offset);
+            const now = new Date();
+            const day = now.getDay();
+            // Monday of target week
+            const diff = now.getDate() - day + (day === 0 ? -6 : 1) + (rosterWeekOffset * 7);
+            const monday = new Date(now.setDate(diff));
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+
+            const toYmd = (d) => d.toISOString().split('T')[0];
+            document.getElementById('rosterStartDate').value = toYmd(monday);
+            document.getElementById('rosterEndDate').value = toYmd(sunday);
+            loadAdminRoster();
+        }
+
+        async function loadAdminRoster() {
+            const start = document.getElementById('rosterStartDate').value;
+            const end = document.getElementById('rosterEndDate').value;
+            const dept = document.getElementById('rosterFilterDept') ? document.getElementById('rosterFilterDept').value : 'all';
+            const search = document.getElementById('rosterSearchInput') ? document.getElementById('rosterSearchInput').value.trim() : '';
+
+            if (!start || !end) return;
+
+            const params = new URLSearchParams({ start_date: start, end_date: end });
+            if (dept && dept !== 'all') params.append('department', dept);
+            if (search) params.append('search', search);
+
+            const res = await apiRequest(`admin.php?action=roster_list&${params.toString()}`);
+            const thead = document.getElementById('adminRosterTableHead');
+            const tbody = document.getElementById('adminRosterTableBody');
+
+            if (!res.ok || !res.data.success) {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--danger); padding:2rem;">Could not load duty roster.</td></tr>';
+                return;
+            }
+
+            // Generate date columns from start to end (capped at 14 days)
+            const dates = [];
+            let cur = new Date(start + 'T00:00:00');
+            const stop = new Date(end + 'T00:00:00');
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+            while (cur <= stop && dates.length < 14) {
+                const ymd = cur.toISOString().split('T')[0];
+                dates.push({
+                    dateStr: ymd,
+                    dayName: dayNames[cur.getDay()],
+                    label: `${cur.getDate()}/${cur.getMonth() + 1}`
+                });
+                cur.setDate(cur.getDate() + 1);
+            }
+
+            // Build dynamic thead
+            thead.innerHTML = `
+                <tr>
+                    <th style="min-width: 170px; text-align: left;">Staff Member</th>
+                    <th style="min-width: 120px; text-align: left;">Department</th>
+                    ${dates.map(d => `<th style="text-align: center; min-width: 95px;">${d.dayName}<br><span style="font-size: 0.72rem; font-weight: 500; color: var(--text-muted);">${d.label}</span></th>`).join('')}
+                </tr>
+            `;
+
+            // Group rosters by user
+            const rosterData = res.data.rosters || [];
+            const userRosterMap = {};
+            rosterData.forEach(r => {
+                if (!userRosterMap[r.user_id]) {
+                    userRosterMap[r.user_id] = {
+                        user_id: r.user_id,
+                        employee_name: r.employee_name,
+                        department: r.department,
+                        shifts: {}
+                    };
+                }
+                userRosterMap[r.user_id].shifts[r.roster_date] = r;
+            });
+
+            // Ensure all active employees from allEmployeesCache appear in roster
+            if (allEmployeesCache && allEmployeesCache.length > 0) {
+                allEmployeesCache.forEach(emp => {
+                    if (dept !== 'all' && emp.department !== dept) return;
+                    if (search && !emp.name.toLowerCase().includes(search.toLowerCase())) return;
+                    if (!userRosterMap[emp.id]) {
+                        userRosterMap[emp.id] = {
+                            user_id: emp.id,
+                            employee_name: emp.name,
+                            department: emp.department || 'Operations',
+                            shifts: {}
+                        };
+                    }
+                });
+            }
+
+            const staffList = Object.values(userRosterMap);
+            if (staffList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="' + (dates.length + 2) + '" style="text-align:center; color:var(--text-muted); padding:2rem;">No staff records matching selection. Click "+ Bulk Schedule Shifts" to generate roster.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = staffList.map(u => {
+                const shiftCells = dates.map(d => {
+                    const shift = u.shifts[d.dateStr];
+                    if (shift) {
+                        const isOff = (shift.shift_name || '').toLowerCase().includes('off');
+                        let badgeClass = 'badge-shift-general';
+                        const sName = (shift.shift_name || '').toLowerCase();
+                        if (sName.includes('morning')) badgeClass = 'badge-shift-morning';
+                        else if (sName.includes('evening')) badgeClass = 'badge-shift-evening';
+                        else if (sName.includes('night')) badgeClass = 'badge-shift-night';
+                        else if (isOff) badgeClass = 'badge-shift-off';
+
+                        const shiftLabel = isOff ? 'Weekly Off' : shift.shift_name;
+                        const timeRange = (shift.start_time && shift.end_time && !isOff)
+                            ? `${shift.start_time.slice(0,5)}-${shift.end_time.slice(0,5)}`
+                            : '';
+
+                        return `
+                            <td style="text-align: center; padding: 0.5rem 0.35rem;">
+                                <div class="roster-cell-shift">
+                                    <span class="badge ${badgeClass}" style="font-size: 0.72rem; padding: 0.25rem 0.55rem; font-weight: 700; white-space: nowrap;">${shiftLabel}</span>
+                                    ${timeRange ? `<span style="font-size: 0.68rem; color: var(--text-muted); font-family: var(--font-mono);">${timeRange}</span>` : ''}
+                                    <a href="javascript:void(0)" onclick="openAssignShiftModal(${u.user_id}, '${d.dateStr}', '${shift.shift_name.replace(/'/g, "\\'")}', '${shift.start_time || ''}', '${shift.end_time || ''}', '${(shift.notes || '').replace(/'/g, "\\'")}')" style="font-size: 0.68rem; color: var(--primary); margin-top: 2px;">edit</a>
+                                </div>
+                            </td>
+                        `;
+                    } else {
+                        return `
+                            <td style="text-align: center; padding: 0.5rem 0.35rem;">
+                                <div class="roster-cell-shift">
+                                    <span class="badge badge-secondary" style="font-size: 0.7rem; padding: 0.2rem 0.5rem; opacity: 0.65;">General</span>
+                                    <a href="javascript:void(0)" onclick="openAssignShiftModal(${u.user_id}, '${d.dateStr}', 'General', '09:30:00', '18:30:00', '')" style="font-size: 0.68rem; color: var(--primary); margin-top: 2px;">assign</a>
+                                </div>
+                            </td>
+                        `;
+                    }
+                }).join('');
+
+                return `
+                    <tr>
+                        <td style="text-align: left; font-weight: 700; white-space: nowrap;">${escapeHtml(u.employee_name)}</td>
+                        <td style="text-align: left; font-size: 0.82rem; color: var(--text-muted); white-space: nowrap;">${escapeHtml(u.department || 'Operations')}</td>
+                        ${shiftCells}
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function openAssignShiftModal(userId, date, shiftName, startTime, endTime, notes) {
+            playSound('click');
+            // Populate employee select
+            const empSelect = document.getElementById('singleShiftEmpSelect');
+            if (empSelect && allEmployeesCache) {
+                empSelect.innerHTML = allEmployeesCache.map(e => `<option value="${e.id}">${escapeHtml(e.name)} (${escapeHtml(e.department || 'Staff')})</option>`).join('');
+                if (userId) empSelect.value = userId;
+            }
+
+            document.getElementById('singleShiftDate').value = date || new Date().toISOString().split('T')[0];
+            document.getElementById('singleShiftTypeSelect').value = shiftName || 'General';
+            document.getElementById('singleShiftStart').value = (startTime ? startTime.slice(0, 5) : '09:30');
+            document.getElementById('singleShiftEnd').value = (endTime ? endTime.slice(0, 5) : '18:30');
+            document.getElementById('singleShiftNotes').value = notes || '';
+
+            openModal('assignShiftModal');
+        }
+
+        function syncSingleShiftTimes() {
+            const shift = document.getElementById('singleShiftTypeSelect').value;
+            const start = document.getElementById('singleShiftStart');
+            const end = document.getElementById('singleShiftEnd');
+
+            if (shift === 'Morning') { start.value = '08:00'; end.value = '17:00'; }
+            else if (shift === 'General') { start.value = '09:30'; end.value = '18:30'; }
+            else if (shift === 'Evening') { start.value = '13:00'; end.value = '22:00'; }
+            else if (shift === 'Night') { start.value = '21:00'; end.value = '06:00'; }
+            else if (shift === 'Weekly Off') { start.value = ''; end.value = ''; }
+        }
+
+        async function handleSaveSingleShift(e) {
+            e.preventDefault();
+            const payload = {
+                user_id: document.getElementById('singleShiftEmpSelect').value,
+                roster_date: document.getElementById('singleShiftDate').value,
+                shift_name: document.getElementById('singleShiftTypeSelect').value,
+                start_time: document.getElementById('singleShiftStart').value || null,
+                end_time: document.getElementById('singleShiftEnd').value || null,
+                notes: document.getElementById('singleShiftNotes').value.trim()
+            };
+
+            const res = await apiRequest('admin.php?action=save_roster', 'POST', payload);
+            if (res.ok && res.data.success) {
+                playSound('success');
+                showToast(res.data.message || 'Shift saved!', 'success');
+                closeModal('assignShiftModal');
+                loadAdminRoster();
+            } else {
+                playSound('error');
+                showToast(res.data.message || 'Error saving shift', 'error');
+            }
+        }
+
+        function openBulkRosterModal() {
+            playSound('click');
+            syncDepartmentDropdowns();
+            const curStart = document.getElementById('rosterStartDate').value;
+            const curEnd = document.getElementById('rosterEndDate').value;
+            if (curStart) document.getElementById('bulkRosterStartDate').value = curStart;
+            if (curEnd) document.getElementById('bulkRosterEndDate').value = curEnd;
+            openModal('bulkRosterModal');
+        }
+
+        function syncBulkShiftTimes() {
+            const shift = document.getElementById('bulkRosterShiftSelect').value;
+            const start = document.getElementById('bulkRosterStartTime');
+            const end = document.getElementById('bulkRosterEndTime');
+
+            if (shift === 'Morning') { start.value = '08:00'; end.value = '17:00'; }
+            else if (shift === 'General') { start.value = '09:30'; end.value = '18:30'; }
+            else if (shift === 'Evening') { start.value = '13:00'; end.value = '22:00'; }
+            else if (shift === 'Night') { start.value = '21:00'; end.value = '06:00'; }
+        }
+
+        async function handleBulkAssignRoster(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmitBulkRoster');
+            btn.disabled = true;
+            btn.textContent = 'Scheduling...';
+
+            const weeklyOffs = Array.from(document.querySelectorAll('input[name="bulkWeeklyOff"]:checked')).map(cb => parseInt(cb.value));
+
+            const payload = {
+                department: document.getElementById('bulkRosterDeptSelect').value,
+                start_date: document.getElementById('bulkRosterStartDate').value,
+                end_date: document.getElementById('bulkRosterEndDate').value,
+                shift_name: document.getElementById('bulkRosterShiftSelect').value,
+                start_time: document.getElementById('bulkRosterStartTime').value,
+                end_time: document.getElementById('bulkRosterEndTime').value,
+                weekly_off_days: weeklyOffs
+            };
+
+            const res = await apiRequest('admin.php?action=bulk_assign_roster', 'POST', payload);
+            btn.disabled = false;
+            btn.textContent = 'Publish Schedule';
+
+            if (res.ok && res.data.success) {
+                playSound('success');
+                fireConfetti(2000);
+                showToast(res.data.message, 'success');
+                closeModal('bulkRosterModal');
+                loadAdminRoster();
+            } else {
+                playSound('error');
+                showToast(res.data.message || 'Error scheduling shifts', 'error');
+            }
+        }
+
+        function exportAdminRosterCsv() {
+            const start = document.getElementById('rosterStartDate').value;
+            const end = document.getElementById('rosterEndDate').value;
+            if (!start || !end) {
+                showToast('Please select valid start and end dates', 'warning');
+                return;
+            }
+            window.location.href = `api/admin.php?action=export_roster_csv&start_date=${start}&end_date=${end}`;
+        }
     </script>
+
+    <!-- Candidate Password Reset Modal -->
+    <div class="modal-overlay" id="resetCandidatePasswordModal">
+        <div class="modal-content" style="max-width: 460px;">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #fef3c7; color: #b45309; display: flex; align-items: center; justify-content: center;">
+                        <i data-lucide="key-round" style="width: 17px;"></i>
+                    </div>
+                    <h3 style="font-size: 1.2rem; font-weight: 800; margin: 0;">Reset Candidate Password</h3>
+                </div>
+                <button class="close-btn" onclick="closeModal('resetCandidatePasswordModal')">&times;</button>
+            </div>
+            <form onsubmit="handleCandidatePasswordReset(event)">
+                <input type="hidden" id="resetCandidateUserId">
+                <div class="modal-body" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.85rem 1rem;">
+                        <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Candidate</div>
+                        <div id="resetCandidateNameDisplay" style="font-size: 1.05rem; font-weight: 800; color: var(--text-main); margin-top: 2px;">-</div>
+                        <div id="resetCandidateEmailDisplay" style="font-size: 0.82rem; color: var(--text-muted);">-</div>
+                    </div>
+
+                    <div class="form-group">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                            <label class="form-label" style="margin-bottom: 0;">New Temporary / Reset Password *</label>
+                            <button type="button" onclick="generateCandidatePassword()" class="btn btn-secondary btn-sm" style="padding: 2px 8px; font-size: 0.72rem; height: 24px;">
+                                <i data-lucide="sparkles" style="width: 12px;"></i> Auto-Generate
+                            </button>
+                        </div>
+                        <div style="position: relative;">
+                            <input type="text" id="resetCandidateNewPass" class="form-control" style="font-family: var(--font-mono); font-weight: 700; padding-right: 70px;" placeholder="e.g. TGC#8kP2!" required>
+                            <button type="button" onclick="copyCandidatePassInput()" class="btn btn-secondary btn-sm" style="position: absolute; right: 4px; top: 4px; height: 30px; font-size: 0.72rem; padding: 2px 8px;">
+                                Copy
+                            </button>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 0.5rem; background: #fffbeb; padding: 0.75rem 1rem; border-radius: var(--radius-sm); border: 1px solid #fde68a;">
+                        <input type="checkbox" id="resetCandidateForceNext" checked style="width: 17px; height: 17px; accent-color: var(--primary); cursor: pointer;">
+                        <label for="resetCandidateForceNext" style="font-size: 0.84rem; font-weight: 700; color: #92400e; margin-bottom: 0; cursor: pointer;">Require password update & verification on next login</label>
+                    </div>
+
+                    <div id="resetSuccessBanner" style="display: none; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); padding: 0.85rem; font-size: 0.85rem;">
+                        <div style="color: #15803d; font-weight: 700; display: flex; align-items: center; gap: 0.4rem;">
+                            <i data-lucide="check-circle-2" style="width: 16px;"></i> Password Reset Done!
+                        </div>
+                        <div style="margin-top: 0.4rem; color: #166534; font-size: 0.8rem;">
+                            Share credentials with candidate:
+                        </div>
+                        <textarea id="candidateCredentialsSnippet" readonly class="form-control" rows="3" style="margin-top: 0.4rem; font-size: 0.78rem; font-family: var(--font-mono); background: #fff;"></textarea>
+                        <button type="button" onclick="copyCredentialsSnippet()" class="btn btn-secondary btn-sm" style="width: 100%; margin-top: 0.4rem; font-weight: 700;">
+                            <i data-lucide="copy" style="width: 14px;"></i> Copy Message for WhatsApp / Email
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer" style="display: flex; justify-content: space-between;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('resetCandidatePasswordModal')">Close</button>
+                    <button type="submit" id="btnSubmitResetCandidatePass" class="btn btn-primary btn-sm">Apply Password Reset</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bulk Shift Roster Modal -->
+    <div class="modal-overlay" id="bulkRosterModal">
+        <div class="modal-content" style="max-width: 520px;">
+            <div class="modal-header">
+                <h3 style="font-size: 1.25rem; font-weight: 800;">Bulk Schedule Shifts (Roster)</h3>
+                <button class="close-btn" onclick="closeModal('bulkRosterModal')">&times;</button>
+            </div>
+            <form onsubmit="handleBulkAssignRoster(event)">
+                <div class="modal-body" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Apply To Department *</label>
+                        <select id="bulkRosterDeptSelect" class="form-control" required>
+                            <option value="all">All Registered Active Employees</option>
+                        </select>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Start Date *</label>
+                            <input type="date" id="bulkRosterStartDate" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">End Date *</label>
+                            <input type="date" id="bulkRosterEndDate" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Default Shift Assignment *</label>
+                        <select id="bulkRosterShiftSelect" onchange="syncBulkShiftTimes()" class="form-control" required>
+                            <option value="General">General Shift (09:30 - 18:30)</option>
+                            <option value="Morning">Morning Shift (08:00 - 17:00)</option>
+                            <option value="Evening">Evening Shift (13:00 - 22:00)</option>
+                            <option value="Night">Night Shift (21:00 - 06:00)</option>
+                            <option value="Flexible">Flexible / Custom Hours</option>
+                        </select>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Shift Start Time</label>
+                            <input type="time" id="bulkRosterStartTime" class="form-control" value="09:30">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Shift End Time</label>
+                            <input type="time" id="bulkRosterEndTime" class="form-control" value="18:30">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Designated Weekly Off Days (WO)</label>
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap; background: var(--bg-main); padding: 0.75rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                            <label style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.84rem; font-weight: 700; cursor: pointer;">
+                                <input type="checkbox" name="bulkWeeklyOff" value="0" checked style="accent-color: var(--primary);"> Sunday
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.84rem; font-weight: 700; cursor: pointer;">
+                                <input type="checkbox" name="bulkWeeklyOff" value="6" style="accent-color: var(--primary);"> Saturday
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('bulkRosterModal')">Cancel</button>
+                    <button type="submit" id="btnSubmitBulkRoster" class="btn btn-primary">Publish Schedule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Assign Single Shift Modal -->
+    <div class="modal-overlay" id="assignShiftModal">
+        <div class="modal-content" style="max-width: 460px;">
+            <div class="modal-header">
+                <h3 style="font-size: 1.25rem; font-weight: 800;">Assign Staff Shift</h3>
+                <button class="close-btn" onclick="closeModal('assignShiftModal')">&times;</button>
+            </div>
+            <form onsubmit="handleSaveSingleShift(event)">
+                <div class="modal-body" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Staff Member *</label>
+                        <select id="singleShiftEmpSelect" class="form-control" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Roster Date *</label>
+                        <input type="date" id="singleShiftDate" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Shift Type *</label>
+                        <select id="singleShiftTypeSelect" onchange="syncSingleShiftTimes()" class="form-control" required>
+                            <option value="General">General Shift (09:30 - 18:30)</option>
+                            <option value="Morning">Morning Shift (08:00 - 17:00)</option>
+                            <option value="Evening">Evening Shift (13:00 - 22:00)</option>
+                            <option value="Night">Night Shift (21:00 - 06:00)</option>
+                            <option value="Weekly Off">Weekly Off (WO)</option>
+                        </select>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Start Time</label>
+                            <input type="time" id="singleShiftStart" class="form-control" value="09:30">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">End Time</label>
+                            <input type="time" id="singleShiftEnd" class="form-control" value="18:30">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Notes / Instructions</label>
+                        <input type="text" id="singleShiftNotes" class="form-control" placeholder="Optional notes for candidate">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('assignShiftModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Shift</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Department Modal -->
+    <div class="modal-overlay" id="addDepartmentModal">
+        <div class="modal-content" style="max-width: 460px;">
+            <div class="modal-header">
+                <h3 style="font-size: 1.25rem; font-weight: 800;">Add Company Department</h3>
+                <button class="close-btn" onclick="closeModal('addDepartmentModal')">&times;</button>
+            </div>
+            <form onsubmit="handleAddDepartment(event)">
+                <div class="modal-body" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Department Name *</label>
+                        <input type="text" id="newDeptName" class="form-control" placeholder="e.g. Artificial Intelligence, Data Science" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Description / Mandate</label>
+                        <textarea id="newDeptDesc" class="form-control" rows="3" placeholder="Brief mandate or team scope..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('addDepartmentModal')">Cancel</button>
+                    <button type="submit" id="btnSubmitAddDept" class="btn btn-primary">Create Department</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Designation Modal -->
+    <div class="modal-overlay" id="addDesignationModal">
+        <div class="modal-content" style="max-width: 460px;">
+            <div class="modal-header">
+                <h3 style="font-size: 1.25rem; font-weight: 800;">Add Designation / Role</h3>
+                <button class="close-btn" onclick="closeModal('addDesignationModal')">&times;</button>
+            </div>
+            <form onsubmit="handleAddDesignation(event)">
+                <div class="modal-body" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Designation / Role Title *</label>
+                        <input type="text" id="newDesigName" class="form-control" placeholder="e.g. Senior Machine Learning Engineer" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Assign Department</label>
+                        <select id="newDesigDeptSelect" class="form-control">
+                            <option value="">-- Select Department --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Job Description / Key Tasks</label>
+                        <textarea id="newDesigDesc" class="form-control" rows="3" placeholder="Key responsibilities and expectations..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('addDesignationModal')">Cancel</button>
+                    <button type="submit" id="btnSubmitAddDesig" class="btn btn-primary">Create Designation</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </body>
 </html>

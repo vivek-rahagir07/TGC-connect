@@ -10,6 +10,24 @@
 -- ==========================================================
 
 
+-- 1a. Departments Table
+CREATE TABLE IF NOT EXISTS `departments` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `name` VARCHAR(100) NOT NULL UNIQUE,
+    `description` VARCHAR(255) DEFAULT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 1b. Designations Table
+CREATE TABLE IF NOT EXISTS `designations` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `department_id` INT DEFAULT NULL,
+    `name` VARCHAR(100) NOT NULL,
+    `description` VARCHAR(255) DEFAULT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`department_id`) REFERENCES `departments`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- 1. Users Table (Administrators & Employees)
 CREATE TABLE IF NOT EXISTS `users` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
@@ -104,9 +122,11 @@ CREATE TABLE IF NOT EXISTS `leave_quotas` (
     `casual_leave_total` DECIMAL(5,1) DEFAULT 12.0,
     `sick_leave_total` DECIMAL(5,1) DEFAULT 12.0,
     `earned_leave_total` DECIMAL(5,1) DEFAULT 12.0,
+    `comp_off_total` DECIMAL(5,1) DEFAULT 0.0,
     `casual_leave_used` DECIMAL(5,1) DEFAULT 0.0,
     `sick_leave_used` DECIMAL(5,1) DEFAULT 0.0,
     `earned_leave_used` DECIMAL(5,1) DEFAULT 0.0,
+    `comp_off_used` DECIMAL(5,1) DEFAULT 0.0,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY `uk_user_year` (`user_id`, `year`),
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
@@ -116,7 +136,7 @@ CREATE TABLE IF NOT EXISTS `leave_quotas` (
 CREATE TABLE IF NOT EXISTS `leaves` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `user_id` INT NOT NULL,
-    `leave_type` ENUM('casual', 'sick', 'earned') NOT NULL,
+    `leave_type` ENUM('casual', 'sick', 'earned', 'comp_off') NOT NULL,
     `start_date` DATE NOT NULL,
     `end_date` DATE NOT NULL,
     `total_days` DECIMAL(5,1) DEFAULT 1.0,
@@ -128,6 +148,22 @@ CREATE TABLE IF NOT EXISTS `leaves` (
     INDEX `idx_leaves_status` (`status`),
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`reviewed_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 6b. Duty Rosters Table (Shift Schedules)
+CREATE TABLE IF NOT EXISTS `rosters` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT NOT NULL,
+    `roster_date` DATE NOT NULL,
+    `shift_name` VARCHAR(100) NOT NULL DEFAULT 'General',
+    `start_time` TIME DEFAULT '09:30:00',
+    `end_time` TIME DEFAULT '18:30:00',
+    `notes` VARCHAR(255) DEFAULT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY `uk_roster_user_date` (`user_id`, `roster_date`),
+    INDEX `idx_roster_date` (`roster_date`),
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 7. Holidays Table
