@@ -325,23 +325,23 @@ async function checkAuthNav() {
       navUserArea.innerHTML = `
         <div class="user-nav-dropdown" id="userNavDropdownWrap">
           <div class="user-nav-trigger" id="userNavTriggerBtn" onclick="toggleUserDropdown(event)">
-            <div class="avatar-sm" style="width: 32px; height: 32px;">
-              ${u.photo_url ? `<img src="${u.photo_url}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">` : u.name.charAt(0)}
+            <div class="avatar-sm" style="width: 34px; height: 34px; min-width: 34px;">
+              ${u.photo_url ? `<img src="${u.photo_url}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">` : escapeHtml(u.name.charAt(0).toUpperCase())}
             </div>
             <div style="line-height: 1.2; text-align: left;">
-              <div style="font-size: 0.82rem; font-weight: 800; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${u.name}</div>
-              <div style="font-size: 0.68rem; color: var(--text-muted); text-transform: capitalize;">${u.role}</div>
+              <div style="font-size: 0.82rem; font-weight: 800; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-main);">${escapeHtml(u.name)}</div>
+              <div style="font-size: 0.68rem; color: var(--text-muted); text-transform: capitalize; font-weight: 600;">${escapeHtml(u.role)}</div>
             </div>
-            <i data-lucide="chevron-down" style="width: 14px; height: 14px; color: var(--text-muted); margin-left: 2px;"></i>
+            <i data-lucide="chevron-down" class="user-nav-chevron" style="width: 14px; height: 14px; color: var(--text-muted); margin-left: 2px;"></i>
           </div>
 
-          <div class="user-nav-menu" id="userNavDropdownMenu">
+          <div class="user-nav-menu" id="userNavDropdownMenu" style="display: none;">
             <div class="user-nav-header">
-              <div style="font-weight: 800; font-size: 0.88rem; color: var(--text-main);">${u.name}</div>
-              <div style="font-size: 0.75rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${u.email}</div>
-              <div style="display: flex; gap: 0.35rem; margin-top: 0.45rem; flex-wrap: wrap;">
-                <span class="badge badge-primary" style="font-size: 0.65rem; padding: 2px 6px;">${u.role.toUpperCase()}</span>
-                <span class="badge badge-secondary" style="font-size: 0.65rem; padding: 2px 6px;">${u.department || 'Operations'}</span>
+              <div style="font-weight: 800; font-size: 0.9rem; color: var(--text-main);">${escapeHtml(u.name)}</div>
+              <div style="font-size: 0.74rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px;">${escapeHtml(u.email)}</div>
+              <div style="display: flex; gap: 0.35rem; margin-top: 0.5rem; flex-wrap: wrap;">
+                <span class="badge badge-primary" style="font-size: 0.65rem; padding: 2px 7px; border-radius: 9999px;">${escapeHtml(u.role.toUpperCase())}</span>
+                <span class="badge badge-secondary" style="font-size: 0.65rem; padding: 2px 7px; border-radius: 9999px;">${escapeHtml(u.department || 'Operations')}</span>
               </div>
             </div>
 
@@ -455,12 +455,14 @@ function toggleUserDropdown(event) {
   const trigger = document.getElementById('userNavTriggerBtn');
   if (!menu) return;
 
-  const isShown = menu.classList.contains('show');
+  const isShown = menu.classList.contains('show') || menu.style.display === 'flex';
   if (isShown) {
     menu.classList.remove('show');
+    menu.style.display = 'none';
     if (trigger) trigger.classList.remove('active');
   } else {
     menu.classList.add('show');
+    menu.style.display = 'flex';
     if (trigger) trigger.classList.add('active');
   }
 }
@@ -470,9 +472,10 @@ document.addEventListener('click', (e) => {
   const wrap = document.getElementById('userNavDropdownWrap');
   const menu = document.getElementById('userNavDropdownMenu');
   const trigger = document.getElementById('userNavTriggerBtn');
-  if (menu && menu.classList.contains('show')) {
+  if (menu && (menu.classList.contains('show') || menu.style.display === 'flex')) {
     if (!wrap || !wrap.contains(e.target)) {
       menu.classList.remove('show');
+      menu.style.display = 'none';
       if (trigger) trigger.classList.remove('active');
     }
   }
@@ -481,7 +484,12 @@ document.addEventListener('click', (e) => {
 // View Profile Global Modal
 function openGlobalProfileModal() {
   const menu = document.getElementById('userNavDropdownMenu');
-  if (menu) menu.classList.remove('show');
+  const trigger = document.getElementById('userNavTriggerBtn');
+  if (menu) {
+    menu.classList.remove('show');
+    menu.style.display = 'none';
+  }
+  if (trigger) trigger.classList.remove('active');
 
   let modal = document.getElementById('globalProfileModal');
   if (!modal) {
@@ -567,7 +575,12 @@ function openGlobalProfileModal() {
 // Reset Password Global Modal
 function openGlobalResetPassModal() {
   const menu = document.getElementById('userNavDropdownMenu');
-  if (menu) menu.classList.remove('show');
+  const trigger = document.getElementById('userNavTriggerBtn');
+  if (menu) {
+    menu.classList.remove('show');
+    menu.style.display = 'none';
+  }
+  if (trigger) trigger.classList.remove('active');
 
   let modal = document.getElementById('globalResetPassModal');
   if (!modal) {

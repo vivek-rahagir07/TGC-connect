@@ -62,6 +62,16 @@
   font-family: var(--font-sans);
 }
 
+button, input, select, textarea {
+  font-family: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
 body {
   background-color: var(--bg-main);
   color: var(--text-main);
@@ -254,6 +264,133 @@ body::after {
   align-items: center;
   gap: 0.65rem;
   flex-shrink: 0;
+  position: relative;
+}
+
+/* User Navigation Dropdown & Profile Menu */
+.user-nav-dropdown {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.user-nav-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.3rem 0.8rem 0.3rem 0.35rem;
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 9999px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  user-select: none;
+}
+
+.user-nav-trigger:hover,
+.user-nav-trigger.active {
+  border-color: var(--primary);
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.15);
+  background: #f8fafc;
+}
+
+.user-nav-trigger .user-nav-chevron {
+  transition: transform 0.22s ease;
+}
+
+.user-nav-trigger.active .user-nav-chevron {
+  transform: rotate(180deg);
+}
+
+.user-nav-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 275px;
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 14px;
+  box-shadow: 0 20px 45px -8px rgba(15, 23, 42, 0.18), 0 8px 20px -4px rgba(0, 0, 0, 0.06);
+  padding: 0.45rem;
+  display: none;
+  flex-direction: column;
+  gap: 3px;
+  z-index: 9999;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  animation: userDropdownFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.user-nav-menu.show {
+  display: flex !important;
+}
+
+@keyframes userDropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.user-nav-header {
+  padding: 0.85rem 0.95rem;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 0.35rem;
+  background: linear-gradient(135deg, #f8faff 0%, #f1f5f9 100%);
+  border-radius: 10px 10px 4px 4px;
+}
+
+button.user-nav-item,
+.user-nav-item {
+  display: flex !important;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  color: var(--text-main);
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  background: transparent;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  width: 100%;
+  text-align: left;
+  text-decoration: none;
+  box-sizing: border-box;
+  font-family: inherit;
+  margin: 0;
+}
+
+button.user-nav-item:hover,
+.user-nav-item:hover {
+  background: #f1f5f9;
+  color: var(--primary);
+  transform: translateX(2px);
+}
+
+button.user-nav-item.danger,
+.user-nav-item.danger {
+  color: var(--danger);
+}
+
+button.user-nav-item.danger:hover,
+.user-nav-item.danger:hover {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.user-nav-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 0.35rem 0.4rem;
 }
 
 .user-profile-badge {
@@ -1365,113 +1502,6 @@ body::after {
 }
 
 
-
-/* ==========================================================================
-   User Navigation Dropdown & Profile Menu
-   ========================================================================== */
-.user-nav-dropdown {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-}
-
-.user-nav-trigger {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.3rem 0.75rem 0.3rem 0.3rem;
-  background: #ffffff;
-  border: 1px solid var(--border-color);
-  border-radius: 9999px;
-  box-shadow: var(--shadow-xs);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  cursor: pointer;
-  user-select: none;
-}
-
-.user-nav-trigger:hover,
-.user-nav-trigger.active {
-  border-color: var(--primary);
-  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.12);
-  background: #f8fafc;
-}
-
-.user-nav-menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  width: 260px;
-  background: #ffffff;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  box-shadow: 0 16px 40px -6px rgba(15, 23, 42, 0.18), 0 6px 16px -4px rgba(0, 0, 0, 0.06);
-  padding: 0.4rem;
-  display: none;
-  flex-direction: column;
-  z-index: 1050;
-  animation: userDropdownFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.user-nav-menu.show {
-  display: flex;
-}
-
-@keyframes userDropdownFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-6px) scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.user-nav-header {
-  padding: 0.75rem 0.85rem;
-  border-bottom: 1px solid var(--border-color);
-  margin-bottom: 0.3rem;
-  background: linear-gradient(135deg, #fafbff 0%, #f8fafc 100%);
-  border-radius: 8px 8px 0 0;
-}
-
-.user-nav-item {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  padding: 0.6rem 0.85rem;
-  border-radius: var(--radius-sm);
-  color: var(--text-main);
-  font-size: 0.86rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  background: transparent;
-  border: none;
-  width: 100%;
-  text-align: left;
-  text-decoration: none;
-}
-
-.user-nav-item:hover {
-  background: #f1f5f9;
-  color: var(--primary);
-}
-
-.user-nav-item.danger {
-  color: var(--danger);
-}
-
-.user-nav-item.danger:hover {
-  background: var(--danger-bg);
-  color: var(--danger);
-}
-
-.user-nav-divider {
-  height: 1px;
-  background: var(--border-color);
-  margin: 0.3rem 0.4rem;
-}
 
 /* ==========================================================================
    Even Blocks & Layout Balance Utilities
