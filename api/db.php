@@ -89,15 +89,15 @@ try {
         $desigCount = (int) $pdo->query("SELECT COUNT(*) FROM `designations`")->fetchColumn();
         if ($desigCount === 0) {
             $pdo->exec("
-                INSERT IGNORE INTO `designations` (`name`, `description`) VALUES
-                ('Senior Software Engineer', 'Core Backend & Frontend Engineering'),
-                ('UI/UX Designer', 'Product Visuals, Wireframes & UX Research'),
-                ('Operations Executive', 'Operational Excellence & Process Execution'),
-                ('Marketing Specialist', 'Growth Marketing & Campaign Strategy'),
-                ('HR Manager', 'HR Compliance & Talent Development'),
-                ('Business Development Manager', 'B2B Sales & Client Relations'),
-                ('Accountant', 'Books, Tax & Financial Reporting'),
-                ('Office Administrator', 'General Workplace & Logistics Administration')
+                INSERT IGNORE INTO `designations` (`name`, `description`, `department_id`) VALUES
+                ('Senior Software Engineer', 'Core Backend & Frontend Engineering', (SELECT id FROM departments WHERE name = 'Engineering' LIMIT 1)),
+                ('UI/UX Designer', 'Product Visuals, Wireframes & UX Research', (SELECT id FROM departments WHERE name = 'Design & UI/UX' LIMIT 1)),
+                ('Operations Executive', 'Operational Excellence & Process Execution', (SELECT id FROM departments WHERE name = 'Operations' LIMIT 1)),
+                ('Marketing Specialist', 'Growth Marketing & Campaign Strategy', (SELECT id FROM departments WHERE name = 'Marketing' LIMIT 1)),
+                ('HR Manager', 'HR Compliance & Talent Development', (SELECT id FROM departments WHERE name = 'Human Resources' LIMIT 1)),
+                ('Business Development Manager', 'B2B Sales & Client Relations', (SELECT id FROM departments WHERE name = 'Sales & Business Dev' LIMIT 1)),
+                ('Accountant', 'Books, Tax & Financial Reporting', (SELECT id FROM departments WHERE name = 'Finance & Accounts' LIMIT 1)),
+                ('Office Administrator', 'General Workplace & Logistics Administration', (SELECT id FROM departments WHERE name = 'Administration' LIMIT 1))
             ");
         }
     } catch (Exception $e) {}

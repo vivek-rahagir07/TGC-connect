@@ -1110,7 +1110,7 @@
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                         <div class="form-group">
                             <label class="form-label">Department *</label>
-                            <select id="adminOnboardDept" class="form-control">
+                            <select id="adminOnboardDept" class="form-control" onchange="onAdminOnboardDeptChange()">
                                 <option value="Engineering">Engineering</option>
                                 <option value="Design & UI/UX">Design & UI/UX</option>
                                 <option value="Operations">Operations</option>
@@ -1120,8 +1120,10 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Job Profile *</label>
-                            <input type="text" id="adminOnboardJob" class="form-control" value="Operations Specialist" required>
+                            <label class="form-label">Job Profile / Role *</label>
+                            <select id="adminOnboardJob" class="form-control" required>
+                                <option value="">-- Select Role --</option>
+                            </select>
                         </div>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
@@ -1219,11 +1221,13 @@
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                         <div class="form-group">
                             <label class="form-label">Department *</label>
-                            <input type="text" id="editEmpDepartment" class="form-control" required>
+                            <select id="editEmpDepartment" class="form-control" required onchange="onEditEmpDeptChange()">
+                            </select>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Job Profile *</label>
-                            <input type="text" id="editEmpJob" class="form-control" required>
+                            <label class="form-label">Job Profile / Role *</label>
+                            <select id="editEmpJob" class="form-control" required>
+                            </select>
                         </div>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
@@ -1751,6 +1755,7 @@
             loadPendingApprovals();
             loadEmployees();
             loadAdminDepartments();
+            loadAdminDesignations();
             setRosterWeekPreset(0);
             loadAttendanceLogs();
             loadAdminLeaves();
@@ -2220,7 +2225,7 @@
                 dob: document.getElementById('adminOnboardDob').value,
                 company: document.getElementById('adminOnboardCompany') ? document.getElementById('adminOnboardCompany').value : 'Getting Roots Coaching & Training Pvt. Ltd.',
                 department: document.getElementById('adminOnboardDept').value,
-                job_profile: document.getElementById('adminOnboardJob').value.trim(),
+                job_profile: document.getElementById('adminOnboardJob').value.trim() || 'Staff Member',
                 date_of_joining: document.getElementById('adminOnboardDoj').value,
                 base_salary: parseFloat(document.getElementById('adminOnboardSalary').value) || 40000,
                 address: document.getElementById('adminOnboardAddress').value.trim(),
@@ -2731,8 +2736,22 @@
             if (document.getElementById('editEmpCompany')) {
                 document.getElementById('editEmpCompany').value = emp.company || 'Getting Roots Coaching & Training Pvt. Ltd.';
             }
-            document.getElementById('editEmpDepartment').value = emp.department || '';
-            document.getElementById('editEmpJob').value = emp.job_profile || '';
+            if (document.getElementById('editEmpDepartment')) {
+                const deptSelect = document.getElementById('editEmpDepartment');
+                syncDepartmentAndRoleDropdowns();
+                if (emp.department && !Array.from(deptSelect.options).some(o => o.value.toLowerCase() === emp.department.toLowerCase())) {
+                    const opt = document.createElement('option');
+                    opt.value = emp.department;
+                    opt.textContent = emp.department;
+                    deptSelect.appendChild(opt);
+                }
+                deptSelect.value = emp.department || '';
+            }
+            populateAdminJobDropdown(
+                document.getElementById('editEmpJob'),
+                emp.department || '',
+                emp.job_profile || ''
+            );
             document.getElementById('editEmpSalary').value = emp.base_salary || 30000;
             document.getElementById('editEmpStatus').value = emp.status || 'active';
             document.getElementById('editEmpNewPassword').value = '';
@@ -2752,7 +2771,7 @@
                 address: document.getElementById('editEmpAddress').value.trim(),
                 company: document.getElementById('editEmpCompany') ? document.getElementById('editEmpCompany').value : 'Getting Roots Coaching & Training Pvt. Ltd.',
                 department: document.getElementById('editEmpDepartment').value.trim(),
-                job_profile: document.getElementById('editEmpJob').value.trim(),
+                job_profile: document.getElementById('editEmpJob').value.trim() || 'Staff Member',
                 base_salary: parseFloat(document.getElementById('editEmpSalary').value),
                 status: document.getElementById('editEmpStatus').value,
                 new_password: document.getElementById('editEmpNewPassword').value.trim(),
@@ -4254,30 +4273,62 @@
                 }
 
                 // Synchronize dropdowns across the application
-                syncDepartmentDropdowns();
+                syncDepartmentAndRoleDropdowns();
             }
         }
 
-        function syncDepartmentDropdowns() {
+        function syncDepartmentAndRoleDropdowns() {
             const deptOptionsHtml = allDepartmentsCache.map(d => `<option value="${escapeHtml(d.name)}">${escapeHtml(d.name)}</option>`).join('');
 
-            // 1. Onboarding Dept select
+            // 1. Onboarding Dept select & Job Profile select
             const onboardDept = document.getElementById('adminOnboardDept');
             if (onboardDept) {
                 const cur = onboardDept.value;
                 onboardDept.innerHTML = deptOptionsHtml;
-                if (cur) onboardDept.value = cur;
+                if (cur && allDepartmentsCache.some(d => d.name === cur)) {
+                    onboardDept.value = cur;
+                }
+                populateAdminJobDropdown(
+                    document.getElementById('adminOnboardJob'),
+                    onboardDept.value,
+                    document.getElementById('adminOnboardJob') ? document.getElementById('adminOnboardJob').value : ''
+                );
             }
 
-            // 2. Edit Employee Dept select
-            const editDept = document.getElementById('editEmpDept');
+            // 2. Edit Employee Dept select & Job Profile select
+            const editDept = document.getElementById('editEmpDepartment');
             if (editDept) {
                 const cur = editDept.value;
                 editDept.innerHTML = deptOptionsHtml;
-                if (cur) editDept.value = cur;
+                if (cur && allDepartmentsCache.some(d => d.name === cur)) {
+                    editDept.value = cur;
+                }
             }
 
-            // 3. Roster Filter Dept select
+            // 3. Employee list Profession/Dept Filter
+            const empProfFilter = document.getElementById('empFilterProfession');
+            if (empProfFilter) {
+                const cur = empProfFilter.value;
+                let filterHtml = '<option value="all">All Professions / Depts</option>';
+                if (allDepartmentsCache.length > 0) {
+                    filterHtml += '<optgroup label="Departments">';
+                    allDepartmentsCache.forEach(d => {
+                        filterHtml += `<option value="${escapeHtml(d.name)}">${escapeHtml(d.name)}</option>`;
+                    });
+                    filterHtml += '</optgroup>';
+                }
+                if (allDesignationsCache.length > 0) {
+                    filterHtml += '<optgroup label="Roles / Job Profiles">';
+                    allDesignationsCache.forEach(des => {
+                        filterHtml += `<option value="${escapeHtml(des.name)}">${escapeHtml(des.name)}</option>`;
+                    });
+                    filterHtml += '</optgroup>';
+                }
+                empProfFilter.innerHTML = filterHtml;
+                if (cur) empProfFilter.value = cur;
+            }
+
+            // 4. Roster Filter Dept select
             const rosterDept = document.getElementById('rosterFilterDept');
             if (rosterDept) {
                 const cur = rosterDept.value;
@@ -4285,7 +4336,7 @@
                 if (cur) rosterDept.value = cur;
             }
 
-            // 4. Bulk Roster Dept select
+            // 5. Bulk Roster Dept select
             const bulkDept = document.getElementById('bulkRosterDeptSelect');
             if (bulkDept) {
                 const cur = bulkDept.value;
@@ -4293,12 +4344,87 @@
                 if (cur) bulkDept.value = cur;
             }
 
-            // 5. Designation Modal Dept select
+            // 6. Designation Modal Dept select
             const desigModalDept = document.getElementById('newDesigDeptSelect');
             if (desigModalDept) {
+                const cur = desigModalDept.value;
                 desigModalDept.innerHTML = '<option value="">-- Select Department --</option>' +
                     allDepartmentsCache.map(d => `<option value="${d.id}">${escapeHtml(d.name)}</option>`).join('');
+                if (cur) desigModalDept.value = cur;
             }
+        }
+
+        function populateAdminJobDropdown(selectElem, selectedDeptName, currentValue) {
+            if (!selectElem) return;
+
+            const matchingRoles = allDesignationsCache.filter(d => 
+                d.department_name && d.department_name.toLowerCase() === (selectedDeptName || '').toLowerCase()
+            );
+            const otherRoles = allDesignationsCache.filter(d => 
+                !d.department_name || d.department_name.toLowerCase() !== (selectedDeptName || '').toLowerCase()
+            );
+
+            let html = '<option value="">-- Select Official Job Role --</option>';
+
+            if (matchingRoles.length > 0) {
+                html += `<optgroup label="${escapeHtml(selectedDeptName || 'Department')} Roles">`;
+                matchingRoles.forEach(r => {
+                    html += `<option value="${escapeHtml(r.name)}">${escapeHtml(r.name)}</option>`;
+                });
+                html += `</optgroup>`;
+            }
+
+            if (otherRoles.length > 0) {
+                html += `<optgroup label="Other Company Roles">`;
+                otherRoles.forEach(r => {
+                    html += `<option value="${escapeHtml(r.name)}">${escapeHtml(r.name)}${r.department_name ? ` (${escapeHtml(r.department_name)})` : ''}</option>`;
+                });
+                html += `</optgroup>`;
+            }
+
+            if (allDesignationsCache.length === 0) {
+                const defaults = ['Operations Specialist', 'Senior Software Engineer', 'UI/UX Designer', 'Marketing Specialist', 'HR Manager', 'Business Development Manager', 'Accountant', 'Staff Member'];
+                html += `<optgroup label="Default Roles">`;
+                defaults.forEach(r => {
+                    html += `<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`;
+                });
+                html += `</optgroup>`;
+            }
+
+            selectElem.innerHTML = html;
+
+            if (currentValue) {
+                const exists = Array.from(selectElem.options).some(o => o.value.toLowerCase() === currentValue.toLowerCase());
+                if (!exists) {
+                    const opt = document.createElement('option');
+                    opt.value = currentValue;
+                    opt.textContent = currentValue;
+                    opt.selected = true;
+                    selectElem.appendChild(opt);
+                } else {
+                    selectElem.value = currentValue;
+                }
+            } else if (matchingRoles.length > 0) {
+                selectElem.value = matchingRoles[0].name;
+            }
+        }
+
+        function onAdminOnboardDeptChange() {
+            const dept = document.getElementById('adminOnboardDept').value;
+            populateAdminJobDropdown(
+                document.getElementById('adminOnboardJob'),
+                dept,
+                document.getElementById('adminOnboardJob') ? document.getElementById('adminOnboardJob').value : ''
+            );
+        }
+
+        function onEditEmpDeptChange() {
+            const dept = document.getElementById('editEmpDepartment').value;
+            populateAdminJobDropdown(
+                document.getElementById('editEmpJob'),
+                dept,
+                document.getElementById('editEmpJob') ? document.getElementById('editEmpJob').value : ''
+            );
         }
 
         function openAddDepartmentModal() {
@@ -4376,6 +4502,7 @@
                         lucide.createIcons();
                     }
                 }
+                syncDepartmentAndRoleDropdowns();
             }
         }
 
@@ -4383,7 +4510,7 @@
             playSound('click');
             document.getElementById('newDesigName').value = '';
             document.getElementById('newDesigDesc').value = '';
-            syncDepartmentDropdowns();
+            syncDepartmentAndRoleDropdowns();
             openModal('addDesignationModal');
         }
 

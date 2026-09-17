@@ -262,7 +262,46 @@ switch ($action) {
             $defaults = ['Engineering', 'Design & UI/UX', 'Operations', 'Marketing', 'Human Resources', 'Sales & Business Dev', 'Finance & Accounts', 'Administration'];
             $depts = array_map(function($d) { return ['name' => $d]; }, $defaults);
         }
-        sendResponse(true, ['departments' => $depts]);
+
+        try {
+            $stmtDesig = $pdo->query("
+                SELECT des.id, des.name, des.department_id, des.description, d.name as department_name
+                FROM designations des
+                LEFT JOIN departments d ON des.department_id = d.id
+                ORDER BY des.name ASC
+            ");
+            $desigs = $stmtDesig->fetchAll();
+        } catch (Exception $e) {
+            $desigs = [];
+        }
+        sendResponse(true, ['departments' => $depts, 'designations' => $desigs]);
+        break;
+
+    case 'public_designations':
+        try {
+            $deptFilter = intval($_GET['department_id'] ?? 0);
+            if ($deptFilter > 0) {
+                $stmtDesig = $pdo->prepare("
+                    SELECT des.id, des.name, des.department_id, des.description, d.name as department_name
+                    FROM designations des
+                    LEFT JOIN departments d ON des.department_id = d.id
+                    WHERE des.department_id = ?
+                    ORDER BY des.name ASC
+                ");
+                $stmtDesig->execute([$deptFilter]);
+            } else {
+                $stmtDesig = $pdo->query("
+                    SELECT des.id, des.name, des.department_id, des.description, d.name as department_name
+                    FROM designations des
+                    LEFT JOIN departments d ON des.department_id = d.id
+                    ORDER BY des.name ASC
+                ");
+            }
+            $desigs = $stmtDesig->fetchAll();
+        } catch (Exception $e) {
+            $desigs = [];
+        }
+        sendResponse(true, ['designations' => $desigs]);
         break;
 
     case 'change_password':
