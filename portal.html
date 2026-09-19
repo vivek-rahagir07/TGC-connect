@@ -456,6 +456,42 @@
         </div>
     </div>
 
+    <!-- 5. Morning Check-In Missing Alert Modal Popup -->
+    <div class="modal-overlay" id="missingMorningCheckInModal">
+        <div class="modal-content" style="max-width: 460px; text-align: center; padding: 2rem 1.75rem; border-radius: 16px;">
+            <div style="width: 64px; height: 64px; border-radius: 50%; background: #fef2f2; border: 2px solid #fecdd3; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.15rem; color: #dc2626; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.15);">
+                <i data-lucide="alert-triangle" style="width: 32px; height: 32px;"></i>
+            </div>
+            
+            <h3 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem;">
+                Morning Check-In Not Found
+            </h3>
+            
+            <div style="background: #fff7ed; border: 1.5px solid #ffedd5; border-radius: 10px; padding: 0.85rem 1rem; margin-bottom: 1.15rem; text-align: left;">
+                <p style="font-size: 0.88rem; font-weight: 800; color: #9a3412; margin: 0 0 0.35rem 0; display: flex; align-items: center; gap: 0.35rem;">
+                    <span>⚠️</span> Please contact admin: you didn't check in in the morning.
+                </p>
+                <p style="font-size: 0.78rem; color: #7c2d12; margin: 0; line-height: 1.45;">
+                    Evening check-out punches can only be logged after a verified morning check-in has been registered for today. Please contact your administrator to regularize your attendance record.
+                </p>
+            </div>
+
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1.35rem; font-size: 0.8rem; color: #475569; text-align: left;">
+                <div style="font-weight: 700; color: #1e293b; margin-bottom: 0.2rem;">HR / Admin Contact:</div>
+                <div>Email: <a href="mailto:gettingroots@gmail.com" style="color: var(--primary); font-weight: 700; text-decoration: underline;">gettingroots@gmail.com</a></div>
+            </div>
+
+            <div style="display: flex; gap: 0.65rem; justify-content: center;">
+                <a href="mailto:gettingroots@gmail.com?subject=Attendance%20Regularization%20Request%20-%20Missing%20Morning%20Punch" class="btn btn-primary" style="flex: 1; justify-content: center; font-weight: 700;">
+                    <i data-lucide="mail" style="width: 16px;"></i> Contact Admin
+                </a>
+                <button type="button" onclick="closeModal('missingMorningCheckInModal')" class="btn btn-secondary" style="font-weight: 700; padding: 0.6rem 1.25rem;">
+                    Dismiss
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div id="toast-container"></div>
 
     <script src="js/app.js?v=2.2"></script>
@@ -709,10 +745,16 @@
                         banner.innerHTML = '✓ Daily Attendance Cycle Completed';
                         punchOutBtn.style.display = 'none';
                     } else {
-                        banner.className = 'badge badge-warning';
+                        const st = (today.status || 'present').toLowerCase();
+                        if (st === 'half_day') {
+                            banner.className = 'badge badge-info';
+                            banner.innerHTML = `🟡 Checked In (HALF DAY) at ${today.check_in_time.substring(0, 5)}`;
+                        } else {
+                            banner.className = 'badge badge-warning';
+                            banner.innerHTML = `🟢 Checked In (${st.toUpperCase()}) at ${today.check_in_time.substring(0, 5)}`;
+                        }
                         banner.style.width = '100%';
                         banner.style.padding = '0.85rem';
-                        banner.innerHTML = `🟢 Checked In (${today.status.toUpperCase()}) at ${today.check_in_time.substring(0, 5)}`;
                         punchOutBtn.style.display = 'inline-flex';
                     }
                 } else {
@@ -750,9 +792,15 @@
                 loadAttendanceHistory();
             } else {
                 playSound('error');
-                showToast(res.data.message || 'Error marking check-out', 'error');
                 btn.disabled = false;
                 btn.textContent = 'Mark Check-Out for Today';
+
+                if (res.data && (res.data.missing_morning_checkin || res.data.contact_admin || (res.data.message && res.data.message.includes('did not check in in the morning')))) {
+                    openModal('missingMorningCheckInModal');
+                    return;
+                }
+
+                showToast(res.data.message || 'Error marking check-out', 'error');
             }
         }
 

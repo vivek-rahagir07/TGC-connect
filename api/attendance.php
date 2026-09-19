@@ -586,39 +586,12 @@ switch ($action) {
                     'already_marked' => true
                 ]);
             } else {
-                // Direct Evening Punch (employee missed morning punch but is marking attendance in evening window)
-                $status = 'present';
-                $fullNotes = 'Direct Evening Check-Out: ' . $activeWindow['title'] . ' | ' . $locName;
-                if ($inputNotes) $fullNotes .= ' | ' . $inputNotes;
-
-                $stmtIn = $pdo->prepare("
-                    INSERT INTO attendances (user_id, date, check_in_time, check_out_time, method, latitude, longitude, accuracy_meters, location_name, ip_address, user_agent, device_fingerprint, status, notes)
-                    VALUES (?, ?, ?, ?, 'gps', ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ");
-                $stmtIn->execute([
-                    $userRecord['id'], $today, $nowTime, $nowTime, $lat, $lng, $accuracy, $locName, $ip, $userAgent, $deviceFingerprint, $status, $fullNotes
-                ]);
-                $attendanceId = $pdo->lastInsertId();
-
-                $stmtFinal = $pdo->prepare("SELECT * FROM attendances WHERE id = ?");
-                $stmtFinal->execute([$attendanceId]);
-                $finalAtt = $stmtFinal->fetch();
-
-                $notifResult = sendAttendanceNotification($pdo, $finalAtt, $userRecord);
-
-                sendResponse(true, [
-                    'type' => 'check_out',
-                    'action_type' => 'check_out',
-                    'message' => 'Evening check-out recorded successfully! Have a great evening, ' . $userRecord['name'] . '.',
-                    'employee_name' => $userRecord['name'],
-                    'check_out_time' => substr($nowTime, 0, 5),
-                    'date' => $today,
-                    'status' => $status,
-                    'location_name' => $locName,
-                    'attendance' => $finalAtt,
-                    'notification' => $notifResult,
-                    'already_marked' => true
-                ]);
+                // Rejection safeguard: Employee missed morning check-in and cannot check out directly in evening
+                sendResponse(false, [
+                    'missing_morning_checkin' => true,
+                    'contact_admin' => true,
+                    'message' => 'Please contact admin: you did not check in in the morning.'
+                ], 422);
             }
         } else {
             // === CHECK-IN FLOW ===
@@ -631,8 +604,18 @@ switch ($action) {
                 ], 422);
             }
 
-            // Morning window punches are on-time
-            $status = (date('H:i') > '09:25') ? 'late' : 'present';
+            // Check-in status determination:
+            // 1st window (09:00 - 09:35 AM) is on-time (present)
+            // 10:00 AM & 11:00 AM slots are late
+            // 12:00 PM slot (12:00-12:10) & 1:00 PM slot (01:00-01:10) and any check-in from 12:00 PM onwards are marked as half_day
+            $nowHi = date('H:i');
+            if ($nowHi >= '12:00') {
+                $status = 'half_day';
+            } elseif ($nowHi > '09:35') {
+                $status = 'late';
+            } else {
+                $status = 'present';
+            }
             $fullNotes = 'Shift Window Verified: ' . $activeWindow['title'] . ' | ' . $locName;
             if ($inputNotes) {
                 $fullNotes .= ' | ' . $inputNotes;
@@ -669,7 +652,7 @@ switch ($action) {
             sendResponse(true, [
                 'type' => 'check_in',
                 'action_type' => 'check_in',
-                'message' => 'Attendance check-in verified & recorded successfully! Welcome, ' . $userRecord['name'] . ' (' . ucfirst($status) . ')',
+                'message' => 'Attendance check-in verified & recorded successfully! Welcome, ' . $userRecord['name'] . ' (' . ucfirst(str_replace('_', ' ', $status)) . ')',
                 'employee_name' => $userRecord['name'],
                 'check_in_time' => substr($nowTime, 0, 5),
                 'date' => $today,
@@ -723,8 +706,15 @@ switch ($action) {
             ], 422);
         }
 
-        // Late threshold is 09:30 AM
-        $status = (date('H:i') > '09:30') ? 'late' : 'present';
+        // Check-in status determination:
+        $nowHi = date('H:i');
+        if ($nowHi >= '12:00') {
+            $status = 'half_day';
+        } elseif ($nowHi > '09:35') {
+            $status = 'late';
+        } else {
+            $status = 'present';
+        }
         $notes = 'Office QR (' . $qr['title'] . ')';
 
         if ($existing) {
@@ -796,17 +786,11 @@ switch ($action) {
         $attendance = $stmt->fetch();
 
         if (!$attendance || empty($attendance['check_in_time'])) {
-            // Direct Evening Punch if employee didn't punch in earlier
-            $stmtInsert = $pdo->prepare("
-                INSERT INTO attendances (user_id, date, check_in_time, check_out_time, method, status, notes, ip_address)
-                VALUES (?, ?, ?, ?, 'gps', 'present', 'Direct Evening Check-Out Punch', ?)
-            ");
-            $stmtInsert->execute([$user['id'], $today, $nowTime, $nowTime, $ip]);
-            $attId = $pdo->lastInsertId();
-
-            $stmtFetch = $pdo->prepare("SELECT * FROM attendances WHERE id = ?");
-            $stmtFetch->execute([$attId]);
-            $attendance = $stmtFetch->fetch();
+            sendResponse(false, [
+                'missing_morning_checkin' => true,
+                'contact_admin' => true,
+                'message' => 'Please contact admin: you did not check in in the morning.'
+            ], 422);
         } else {
             if (!empty($attendance['check_out_time'])) {
                 sendResponse(false, ['message' => 'You have already checked out today at ' . substr($attendance['check_out_time'], 0, 5)], 422);
@@ -941,7 +925,23 @@ switch ($action) {
         $attendance = $stmt->fetch();
 
         if (!$attendance || empty($attendance['check_in_time'])) {
-            $status = (date('H:i') > '09:30') ? 'late' : 'present';
+            // Rejection safeguard: If it's evening check-out hours and employee has no morning check-in
+            if (date('H:i') >= '16:00') {
+                sendResponse(false, [
+                    'missing_morning_checkin' => true,
+                    'contact_admin' => true,
+                    'message' => 'Please contact admin: you did not check in in the morning.'
+                ], 422);
+            }
+
+            $nowHi = date('H:i');
+            if ($nowHi >= '12:00') {
+                $status = 'half_day';
+            } elseif ($nowHi > '09:35') {
+                $status = 'late';
+            } else {
+                $status = 'present';
+            }
             $stmtInsert = $pdo->prepare("
                 INSERT INTO attendances (user_id, date, check_in_time, method, latitude, longitude, accuracy_meters, location_name, ip_address, user_agent, device_fingerprint, status, notes)
                 VALUES (?, ?, ?, 'gps', ?, ?, ?, ?, ?, ?, ?, ?, ?)

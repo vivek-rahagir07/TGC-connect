@@ -360,23 +360,22 @@
                     </div>
                 </div>
 
-                <div class="table-responsive">
-                    <table class="custom-table" style="min-width: 1040px;">
+                <div class="table-responsive table-fit-frame">
+                    <table class="custom-table emp-table-fit">
                         <thead>
                             <tr>
-                                <th>Photo</th>
-                                <th>Candidate</th>
-                                <th>Company</th>
-                                <th>Department & Role</th>
-                                <th>DOJ / Contact</th>
-                                <th>Base Salary</th>
-                                <th>Leave Quotas</th>
-                                <th>Status</th>
-                                <th>Actions</th>
+                                <th style="width: 22%;">Candidate</th>
+                                <th style="width: 9%;">Company</th>
+                                <th style="width: 16%;">Dept & Role</th>
+                                <th style="width: 11%;">DOJ / Contact</th>
+                                <th style="width: 8%;">Base Salary</th>
+                                <th style="width: 15%;">Leave Quotas</th>
+                                <th style="width: 6%; text-align: center;">Status</th>
+                                <th style="width: 13%; text-align: right;">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="employeesTableBody">
-                            <tr><td colspan="9" style="text-align: center; color: var(--text-muted);">Loading candidates...</td></tr>
+                            <tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Loading candidates...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -2302,7 +2301,7 @@
                 const emps = res.data.employees;
                 allEmployeesCache = emps;
                 if (emps.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2.5rem;">No matching candidates found for the selected filters.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2.5rem;">No matching candidates found for the selected filters.</td></tr>';
                     return;
                 }
 
@@ -2321,73 +2320,76 @@
                     let presenceBadge = '';
                     if (pDate) {
                         if (emp.presence_status === 'present') {
-                            presenceBadge = `<div style="margin-top: 0.35rem;"><span class="badge badge-success" style="font-size: 0.72rem;">PRESENT (${emp.presence_check_in ? emp.presence_check_in.substring(0,5) : 'Logged'})</span></div>`;
+                            presenceBadge = `<div style="margin-top: 0.25rem;"><span class="badge badge-success" style="font-size: 0.68rem; padding: 0.15rem 0.35rem;">PRESENT (${emp.presence_check_in ? emp.presence_check_in.substring(0,5) : 'Logged'})</span></div>`;
                         } else if (emp.presence_status === 'late') {
-                            presenceBadge = `<div style="margin-top: 0.35rem;"><span class="badge badge-warning" style="font-size: 0.72rem;">LATE (${emp.presence_check_in ? emp.presence_check_in.substring(0,5) : 'Logged'})</span></div>`;
+                            presenceBadge = `<div style="margin-top: 0.25rem;"><span class="badge badge-warning" style="font-size: 0.68rem; padding: 0.15rem 0.35rem;">LATE (${emp.presence_check_in ? emp.presence_check_in.substring(0,5) : 'Logged'})</span></div>`;
                         } else if (emp.presence_status === 'half_day') {
-                            presenceBadge = `<div style="margin-top: 0.35rem;"><span class="badge badge-info" style="font-size: 0.72rem;">HALF DAY</span></div>`;
+                            presenceBadge = `<div style="margin-top: 0.25rem;"><span class="badge badge-info" style="font-size: 0.68rem; padding: 0.15rem 0.35rem;">HALF DAY</span></div>`;
                         } else {
-                            presenceBadge = `<div style="margin-top: 0.35rem;"><span class="badge badge-danger" style="font-size: 0.72rem;">ABSENT</span></div>`;
+                            presenceBadge = `<div style="margin-top: 0.25rem;"><span class="badge badge-danger" style="font-size: 0.68rem; padding: 0.15rem 0.35rem;">ABSENT</span></div>`;
                         }
                     }
 
                     return `
                     <tr>
-                        <td style="width: 46px; padding-right: 0.5rem;">
-                            <div class="avatar-sm">
-                                ${emp.photo_url ? `<img src="${emp.photo_url}" style="width:100%;height:100%;object-fit:cover;">` : emp.name.charAt(0)}
+                        <td>
+                            <div class="emp-candidate-cell">
+                                <div class="emp-avatar">
+                                    ${emp.photo_url ? `<img src="${emp.photo_url}">` : escapeHtml((emp.name || 'U').charAt(0).toUpperCase())}
+                                </div>
+                                <div class="emp-meta-truncate">
+                                    <div class="emp-name" title="${escapeHtml(emp.name || '')}">${escapeHtml(emp.name || '-')}</div>
+                                    <div class="emp-subtext" title="${escapeHtml(emp.email || '')}">${escapeHtml(emp.email || '-')}</div>
+                                </div>
                             </div>
                         </td>
-                        <td style="white-space: nowrap;">
-                            <strong>${emp.name}</strong>
-                            <div style="font-size: 0.78rem; color: var(--text-muted);">${emp.email}</div>
-                        </td>
-                        <td style="white-space: nowrap;">
-                            <span class="badge" title="${escapeHtml(compKey)}" style="background: ${cStyle.bg}; color: ${cStyle.color}; border: 1px solid ${cStyle.border}; font-weight: 700; font-size: 0.74rem; letter-spacing: 0.2px; white-space: nowrap; display: inline-block; padding: 0.3rem 0.65rem; border-radius: 6px;">
+                        <td>
+                            <span class="badge" title="${escapeHtml(compKey)}" style="background: ${cStyle.bg}; color: ${cStyle.color}; border: 1px solid ${cStyle.border}; font-weight: 700; font-size: 0.7rem; letter-spacing: 0.2px; white-space: nowrap; display: inline-block; padding: 0.2rem 0.45rem; border-radius: 4px;">
                                 ${escapeHtml(getCompanyShortName(compKey))}
                             </span>
                             ${presenceBadge}
                         </td>
+                        <td>
+                            <div class="emp-dept-title" title="${escapeHtml(emp.department || 'Operations')}">${escapeHtml(emp.department || 'Operations')}</div>
+                            <div class="emp-subtext" title="${escapeHtml(emp.job_profile || 'Staff')}">${escapeHtml(emp.job_profile || 'Staff')}</div>
+                        </td>
                         <td style="white-space: nowrap;">
-                            <div>${emp.department || 'Operations'}</div>
-                            <div style="font-size: 0.8rem; color: var(--text-muted);">${emp.job_profile || 'Staff'}</div>
+                            <div style="font-size: 0.77rem; font-weight: 600;">DOJ: ${emp.date_of_joining || '-'}</div>
+                            <div class="emp-subtext">${emp.phone || '-'}</div>
                         </td>
-                        <td style="font-size: 0.84rem; white-space: nowrap;">
-                            <div>DOJ: <strong>${emp.date_of_joining || '-'}</strong></div>
-                            <div style="color: var(--text-muted); font-size: 0.78rem;">${emp.phone || '-'}</div>
-                        </td>
-                        <td style="white-space: nowrap;"><strong>₹${parseFloat(emp.base_salary).toLocaleString()}</strong></td>
-                        <td style="font-size: 0.82rem; white-space: nowrap;">
-                            <div>
-                                <span title="Casual Leave">CL: <strong>${Math.round(emp.casual_leave_total || 12) - Math.round(emp.casual_leave_used || 0)}</strong>/${Math.round(emp.casual_leave_total || 12)}</span>
-                                <span style="color: var(--border-color); margin: 0 4px;">&bull;</span>
-                                <span title="Sick Leave">SL: <strong>${Math.round(emp.sick_leave_total || 12) - Math.round(emp.sick_leave_used || 0)}</strong>/${Math.round(emp.sick_leave_total || 12)}</span>
-                                <span style="color: var(--border-color); margin: 0 4px;">&bull;</span>
-                                <span title="Earned Leave">EL: <strong>${Math.round(emp.earned_leave_total || 12) - Math.round(emp.earned_leave_used || 0)}</strong>/${Math.round(emp.earned_leave_total || 12)}</span>
-                                <span style="color: var(--border-color); margin: 0 4px;">&bull;</span>
-                                <span title="Compensatory Off" style="color: #9333ea; font-weight: 700;">CO: <strong>${Math.round(emp.comp_off_total || 0) - Math.round(emp.comp_off_used || 0)}</strong>/${Math.round(emp.comp_off_total || 0)}</span>
-                            </div>
-                            <div style="margin-top: 0.25rem;">
-                                <a href="javascript:void(0)" onclick="openQuotaModal(${emp.id}, '${emp.name.replace(/'/g, "\\'")}', ${emp.casual_leave_total || 12}, ${emp.sick_leave_total || 12}, ${emp.earned_leave_total || 12}, ${emp.comp_off_total || 0})" style="font-size: 0.75rem; color: var(--primary); font-weight: 700;">Edit Quotas</a>
-                            </div>
-                        </td>
-                        <td style="white-space: nowrap;"><span class="badge badge-${emp.status === 'active' ? 'success' : (emp.status === 'pending_approval' ? 'warning' : 'danger')}">${emp.status}</span></td>
                         <td style="white-space: nowrap;">
-                            <div style="display: inline-flex; gap: 0.35rem; align-items: center;">
-                                <button onclick="viewCandidateHistory(${emp.id})" class="btn btn-secondary btn-sm" title="View Logs & History" style="color: var(--primary); font-weight: 700; border-color: rgba(79,70,229,0.35); background: rgba(79,70,229,0.06); padding: 0.35rem 0.6rem; font-size: 0.78rem;">
-                                    <i data-lucide="user-check" style="width: 13px; height: 13px; vertical-align: -2px;"></i> Logs
+                            <strong style="font-size: 0.82rem;">₹${parseFloat(emp.base_salary || 0).toLocaleString()}</strong>
+                        </td>
+                        <td>
+                            <div class="quota-grid">
+                                <span class="quota-chip" title="Casual Leave">CL:<strong>${Math.round(emp.casual_leave_total || 12) - Math.round(emp.casual_leave_used || 0)}</strong>/${Math.round(emp.casual_leave_total || 12)}</span>
+                                <span class="quota-chip" title="Sick Leave">SL:<strong>${Math.round(emp.sick_leave_total || 12) - Math.round(emp.sick_leave_used || 0)}</strong>/${Math.round(emp.sick_leave_total || 12)}</span>
+                                <span class="quota-chip" title="Earned Leave">EL:<strong>${Math.round(emp.earned_leave_total || 12) - Math.round(emp.earned_leave_used || 0)}</strong>/${Math.round(emp.earned_leave_total || 12)}</span>
+                                <span class="quota-chip co" title="Compensatory Off">CO:<strong>${Math.round(emp.comp_off_total || 0) - Math.round(emp.comp_off_used || 0)}</strong>/${Math.round(emp.comp_off_total || 0)}</span>
+                            </div>
+                            <div style="margin-top: 2px;">
+                                <a href="javascript:void(0)" onclick="openQuotaModal(${emp.id}, '${emp.name.replace(/'/g, "\\'")}', ${emp.casual_leave_total || 12}, ${emp.sick_leave_total || 12}, ${emp.earned_leave_total || 12}, ${emp.comp_off_total || 0})" style="font-size: 0.7rem; color: var(--primary); font-weight: 700; text-decoration: underline;">Edit Quotas</a>
+                            </div>
+                        </td>
+                        <td style="text-align: center; white-space: nowrap;">
+                            <span class="badge badge-${emp.status === 'active' ? 'success' : (emp.status === 'pending_approval' ? 'warning' : 'danger')}" style="font-size: 0.68rem; padding: 0.2rem 0.4rem; text-transform: capitalize;">${emp.status}</span>
+                        </td>
+                        <td>
+                            <div class="emp-actions">
+                                <button onclick="viewCandidateHistory(${emp.id})" class="btn btn-secondary btn-sm" title="View Logs & History" style="color: var(--primary); font-weight: 700; border-color: rgba(79,70,229,0.35); background: rgba(79,70,229,0.06); font-size: 0.72rem; gap: 2px;">
+                                    <i data-lucide="user-check" style="width: 12px; height: 12px;"></i> Logs
                                 </button>
-                                <button onclick="openCandidateResetPassModal(${emp.id}, '${emp.name.replace(/'/g, "\\'")}', '${emp.email.replace(/'/g, "\\'")}')" class="btn btn-secondary btn-sm" title="Reset Candidate Password" style="color: #b45309; border-color: #fde68a; background: #fffbeb; padding: 0.35rem 0.5rem;">
-                                    <i data-lucide="key-round" style="width: 14px; height: 14px; vertical-align: -2px;"></i>
+                                <button onclick="openCandidateResetPassModal(${emp.id}, '${emp.name.replace(/'/g, "\\'")}', '${emp.email.replace(/'/g, "\\'")}')" class="btn btn-secondary btn-sm" title="Reset Candidate Password" style="color: #b45309; border-color: #fde68a; background: #fffbeb;">
+                                    <i data-lucide="key-round" style="width: 13px; height: 13px;"></i>
                                 </button>
-                                <button onclick="openAdminMarkForEmployee(${emp.id}, '${emp.name.replace(/'/g, "\\'")}')" class="btn btn-secondary btn-sm" title="Punch Attendance (Anytime)" style="color: #059669; border-color: #a7f3d0; padding: 0.35rem 0.5rem;">
-                                    <i data-lucide="check-circle-2" style="width: 14px; height: 14px; vertical-align: -2px;"></i>
+                                <button onclick="openAdminMarkForEmployee(${emp.id}, '${emp.name.replace(/'/g, "\\'")}')" class="btn btn-secondary btn-sm" title="Punch Attendance" style="color: #059669; border-color: #a7f3d0;">
+                                    <i data-lucide="check-circle-2" style="width: 13px; height: 13px;"></i>
                                 </button>
-                                <button onclick="openEditEmployeeModal(${JSON.stringify(emp).replace(/"/g, '&quot;')})" class="btn btn-secondary btn-sm" title="Edit Employee" style="padding: 0.35rem 0.5rem;">
-                                    <i data-lucide="edit" style="width: 14px; height: 14px; vertical-align: -2px;"></i>
+                                <button onclick="openEditEmployeeModal(${JSON.stringify(emp).replace(/"/g, '&quot;')})" class="btn btn-secondary btn-sm" title="Edit Employee">
+                                    <i data-lucide="edit" style="width: 13px; height: 13px;"></i>
                                 </button>
-                                <button onclick="deleteEmployee(${emp.id})" class="btn btn-danger btn-sm" title="Remove" style="padding: 0.35rem 0.5rem;">
-                                    <i data-lucide="trash-2" style="width: 14px; height: 14px; vertical-align: -2px;"></i>
+                                <button onclick="deleteEmployee(${emp.id})" class="btn btn-danger btn-sm" title="Remove">
+                                    <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i>
                                 </button>
                             </div>
                         </td>

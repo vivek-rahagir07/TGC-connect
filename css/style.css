@@ -684,6 +684,7 @@ button.user-nav-item.danger:hover,
 .badge-success { background: var(--success-bg); color: var(--success-text); border: 1px solid var(--success-border); }
 .badge-warning { background: var(--warning-bg); color: var(--warning-text); border: 1px solid var(--warning-border); }
 .badge-danger  { background: var(--danger-bg); color: var(--danger-text); border: 1px solid var(--danger-border); }
+.badge-info    { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
 .badge-secondary { background: #f1f5f9; color: var(--text-muted); border: 1px solid #e2e8f0; }
 
 /* Radar Ping Indicator */
@@ -760,6 +761,151 @@ button.user-nav-item.danger:hover,
 
 .custom-table tbody tr:last-child td {
   border-bottom: none;
+}
+
+/* Single-Frame Table Fit (No Horizontal Scroll) */
+.table-fit-frame {
+  width: 100%;
+  overflow-x: hidden !important;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: #ffffff;
+}
+
+@media (max-width: 900px) {
+  .table-fit-frame {
+    overflow-x: auto !important;
+  }
+}
+
+.emp-table-fit {
+  width: 100% !important;
+  min-width: 0 !important;
+  table-layout: fixed !important;
+  border-collapse: collapse;
+}
+
+.emp-table-fit th {
+  padding: 0.65rem 0.5rem !important;
+  font-size: 0.72rem !important;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+  background: #f8fafc;
+  color: #64748b;
+  border-bottom: 1px solid var(--border-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.emp-table-fit td {
+  padding: 0.55rem 0.5rem !important;
+  vertical-align: middle;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.8rem;
+  overflow: hidden;
+}
+
+.emp-table-fit .emp-candidate-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.emp-table-fit .emp-avatar {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.emp-table-fit .emp-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.emp-table-fit .emp-meta-truncate {
+  min-width: 0;
+  overflow: hidden;
+  flex: 1;
+}
+
+.emp-table-fit .emp-name {
+  font-weight: 700;
+  color: var(--text-main);
+  font-size: 0.82rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+
+.emp-table-fit .emp-subtext {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+
+.emp-table-fit .emp-dept-title {
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.emp-table-fit .quota-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 4px;
+  font-size: 0.68rem;
+  line-height: 1.2;
+}
+
+.emp-table-fit .quota-chip {
+  background: #f1f5f9;
+  padding: 1px 4px;
+  border-radius: 3px;
+  white-space: nowrap;
+  color: #334155;
+  font-size: 0.68rem;
+}
+
+.emp-table-fit .quota-chip.co {
+  background: #faf5ff;
+  color: #7e22ce;
+  font-weight: 700;
+}
+
+.emp-table-fit .emp-actions {
+  display: inline-flex;
+  gap: 0.2rem;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.emp-table-fit .emp-actions .btn {
+  padding: 0.28rem 0.38rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
 }
 
 /* Form Controls - Crisp & Modern */
