@@ -300,15 +300,26 @@ INSERT INTO `qr_codes` (`token`, `title`, `is_active`)
 VALUES ('TGC-OFFICE-MAIN-HQ', 'TGC Corporate HQ Reception QR', 1)
 ON DUPLICATE KEY UPDATE `token` = `token`;
 
--- Standard Yearly Holidays
+-- Official Company & Academic Calendar Holidays (2026)
 INSERT INTO `holidays` (`title`, `holiday_date`, `type`, `description`) VALUES
-('New Year Holiday', '2026-01-01', 'national', 'Global celebration'),
-('Republic Day', '2026-01-26', 'national', 'National Holiday'),
-('Independence Day', '2026-08-15', 'national', 'National Holiday'),
-('TGC Annual Foundation Day', '2026-10-12', 'company', 'Company Foundation Day'),
-('Diwali Festival', '2026-11-01', 'festival', 'Festival of Lights'),
-('Christmas Day', '2026-12-25', 'festival', 'Christmas holiday')
-ON DUPLICATE KEY UPDATE `holiday_date` = `holiday_date`;
+('New Year', '2026-01-01', 'national', 'Official Holiday (Thursday)'),
+('Republic Day', '2026-01-26', 'national', 'National Holiday (Monday)'),
+('Holi / Dhulivandan', '2026-03-03', 'festival', 'Festival Holiday (Tuesday)'),
+('Id-ul-Fitr (Ramzan Id)', '2026-03-21', 'festival', 'Festival Holiday (Saturday)'),
+('Good Friday', '2026-04-03', 'national', 'Official Holiday (Friday)'),
+('Id-ul-Zuha (Bakri-id)', '2026-05-27', 'festival', 'Festival Holiday (Wednesday)'),
+('Muharram', '2026-06-26', 'festival', 'Festival Holiday (Friday)'),
+('Independence Day', '2026-08-15', 'national', 'National Holiday (Saturday)'),
+('Raksha Bandhan (RH)', '2026-08-28', 'festival', 'Restricted Holiday (Friday)'),
+('Mahatma Gandhi\'s Birthday', '2026-10-02', 'national', 'National Holiday (Friday)'),
+('Dussehra (Vijayadashami)', '2026-10-20', 'festival', 'Festival Holiday (Tuesday)'),
+('Dhantrayodashi (RH)', '2026-11-06', 'festival', 'Restricted Holiday (Friday)'),
+('Diwali (Deepavali)', '2026-11-08', 'festival', 'Festival Holiday (Sunday)'),
+('Govardhan Puja(RH)', '2026-11-10', 'festival', 'Restricted Holiday (Tuesday)'),
+('Bhaidooj/ Balipratipada(RH)', '2026-11-11', 'festival', 'Restricted Holiday (Wednesday)'),
+('Guru Nanak\'s Birthday', '2026-11-24', 'festival', 'Festival Holiday (Tuesday)'),
+('Christmas Day', '2026-12-25', 'festival', 'Official Holiday (Friday)')
+ON DUPLICATE KEY UPDATE `title` = VALUES(`title`), `type` = VALUES(`type`), `description` = VALUES(`description`);
 
 -- Office Inventory Items (Requested: staplers, tapes, charts, white sheets, scales, etc.)
 INSERT INTO `inventories` (`id`, `name`, `category`, `unit`, `total_quantity`, `available_quantity`, `min_stock_alert`, `location`, `description`) VALUES

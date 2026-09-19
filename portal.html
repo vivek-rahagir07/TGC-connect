@@ -7,7 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
-    <link rel="stylesheet" href="css/style.css?v=2.2">
+    <link rel="stylesheet" href="css/style.css?v=3.0">
 </head>
 <body>
     <nav class="navbar">
@@ -52,6 +52,9 @@
                     </div>
 
                     <div style="display: flex; gap: 0.65rem; align-items: center;">
+                        <button type="button" onclick="switchTab('calendar')" class="btn btn-secondary btn-sm" style="background: rgba(255,255,255,0.18); color: #fff; border-color: rgba(255,255,255,0.3); font-weight: 700;">
+                            <i data-lucide="calendar" style="width: 15px;"></i> Academic Calendar
+                        </button>
                         <button type="button" onclick="openProfileEditModal()" class="btn btn-secondary btn-sm" style="background: rgba(255,255,255,0.15); color: #fff; border-color: rgba(255,255,255,0.25);">
                             <i data-lucide="edit-3" style="width: 15px;"></i> Request Edit
                         </button>
@@ -76,7 +79,7 @@
                         <span id="todayDateBadge" class="badge badge-primary">Today</span>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; margin-bottom: 1.25rem;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; margin-bottom: 0.85rem;">
                         <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.95rem 1rem; text-align: center;">
                             <div style="font-size: 0.74rem; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 0.25rem;">CHECK-IN TIME</div>
                             <div id="checkInTimeDisplay" style="font-size: 1.35rem; font-weight: 700; color: var(--text-main); font-family: var(--font-mono);">--:--</div>
@@ -87,6 +90,9 @@
                             <div id="checkOutTimeDisplay" style="font-size: 1.35rem; font-weight: 700; color: var(--text-main); font-family: var(--font-mono);">--:--</div>
                         </div>
                     </div>
+
+                    <!-- Daily Attendance Scheduled Slots Tabs Grid -->
+                    <div id="portalTimeSlotsGrid" class="ts-grid" style="margin-bottom: 0.85rem;"></div>
 
                     <div id="portalWindowBanner" style="display: none; padding: 0.65rem 0.85rem; border-radius: var(--radius-sm); margin-bottom: 0.85rem; font-size: 0.82rem; font-weight: 700; text-align: center;">
                         <span id="portalWindowText">-</span>
@@ -192,6 +198,7 @@
                     </div>
                     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                         <button type="button" id="tabAttendanceBtn" onclick="switchTab('attendance')" class="btn btn-primary btn-sm">Attendance Log</button>
+                        <button type="button" id="tabCalendarBtn" onclick="switchTab('calendar')" class="btn btn-secondary btn-sm"><i data-lucide="calendar" style="width: 15px;"></i> Academic & Holiday Calendar</button>
                         <button type="button" id="tabSalaryBtn" onclick="switchTab('salary')" class="btn btn-secondary btn-sm">Salary Slips</button>
                         <button type="button" id="tabAssetsBtn" onclick="switchTab('assets')" class="btn btn-secondary btn-sm">My Issued Assets</button>
                         <button type="button" id="tabRosterBtn" onclick="switchTab('roster')" class="btn btn-secondary btn-sm"><i data-lucide="calendar-clock" style="width: 15px;"></i> Duty Roster & Shifts</button>
@@ -288,6 +295,10 @@
                             </tbody>
                         </table>
                     </div>
+                </div>
+
+                <div id="tabCalendarContent" style="display: none;">
+                    <div id="portalAcademicCalendarContainer"></div>
                 </div>
 
             </div>
@@ -448,6 +459,7 @@
     <div id="toast-container"></div>
 
     <script src="js/app.js?v=2.2"></script>
+    <script src="js/calendar.js?v=3.2"></script>
     <script>
         let currentUserData = null;
 
@@ -524,6 +536,17 @@
             checkAuthNav();
         }
 
+        let portalCalendarInstance = null;
+        function initPortalCalendar() {
+            if (!portalCalendarInstance) {
+                portalCalendarInstance = initAcademicCalendar('portalAcademicCalendarContainer', {
+                    showKpis: true,
+                    showAgenda: true,
+                    showLegend: true
+                });
+            }
+        }
+
         function switchTab(tab) {
             playSound('click');
             document.getElementById('tabAttendanceContent').style.display = (tab === 'attendance') ? 'block' : 'none';
@@ -532,15 +555,23 @@
             if (document.getElementById('tabRosterContent')) {
                 document.getElementById('tabRosterContent').style.display = (tab === 'roster') ? 'block' : 'none';
             }
+            if (document.getElementById('tabCalendarContent')) {
+                document.getElementById('tabCalendarContent').style.display = (tab === 'calendar') ? 'block' : 'none';
+            }
 
             document.getElementById('tabAttendanceBtn').className = (tab === 'attendance') ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+            if (document.getElementById('tabCalendarBtn')) {
+                document.getElementById('tabCalendarBtn').className = (tab === 'calendar') ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+            }
             document.getElementById('tabSalaryBtn').className = (tab === 'salary') ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
             document.getElementById('tabAssetsBtn').className = (tab === 'assets') ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
             if (document.getElementById('tabRosterBtn')) {
                 document.getElementById('tabRosterBtn').className = (tab === 'roster') ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
             }
 
-            if (tab === 'assets') {
+            if (tab === 'calendar') {
+                initPortalCalendar();
+            } else if (tab === 'assets') {
                 loadMyItems();
             } else if (tab === 'roster') {
                 loadMyRoster();
@@ -577,12 +608,53 @@
         }
 
 
+        function formatSlotRange(s) {
+            if (!s) return '';
+            const start = (s.start_label || '').replace(/^0/, '');
+            const end = (s.end_label || '').replace(/^0/, '');
+            const startParts = start.split(' ');
+            const endParts = end.split(' ');
+            if (startParts[1] && endParts[1] && startParts[1] === endParts[1]) {
+                return `${startParts[0]}–${endParts[0]} ${endParts[1]}`;
+            }
+            return `${start}–${end}`;
+        }
+
+        function renderPortalTimeSlots(slots) {
+            const grid = document.getElementById('portalTimeSlotsGrid');
+            if (!grid || !slots || !slots.length) return;
+
+            grid.innerHTML = slots.map(s => {
+                const isCheckout = s.type === 'check_out';
+                let stateClass = 'ts-upcoming';
+                if (s.is_active) stateClass = 'ts-active';
+                else if (s.is_passed) stateClass = 'ts-passed';
+
+                const checkoutClass = isCheckout ? ' ts-checkout' : '';
+                const timeClean = formatSlotRange(s);
+                const activeTag = s.is_active ? '<span class="ts-active-tag">Punch Now</span>' : '';
+                const icon = s.is_active ? '🟢' : (s.is_passed ? '✓' : (isCheckout ? '🌆' : '⏳'));
+
+                return `<div class="ts-tab ${stateClass}${checkoutClass}" style="min-height: 56px; padding: 0.5rem 0.35rem;">
+                    <span class="ts-status-dot"></span>
+                    <span class="ts-label" style="font-size: 0.64rem;">${icon} ${s.slot_name || (isCheckout ? 'Check-Out' : 'Slot')}</span>
+                    <span class="ts-time" style="font-size: 0.78rem;">${timeClean}</span>
+                    ${activeTag}
+                </div>`;
+            }).join('');
+        }
+
         async function loadTodayAttendance() {
             // 1. Fetch Window Status
             try {
                 const winRes = await apiRequest('attendance.php?action=attendance_window_status');
                 const winBanner = document.getElementById('portalWindowBanner');
                 const winText = document.getElementById('portalWindowText');
+
+                if (winRes.ok && winRes.data && winRes.data.slots) {
+                    renderPortalTimeSlots(winRes.data.slots);
+                }
+
                 if (winRes.ok && winBanner && winText) {
                     winBanner.style.display = 'block';
                     if (winRes.data.is_open && winRes.data.window) {
@@ -592,14 +664,14 @@
                         winBanner.style.background = winRes.data.window.type === 'check_out' ? '#eef2ff' : '#ecfdf5';
                         winBanner.style.border = winRes.data.window.type === 'check_out' ? '1px solid #c7d2fe' : '1px solid #a7f3d0';
                         winBanner.style.color = winRes.data.window.type === 'check_out' ? '#3730a3' : '#065f46';
-                        winText.innerHTML = `🟢 <strong>${escapeHtml(winRes.data.window.title || 'Attendance Window Active')}</strong> (Open for ${timeStr})`;
+                        winText.innerHTML = `🟢 <strong>${escapeHtml(winRes.data.window.slot_name || 'Slot')} – ${escapeHtml(winRes.data.window.title || 'Attendance Window Active')}</strong> (Open for ${timeStr})`;
                     } else {
                         winBanner.style.background = '#f1f5f9';
                         winBanner.style.border = '1px solid #cbd5e1';
                         winBanner.style.color = '#475569';
                         const nw = winRes.data.next_window;
                         if (nw) {
-                            winText.innerHTML = `🔒 Attendance Window Closed • Next: <strong>${escapeHtml(nw.title)}</strong> opens at <strong>${escapeHtml(nw.opens_at_label)}</strong>`;
+                            winText.innerHTML = `🔒 Attendance Window Closed • Next: <strong>${escapeHtml(nw.slot_name || 'Slot')} (${escapeHtml(nw.title)})</strong> opens at <strong>${escapeHtml(nw.opens_at_label)}</strong>`;
                         } else {
                             winText.innerHTML = `🔒 Attendance Window Currently Closed`;
                         }

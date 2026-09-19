@@ -53,93 +53,135 @@ function getAutomatedWindowStatus($pdo) {
         ];
     }
 
-    // 2. Define the Recurring Daily Attendance Windows (09:00-09:20, 10:00-10:20, 11:00-11:20, 12:00-12:20, 13:00-13:20, 17:30-17:50)
+    // 2. Define the Recurring Daily Attendance Windows (09:00-09:35, 10:00-10:10, 11:00-11:10, 12:00-12:10, 13:00-13:10, 17:30-17:50)
     $scheduledWindows = [
         [
             'id' => 'auto_checkin_0900',
+            'slot_name' => 'Slot 1',
             'type' => 'check_in',
-            'title' => 'Morning Attendance Window (09:00 AM - 09:20 AM)',
-            'subtitle' => 'Official shift check-in window is active.',
+            'title' => 'Shift Check-In (09:00 AM - 09:35 AM)',
+            'subtitle' => 'Primary morning attendance check-in slot is live.',
             'start_time' => '09:00:00',
-            'end_time' => '09:20:00',
+            'end_time' => '09:35:00',
             'start_label' => '09:00 AM',
-            'end_label' => '09:20 AM',
+            'end_label' => '09:35 AM',
+            'duration_minutes' => 35,
         ],
         [
             'id' => 'auto_checkin_1000',
+            'slot_name' => 'Slot 2',
             'type' => 'check_in',
-            'title' => 'Attendance Window (10:00 AM - 10:20 AM)',
-            'subtitle' => 'Late attendance check-in window is active.',
+            'title' => 'Hourly Check-In (10:00 AM - 10:10 AM)',
+            'subtitle' => '10 AM hourly attendance check-in slot is live.',
             'start_time' => '10:00:00',
-            'end_time' => '10:20:00',
+            'end_time' => '10:10:00',
             'start_label' => '10:00 AM',
-            'end_label' => '10:20 AM',
+            'end_label' => '10:10 AM',
+            'duration_minutes' => 10,
         ],
         [
             'id' => 'auto_checkin_1100',
+            'slot_name' => 'Slot 3',
             'type' => 'check_in',
-            'title' => 'Attendance Window (11:00 AM - 11:20 AM)',
-            'subtitle' => 'Late attendance check-in window is active.',
+            'title' => 'Hourly Check-In (11:00 AM - 11:10 AM)',
+            'subtitle' => '11 AM hourly attendance check-in slot is live.',
             'start_time' => '11:00:00',
-            'end_time' => '11:20:00',
+            'end_time' => '11:10:00',
             'start_label' => '11:00 AM',
-            'end_label' => '11:20 AM',
+            'end_label' => '11:10 AM',
+            'duration_minutes' => 10,
         ],
         [
             'id' => 'auto_checkin_1200',
+            'slot_name' => 'Slot 4',
             'type' => 'check_in',
-            'title' => 'Midday Attendance Window (12:00 PM - 12:20 PM)',
-            'subtitle' => 'Midday attendance check-in window is active.',
+            'title' => 'Midday Check-In (12:00 PM - 12:10 PM)',
+            'subtitle' => '12 PM midday attendance check-in slot is live.',
             'start_time' => '12:00:00',
-            'end_time' => '12:20:00',
+            'end_time' => '12:10:00',
             'start_label' => '12:00 PM',
-            'end_label' => '12:20 PM',
+            'end_label' => '12:10 PM',
+            'duration_minutes' => 10,
         ],
         [
             'id' => 'auto_checkin_1300',
+            'slot_name' => 'Slot 5',
             'type' => 'check_in',
-            'title' => 'Afternoon Attendance Window (01:00 PM - 01:20 PM)',
-            'subtitle' => 'Afternoon attendance check-in window is active.',
+            'title' => 'Afternoon Check-In (01:00 PM - 01:10 PM)',
+            'subtitle' => '1 PM afternoon attendance check-in slot is live.',
             'start_time' => '13:00:00',
-            'end_time' => '13:20:00',
+            'end_time' => '13:10:00',
             'start_label' => '01:00 PM',
-            'end_label' => '01:20 PM',
+            'end_label' => '01:10 PM',
+            'duration_minutes' => 10,
         ],
         [
             'id' => 'auto_checkout_1730',
+            'slot_name' => 'Check-Out',
             'type' => 'check_out',
-            'title' => 'Evening Check-Out Window (05:30 PM - 05:50 PM)',
-            'subtitle' => 'Official shift check-out window is active.',
+            'title' => 'Evening Check-Out (05:30 PM - 05:50 PM)',
+            'subtitle' => 'Official shift departure check-out slot is live.',
             'start_time' => '17:30:00',
             'end_time' => '17:50:00',
             'start_label' => '05:30 PM',
             'end_label' => '05:50 PM',
+            'duration_minutes' => 20,
         ],
     ];
 
-    // 3. Check if current time falls within any scheduled window
+    // 3. Prepare slots summary with status for UI tabs & check if current time falls within any scheduled window
+    $slotsList = [];
+    $activeSlot = null;
     foreach ($scheduledWindows as $w) {
         $startTime = strtotime($today . ' ' . $w['start_time']);
         $endTime   = strtotime($today . ' ' . $w['end_time']);
+        $isActive = ($now >= $startTime && $now < $endTime);
+        $isPassed = ($now >= $endTime);
+        $isUpcoming = ($now < $startTime);
 
-        if ($now >= $startTime && $now < $endTime) {
-            $secondsRemaining = $endTime - $now;
-            return [
-                'is_open' => true,
-                'is_automated' => true,
-                'window' => [
-                    'id' => $w['id'],
-                    'type' => $w['type'],
-                    'title' => $w['title'],
-                    'subtitle' => $w['subtitle'],
-                    'opened_at' => date('Y-m-d H:i:s', $startTime),
-                    'expires_at' => date('Y-m-d H:i:s', $endTime),
-                    'duration_minutes' => 20,
-                    'seconds_remaining' => $secondsRemaining,
-                ],
-                'next_window' => null
-            ];
+        $sData = [
+            'id' => $w['id'],
+            'slot_name' => $w['slot_name'],
+            'type' => $w['type'],
+            'title' => $w['title'],
+            'subtitle' => $w['subtitle'],
+            'start_time' => $w['start_time'],
+            'end_time' => $w['end_time'],
+            'start_label' => $w['start_label'],
+            'end_label' => $w['end_label'],
+            'time_range' => $w['start_label'] . ' – ' . $w['end_label'],
+            'duration_minutes' => $w['duration_minutes'],
+            'is_active' => $isActive,
+            'is_passed' => $isPassed,
+            'is_upcoming' => $isUpcoming,
+            'seconds_remaining' => $isActive ? max(0, $endTime - $now) : 0,
+            'seconds_until_open' => $isUpcoming ? max(0, $startTime - $now) : 0,
+        ];
+
+        if ($isActive && !$activeSlot) {
+            $activeSlot = $sData;
         }
+        $slotsList[] = $sData;
+    }
+
+    if ($activeSlot) {
+        return [
+            'is_open' => true,
+            'is_automated' => true,
+            'window' => [
+                'id' => $activeSlot['id'],
+                'slot_name' => $activeSlot['slot_name'],
+                'type' => $activeSlot['type'],
+                'title' => $activeSlot['title'],
+                'subtitle' => $activeSlot['subtitle'],
+                'opened_at' => date('Y-m-d H:i:s', strtotime($today . ' ' . $activeSlot['start_time'])),
+                'expires_at' => date('Y-m-d H:i:s', strtotime($today . ' ' . $activeSlot['end_time'])),
+                'duration_minutes' => $activeSlot['duration_minutes'],
+                'seconds_remaining' => $activeSlot['seconds_remaining'],
+            ],
+            'slots' => $slotsList,
+            'next_window' => null
+        ];
     }
 
     // 4. If currently closed, find the next upcoming scheduled window for today
@@ -148,6 +190,7 @@ function getAutomatedWindowStatus($pdo) {
         $startTime = strtotime($today . ' ' . $w['start_time']);
         if ($now < $startTime) {
             $nextWindow = [
+                'slot_name' => $w['slot_name'],
                 'type' => $w['type'],
                 'title' => $w['title'],
                 'opens_at' => date('Y-m-d H:i:s', $startTime),
@@ -162,6 +205,7 @@ function getAutomatedWindowStatus($pdo) {
     if (!$nextWindow) {
         $tomorrowFirst = strtotime('+1 day', strtotime($today . ' ' . $scheduledWindows[0]['start_time']));
         $nextWindow = [
+            'slot_name' => $scheduledWindows[0]['slot_name'],
             'type' => $scheduledWindows[0]['type'],
             'title' => $scheduledWindows[0]['title'],
             'opens_at' => date('Y-m-d H:i:s', $tomorrowFirst),
@@ -175,6 +219,7 @@ function getAutomatedWindowStatus($pdo) {
         'is_automated' => true,
         'message' => "Attendance window is currently closed. Next window ({$nextWindow['title']}) opens at {$nextWindow['opens_at_label']}.",
         'window' => null,
+        'slots' => $slotsList,
         'next_window' => $nextWindow
     ];
 }

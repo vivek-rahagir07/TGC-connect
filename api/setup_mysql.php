@@ -95,11 +95,31 @@ try {
 
     logMsg($report, "Executed full schema.sql successfully.", $isCli);
 
-    // Verify created tables
-    $stmt = $pdo->query("SHOW TABLES");
-    $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
-    $report['tables'] = $tables;
-    logMsg($report, "Verified " . count($tables) . " tables: " . implode(', ', $tables), $isCli);
+    // Seed Official Company Holidays (2026)
+    $officialHolidays = [
+        ['New Year', '2026-01-01', 'national', 'Official Holiday (Thursday)'],
+        ['Republic Day', '2026-01-26', 'national', 'National Holiday (Monday)'],
+        ['Holi / Dhulivandan', '2026-03-03', 'festival', 'Festival Holiday (Tuesday)'],
+        ['Id-ul-Fitr (Ramzan Id)', '2026-03-21', 'festival', 'Festival Holiday (Saturday)'],
+        ['Good Friday', '2026-04-03', 'national', 'Official Holiday (Friday)'],
+        ['Id-ul-Zuha (Bakri-id)', '2026-05-27', 'festival', 'Festival Holiday (Wednesday)'],
+        ['Muharram', '2026-06-26', 'festival', 'Festival Holiday (Friday)'],
+        ['Independence Day', '2026-08-15', 'national', 'National Holiday (Saturday)'],
+        ['Raksha Bandhan (RH)', '2026-08-28', 'festival', 'Restricted Holiday (Friday)'],
+        ['Mahatma Gandhi\'s Birthday', '2026-10-02', 'national', 'National Holiday (Friday)'],
+        ['Dussehra (Vijayadashami)', '2026-10-20', 'festival', 'Festival Holiday (Tuesday)'],
+        ['Dhantrayodashi (RH)', '2026-11-06', 'festival', 'Restricted Holiday (Friday)'],
+        ['Diwali (Deepavali)', '2026-11-08', 'festival', 'Festival Holiday (Sunday)'],
+        ['Govardhan Puja(RH)', '2026-11-10', 'festival', 'Restricted Holiday (Tuesday)'],
+        ['Bhaidooj/ Balipratipada(RH)', '2026-11-11', 'festival', 'Restricted Holiday (Wednesday)'],
+        ['Guru Nanak\'s Birthday', '2026-11-24', 'festival', 'Festival Holiday (Tuesday)'],
+        ['Christmas Day', '2026-12-25', 'festival', 'Official Holiday (Friday)']
+    ];
+    $hStmt = $pdo->prepare("INSERT INTO holidays (title, holiday_date, type, description) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE title = VALUES(title), type = VALUES(type), description = VALUES(description)");
+    foreach ($officialHolidays as $h) {
+        $hStmt->execute($h);
+    }
+    logMsg($report, "Seeded " . count($officialHolidays) . " official company holidays for 2026.", $isCli);
 
     $report['success'] = true;
     $report['message'] = "MySQL database `{$dbName}` initialized and ready for enterprise usage!";

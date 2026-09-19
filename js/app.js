@@ -562,7 +562,10 @@ function openGlobalProfileModal() {
           </div>
         ` : ''}
       </div>
-      <div class="modal-footer" style="padding: 0.85rem 1.25rem; background: #fafafa; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end;">
+      <div class="modal-footer" style="padding: 0.85rem 1.25rem; background: #fafafa; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+        <button type="button" class="btn btn-primary btn-sm" onclick="closeGlobalModal('globalProfileModal'); if (window.switchTab) { switchTab('calendar'); } else { window.location.href = 'portal.html'; }">
+          <i data-lucide="calendar" style="width: 14px; margin-right: 4px;"></i> Academic Calendar
+        </button>
         <button type="button" class="btn btn-secondary btn-sm" onclick="closeGlobalModal('globalProfileModal')">Close</button>
       </div>
     </div>

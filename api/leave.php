@@ -4,7 +4,7 @@ require_once __DIR__ . '/db.php';
 $action = $_GET['action'] ?? ($_POST['action'] ?? '');
 $input = getJsonInput();
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($action)) {
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && empty($action)) {
     $action = $input['action'] ?? '';
 }
 
@@ -355,6 +355,30 @@ switch ($action) {
         logAdminAction($pdo, $user['id'], 'add_holiday', null, "Added company holiday '{$title}' on {$date}.");
 
         sendResponse(true, ['message' => 'Holiday added successfully.']);
+        break;
+
+    case 'update_holiday':
+        $user = getCurrentUser($pdo);
+        if (!$user || $user['role'] !== 'admin') {
+            sendResponse(false, ['message' => 'Unauthorized'], 403);
+        }
+
+        $id = intval($input['id'] ?? 0);
+        $title = trim($input['title'] ?? '');
+        $date = trim($input['holiday_date'] ?? '');
+        $type = trim($input['type'] ?? 'company');
+        $desc = trim($input['description'] ?? '');
+
+        if (!$id || !$title || !$date) {
+            sendResponse(false, ['message' => 'Valid ID, title and date are required.'], 400);
+        }
+
+        $stmt = $pdo->prepare("UPDATE holidays SET title = ?, holiday_date = ?, type = ?, description = ? WHERE id = ?");
+        $stmt->execute([$title, $date, $type, $desc, $id]);
+
+        logAdminAction($pdo, $user['id'], 'update_holiday', null, "Updated company holiday #{$id} '{$title}' on {$date}.");
+
+        sendResponse(true, ['message' => 'Holiday updated successfully.']);
         break;
 
     case 'delete_holiday':

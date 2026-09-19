@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
-    <link rel="stylesheet" href="css/style.css?v=2.2">
+    <link rel="stylesheet" href="css/style.css?v=3.0">
 </head>
 <body>
     <nav class="navbar">
@@ -530,7 +530,21 @@
                         </button>
                     </div>
                 </div>
-                <div class="table-responsive">
+
+                <!-- Interactive Month-wise Academic Calendar -->
+                <div id="adminAcademicCalendarContainer" style="margin-bottom: 1.5rem;"></div>
+
+                <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-main); margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                        <i data-lucide="list" style="width: 16px; color: var(--primary);"></i> Holiday Records & Management Table
+                    </div>
+                    <div style="display: inline-flex; background: #f1f5f9; padding: 2px; border-radius: 8px; gap: 2px;">
+                        <button type="button" id="btnHolidaysViewTable" onclick="switchHolidaysRecordView('table')" class="btn btn-secondary btn-sm" style="padding: 3px 10px; font-size: 0.75rem; font-weight: 700; border: none; background: #fff; color: #0f172a; box-shadow: 0 1px 2px rgba(0,0,0,0.08);">Table View</button>
+                        <button type="button" id="btnHolidaysViewCards" onclick="switchHolidaysRecordView('cards')" class="btn btn-secondary btn-sm" style="padding: 3px 10px; font-size: 0.75rem; font-weight: 700; border: none; background: transparent; color: #64748b;">2-in-1 Cards</button>
+                    </div>
+                </div>
+
+                <div id="holidaysTableView" class="table-responsive">
                     <table class="custom-table">
                         <thead>
                             <tr>
@@ -545,6 +559,10 @@
                             <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Loading holidays...</td></tr>
                         </tbody>
                     </table>
+                </div>
+
+                <div id="holidaysCardsView" style="display: none; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; margin-top: 0.5rem;">
+                    <!-- Rendered dynamically via JS -->
                 </div>
             </div>
 
@@ -848,7 +866,7 @@
                         <i data-lucide="calendar-clock" style="width: 16px;"></i> Automated Daily Attendance Schedule
                     </div>
                     <div style="color: #1e3a8a; line-height: 1.45; font-size: 0.8rem;">
-                        <div>🌅 <strong>Check-In Windows:</strong> 09:00–09:20, 10:00–10:20, 11:00–11:20, 12:00–12:20, 01:00–01:20 PM (20 mins loop)</div>
+                        <div>🌅 <strong>Check-In Slots:</strong> 09:00–09:35 (Slot 1), then 10:00–10:10, 11:00–11:10, 12:00–12:10, 01:00–01:10 PM (Slots 2–5)</div>
                         <div>🌆 <strong>Evening Check-Out:</strong> 05:30 PM – 05:50 PM (20 mins daily)</div>
                     </div>
                     <div style="margin-top: 0.65rem; padding-top: 0.65rem; border-top: 1px dashed #bfdbfe; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
@@ -1725,6 +1743,7 @@
     <div id="toast-container"></div>
 
     <script src="js/app.js?v=2.2"></script>
+    <script src="js/calendar.js?v=3.2"></script>
     <script>
         let attendanceChartInstance = null;
         let leafletMap = null;
@@ -1808,6 +1827,7 @@
             });
             if (tab === 'inventory') loadInventoryData();
             if (tab === 'roster') loadAdminRoster();
+            if (tab === 'holidays') initAdminAcademicCalendar();
             if (tab === 'departments') {
                 loadAdminDepartments();
                 loadAdminDesignations();
@@ -3342,11 +3362,107 @@
         }
 
         // Holidays
+        let adminCalendarInstance = null;
+        function initAdminAcademicCalendar() {
+            if (!adminCalendarInstance) {
+                adminCalendarInstance = initAcademicCalendar('adminAcademicCalendarContainer', {
+                    showKpis: true,
+                    showAgenda: true,
+                    showLegend: true,
+                    editable: true
+                });
+            } else {
+                adminCalendarInstance.fetchHolidays(adminCalendarInstance.currentYear).then(() => {
+                    adminCalendarInstance.render();
+                });
+            }
+        }
+
+        let currentHolidaysRecordView = 'table';
+        function switchHolidaysRecordView(mode) {
+            currentHolidaysRecordView = mode;
+            const tableWrap = document.getElementById('holidaysTableView');
+            const cardsWrap = document.getElementById('holidaysCardsView');
+            const btnTable = document.getElementById('btnHolidaysViewTable');
+            const btnCards = document.getElementById('btnHolidaysViewCards');
+
+            if (mode === 'cards') {
+                if (tableWrap) tableWrap.style.display = 'none';
+                if (cardsWrap) cardsWrap.style.display = 'grid';
+                if (btnCards) {
+                    btnCards.style.background = '#fff';
+                    btnCards.style.color = '#0f172a';
+                    btnCards.style.boxShadow = '0 1px 2px rgba(0,0,0,0.08)';
+                }
+                if (btnTable) {
+                    btnTable.style.background = 'transparent';
+                    btnTable.style.color = '#64748b';
+                    btnTable.style.boxShadow = 'none';
+                }
+            } else {
+                if (tableWrap) tableWrap.style.display = 'block';
+                if (cardsWrap) cardsWrap.style.display = 'none';
+                if (btnTable) {
+                    btnTable.style.background = '#fff';
+                    btnTable.style.color = '#0f172a';
+                    btnTable.style.boxShadow = '0 1px 2px rgba(0,0,0,0.08)';
+                }
+                if (btnCards) {
+                    btnCards.style.background = 'transparent';
+                    btnCards.style.color = '#64748b';
+                    btnCards.style.boxShadow = 'none';
+                }
+            }
+        }
+
+        function renderAdminHolidaysCards(holidays) {
+            const container = document.getElementById('holidaysCardsView');
+            if (!container) return;
+            if (!holidays || holidays.length === 0) {
+                container.innerHTML = '<div style="grid-column: span 2; text-align: center; color: var(--text-muted); padding: 1.5rem;">No holidays added yet.</div>';
+                return;
+            }
+            container.innerHTML = holidays.map(h => {
+                const parts = h.holiday_date.split('-');
+                const dayNum = parts[2] || '01';
+                const monthNum = parts[1] || '01';
+                return `
+                    <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.65rem 0.85rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+                        <div style="width: 42px; min-width: 42px; height: 42px; border-radius: 8px; background: #fff1f2; border: 1.5px solid #fecdd3; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #e11d48; font-family: var(--font-mono); flex-shrink: 0;">
+                            <span style="font-size: 1.05rem; font-weight: 800; line-height: 1;">${dayNum}</span>
+                            <span style="font-size: 0.55rem; font-weight: 800; text-transform: uppercase;">M${monthNum}</span>
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.35rem;">
+                                <strong style="color: #0f172a; font-size: 0.88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${h.title}">${h.title}</strong>
+                                <span class="badge badge-secondary" style="font-size: 0.68rem; padding: 1px 6px;">${h.type}</span>
+                            </div>
+                            <div style="font-size: 0.74rem; color: #64748b; margin-top: 0.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                <span style="font-family: var(--font-mono); font-weight: 600;">${h.holiday_date}</span>
+                                ${h.description ? ` &bull; <span title="${h.description}">${h.description}</span>` : ''}
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 0.35rem; flex-shrink: 0;">
+                            <button onclick="window.__academicCalendarInstance ? window.__academicCalendarInstance.openEditModal(${h.id}) : openEditHolidayModal(${h.id})" class="btn btn-secondary btn-sm" style="padding: 4px 7px; font-size: 0.75rem;" title="Edit">
+                                <i data-lucide="edit-2" style="width: 13px;"></i>
+                            </button>
+                            <button onclick="deleteHoliday(${h.id})" class="btn btn-danger btn-sm" style="padding: 4px 7px; font-size: 0.75rem;" title="Delete">
+                                <i data-lucide="trash-2" style="width: 13px;"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
+
         async function loadAdminHolidays() {
+            initAdminAcademicCalendar();
             const res = await apiRequest('leave.php?action=holidays');
             const tbody = document.getElementById('adminHolidaysTableBody');
             if (res.ok && res.data.success) {
                 const holidays = res.data.holidays;
+                renderAdminHolidaysCards(holidays);
                 if (holidays.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No holidays added yet.</td></tr>';
                     return;
@@ -3358,9 +3474,47 @@
                         <td><span class="badge badge-secondary">${h.type}</span></td>
                         <td style="color: var(--text-muted); font-size: 0.88rem;">${h.description || '-'}</td>
                         <td>
-                            <button onclick="deleteHoliday(${h.id})" class="btn btn-danger btn-sm" title="Delete">
-                                <i data-lucide="trash-2" style="width: 14px;"></i>
-                            </button>
+                            <div style="display: flex; gap: 0.35rem;">
+                                <button onclick="window.__academicCalendarInstance ? window.__academicCalendarInstance.openEditModal(${h.id}) : openEditHolidayModal(${h.id})" class="btn btn-secondary btn-sm" title="Edit">
+                                    <i data-lucide="edit-2" style="width: 13px;"></i>
+                                </button>
+                                <button onclick="deleteHoliday(${h.id})" class="btn btn-danger btn-sm" title="Delete">
+                                    <i data-lucide="trash-2" style="width: 13px;"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+                lucide.createIcons();
+            }
+        }
+
+        // Called by calendar.js after in-calendar add/edit/delete to sync the table below
+        async function loadAdminHolidaysTableOnly() {
+            const res = await apiRequest('leave.php?action=holidays');
+            const tbody = document.getElementById('adminHolidaysTableBody');
+            if (res.ok && res.data.success) {
+                const holidays = res.data.holidays;
+                renderAdminHolidaysCards(holidays);
+                if (holidays.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No holidays added yet.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = holidays.map(h => `
+                    <tr>
+                        <td><strong>${h.title}</strong></td>
+                        <td><strong style="font-family: var(--font-mono);">${h.holiday_date}</strong></td>
+                        <td><span class="badge badge-secondary">${h.type}</span></td>
+                        <td style="color: var(--text-muted); font-size: 0.88rem;">${h.description || '-'}</td>
+                        <td>
+                            <div style="display: flex; gap: 0.35rem;">
+                                <button onclick="window.__academicCalendarInstance ? window.__academicCalendarInstance.openEditModal(${h.id}) : openEditHolidayModal(${h.id})" class="btn btn-secondary btn-sm" title="Edit">
+                                    <i data-lucide="edit-2" style="width: 13px;"></i>
+                                </button>
+                                <button onclick="deleteHoliday(${h.id})" class="btn btn-danger btn-sm" title="Delete">
+                                    <i data-lucide="trash-2" style="width: 13px;"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 `).join('');
@@ -3529,7 +3683,7 @@
                 if (data && data.next_window) {
                     subtext.innerHTML = `Next automatic window: <strong>${data.next_window.title}</strong> opens at <strong>${data.next_window.opens_at_label}</strong>.`;
                 } else {
-                    subtext.textContent = 'Employees can mark attendance during scheduled windows (09:00–09:20, 10:00–10:20, 11:00–11:20, 12:00–12:20, 01:00–01:20 PM, and 05:30–05:50 PM).';
+                    subtext.textContent = 'Employees can mark attendance during scheduled windows (09:00–09:35, 10:00–10:10, 11:00–11:10, 12:00–12:10, 01:00–01:10 PM, and 05:30–05:50 PM).';
                 }
                 subtext.style.color = 'var(--text-muted)';
 

@@ -125,37 +125,6 @@
             gap: 0.4rem;
             margin-top: 0.45rem;
         }
-        .schedule-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.35rem;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            padding: 0.22rem 0.55rem;
-            border-radius: 9999px;
-            font-size: 0.72rem;
-        }
-        .schedule-chip-tag {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.25rem;
-            font-weight: 700;
-            color: #1e40af;
-            background: #eff6ff;
-            padding: 0.12rem 0.45rem;
-            border-radius: 9999px;
-            font-size: 0.67rem;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-        }
-        .schedule-chip-tag.checkout {
-            color: #4338ca;
-            background: #eef2ff;
-        }
-        .schedule-chip-times {
-            font-weight: 600;
-            color: var(--text-main);
-        }
         .schedule-share-btn {
             display: inline-flex;
             align-items: center;
@@ -174,6 +143,9 @@
             color: var(--primary);
             border-color: var(--primary);
             background: #f8fafc;
+        }
+        @media (max-width: 480px) {
+            .ts-grid { grid-template-columns: repeat(2, 1fr); }
         }
         .receipt-card {
             background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
@@ -223,18 +195,43 @@
                         Physical location is automatically resolved via GPS satellite coordinates and verified against your employee profile.
                     </p>
 
-                    <!-- Automated Schedule Badge & Shareable Link Action -->
+                    <!-- Dynamic Time-Slot Tabs Grid -->
+                    <div id="timeSlotsGrid" class="ts-grid">
+                        <!-- Populated dynamically by JS from API slots -->
+                        <div class="ts-tab ts-upcoming">
+                            <span class="ts-status-dot"></span>
+                            <span class="ts-label">Slot 1</span>
+                            <span class="ts-time">9:00–9:35</span>
+                        </div>
+                        <div class="ts-tab ts-upcoming">
+                            <span class="ts-status-dot"></span>
+                            <span class="ts-label">Slot 2</span>
+                            <span class="ts-time">10:00–10:10</span>
+                        </div>
+                        <div class="ts-tab ts-upcoming">
+                            <span class="ts-status-dot"></span>
+                            <span class="ts-label">Slot 3</span>
+                            <span class="ts-time">11:00–11:10</span>
+                        </div>
+                        <div class="ts-tab ts-upcoming">
+                            <span class="ts-status-dot"></span>
+                            <span class="ts-label">Slot 4</span>
+                            <span class="ts-time">12:00–12:10</span>
+                        </div>
+                        <div class="ts-tab ts-upcoming">
+                            <span class="ts-status-dot"></span>
+                            <span class="ts-label">Slot 5</span>
+                            <span class="ts-time">1:00–1:10</span>
+                        </div>
+                        <div class="ts-tab ts-checkout ts-upcoming">
+                            <span class="ts-status-dot"></span>
+                            <span class="ts-label">Check-Out</span>
+                            <span class="ts-time">5:30–5:50</span>
+                        </div>
+                    </div>
                     <div class="schedule-strip">
-                        <div class="schedule-chip">
-                            <span class="schedule-chip-tag"><i data-lucide="sunrise" style="width: 11px; height: 11px;"></i> Check-In</span>
-                            <span class="schedule-chip-times">9–9:20 · 10–10:20 · 11–11:20 · 12–12:20 · 1–1:20 PM</span>
-                        </div>
-                        <div class="schedule-chip">
-                            <span class="schedule-chip-tag checkout"><i data-lucide="sunset" style="width: 11px; height: 11px;"></i> Check-Out</span>
-                            <span class="schedule-chip-times">5:30–5:50 PM</span>
-                        </div>
                         <button type="button" onclick="copyAttendanceLink()" class="schedule-share-btn" title="Copy attendance link">
-                            <i data-lucide="share-2" style="width: 12px; height: 12px;"></i> Share
+                            <i data-lucide="share-2" style="width: 12px; height: 12px;"></i> Share Link
                         </button>
                     </div>
                 </div>
@@ -658,7 +655,44 @@ TGC Connect</div>
             }
         }
 
-        // Check Attendance Window Status (Supports 09:00-09:20 AM and 05:30-05:50 PM)
+        function formatSlotRange(s) {
+            if (!s) return '';
+            const start = (s.start_label || '').replace(/^0/, '');
+            const end = (s.end_label || '').replace(/^0/, '');
+            const startParts = start.split(' ');
+            const endParts = end.split(' ');
+            if (startParts[1] && endParts[1] && startParts[1] === endParts[1]) {
+                return `${startParts[0]}–${endParts[0]} ${endParts[1]}`;
+            }
+            return `${start}–${end}`;
+        }
+
+        // ── Render Time-Slot Tabs from API slots array ──
+        function renderTimeSlotTabs(slots) {
+            const grid = document.getElementById('timeSlotsGrid');
+            if (!grid || !slots || !slots.length) return;
+
+            grid.innerHTML = slots.map(s => {
+                const isCheckout = s.type === 'check_out';
+                let stateClass = 'ts-upcoming';
+                if (s.is_active) stateClass = 'ts-active';
+                else if (s.is_passed) stateClass = 'ts-passed';
+
+                const checkoutClass = isCheckout ? ' ts-checkout' : '';
+                const timeClean = formatSlotRange(s);
+                const activeTag = s.is_active ? '<span class="ts-active-tag">Punching Here</span>' : '';
+                const icon = s.is_active ? '🟢' : (s.is_passed ? '✓' : (isCheckout ? '🌆' : '⏳'));
+
+                return `<div class="ts-tab ${stateClass}${checkoutClass}">
+                    <span class="ts-status-dot"></span>
+                    <span class="ts-label">${icon} ${s.slot_name || (isCheckout ? 'Check-Out' : 'Slot')}</span>
+                    <span class="ts-time">${timeClean}</span>
+                    ${activeTag}
+                </div>`;
+            }).join('');
+        }
+
+        // Check Attendance Window Status (All scheduled hourly slots + checkout)
         async function checkAttendanceWindowStatus() {
             try {
                 const res = await apiRequest('attendance.php?action=attendance_window_status');
@@ -670,6 +704,11 @@ TGC Connect</div>
                 const timerLabel = document.getElementById('windowTimerLabel');
                 const submitBtn = document.getElementById('submitPunchBtn');
                 const checkOutBtn = document.getElementById('alreadyMarkedCheckOutBtn');
+
+                // Render time-slot tabs from API slots data
+                if (res.data && res.data.slots) {
+                    renderTimeSlotTabs(res.data.slots);
+                }
 
                 if (res.ok && res.data.is_open && res.data.window) {
                     isWindowOpen = true;
@@ -695,9 +734,9 @@ TGC Connect</div>
                     } else {
                         banner.className = 'window-banner open';
                         dot.style.background = '#10b981';
-                        title.textContent = '🌅 ' + (res.data.window.title || 'Attendance Check-In Window');
+                        title.textContent = '🟢 ' + (res.data.window.slot_name || 'Slot') + ' – ' + (res.data.window.title || 'Attendance Check-In Window');
                         title.style.color = '#065f46';
-                        subtext.textContent = res.data.window.subtitle || 'Official shift check-in window is live. Tap to punch in.';
+                        subtext.textContent = res.data.window.subtitle || 'You are marking your attendance in this time slot.';
                         subtext.style.color = '#047857';
 
                         if (submitBtn) {
@@ -723,12 +762,12 @@ TGC Connect</div>
 
                     if (res.data && res.data.next_window) {
                         const nw = res.data.next_window;
-                        subtext.textContent = `Next: ${nw.title} starts at ${nw.opens_at_label}.`;
+                        subtext.textContent = `Next: ${nw.slot_name || 'Slot'} — ${nw.title} opens at ${nw.opens_at_label}.`;
                         subtext.style.color = '#78350f';
                         windowRemainingSeconds = nw.seconds_until_open || 0;
                         startWindowCountdown(false);
                     } else {
-                        subtext.textContent = 'Attendance punches open daily in scheduled hourly windows (09:00–09:20, 10:00–10:20, 11:00–11:20, 12:00–12:20, 01:00–01:20 PM, and 05:30–05:50 PM).';
+                        subtext.textContent = 'All attendance slots for today have closed. Next window opens tomorrow at 09:00 AM.';
                         subtext.style.color = '#78350f';
                         timerEl.textContent = 'CLOSED';
                         timerEl.style.color = '#d97706';
