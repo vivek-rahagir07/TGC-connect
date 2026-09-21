@@ -1,10 +1,11 @@
 <?php
 /**
  * TGC Connect - Notification Service
- * Handles automated WhatsApp and Email notifications when attendance is marked.
+ * Handles automated WhatsApp, Email, and SMS notifications when attendance is marked.
  * Targets:
  *   - Mobile/WhatsApp: +91 87430 88888 (Admin / Central Dispatch) & Employee's registered phone
  *   - Email: Tgcconnectglobal@gmail.com & Employee's registered email
+ *   - SMS: +91 87430 88888 (Admin) for every check-in & check-out
  */
 
 /**
@@ -43,8 +44,13 @@ function ensureNotificationTable($pdo) {
  * Attendance of (name) has been marked at (time) at location (location).
  * - Regards,
  * TGC Connect
+ *
+ * @param string $name Employee name
+ * @param string $location Location name
+ * @param string $time Punch time
+ * @param string $punchType 'check_in' or 'check_out'
  */
-function formatAttendanceMessage($name, $location = '', $time = '') {
+function formatAttendanceMessage($name, $location = '', $time = '', $punchType = 'check_in') {
     $cleanName = trim($name ?: 'Employee');
     $cleanLoc = trim($location ?: 'Office Location');
     
@@ -55,7 +61,114 @@ function formatAttendanceMessage($name, $location = '', $time = '') {
 
     $cleanTime = trim($time ?: date('h:i A'));
 
+    if ($punchType === 'check_out') {
+        return "Check-Out of " . $cleanName . " has been marked at " . $cleanTime . " at location " . $cleanLoc . ".\n\n- Regards,\nTGC Connect";
+    }
     return "Attendance of " . $cleanName . " has been marked at " . $cleanTime . " at location " . $cleanLoc . ".\n\n- Regards,\nTGC Connect";
+}
+
+/**
+ * Send SMS notification via Fast2SMS (India) HTTP API
+ * Free tier: ~100 SMS/day for transactional/quick SMS.
+ * If Fast2SMS key not configured, falls back to TextLocal or skips gracefully.
+ *
+ * @param string $toPhone Indian mobile number (10 digits or with +91 prefix)
+ * @param string $message The SMS body text (max ~160 chars for single SMS)
+ * @return array ['ok' => bool, 'error' => string]
+ */
+function sendSmsNotification($toPhone, $message) {
+    global $config;
+    if (!$config) {
+        $config = require __DIR__ . '/config.php';
+    }
+
+    $notifConfig = $config['notifications'] ?? [];
+    $smsApiKey = $notifConfig['sms_api_key'] ?? '';
+    $smsProvider = $notifConfig['sms_provider'] ?? 'fast2sms';
+
+    if (empty($smsApiKey)) {
+        error_log("[TGC Notification] SMS API key not configured. Set 'sms_api_key' in config.php -> notifications.");
+        // Fallback: Use php mail() to send an SMS-style alert email to admin
+        $adminEmail = $notifConfig['admin_email'] ?? 'tgcconnectglobal@gmail.com';
+        $shortMsg = substr($message, 0, 300);
+        @mail($adminEmail, 'TGC SMS Alert', $shortMsg, "From: noreply@tgcconnect.in");
+        return ['ok' => false, 'error' => 'SMS API key not configured; fallback email sent.'];
+    }
+
+    // Clean phone number to 10-digit Indian format
+    $digits = preg_replace('/[^0-9]/', '', (string)$toPhone);
+    if (strlen($digits) > 10) {
+        $digits = substr($digits, -10); // Strip country code
+    }
+    if (strlen($digits) !== 10) {
+        return ['ok' => false, 'error' => "Invalid phone number: {$toPhone}"];
+    }
+
+    // Truncate message to 460 chars (3 SMS parts max)
+    $smsBody = substr(trim($message), 0, 460);
+
+    if ($smsProvider === 'textlocal') {
+        // TextLocal India API
+        $url = 'https://api.textlocal.in/send/';
+        $postData = http_build_query([
+            'apikey' => $smsApiKey,
+            'numbers' => $digits,
+            'message' => $smsBody,
+            'sender' => 'TGCCNT',
+        ]);
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 8);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlErr = curl_error($ch);
+        curl_close($ch);
+    } else {
+        // Fast2SMS Quick SMS API (default)
+        $url = 'https://www.fast2sms.com/dev/bulkV2';
+        $postData = json_encode([
+            'route' => 'q',  // Quick SMS
+            'message' => $smsBody,
+            'language' => 'english',
+            'flash' => 0,
+            'numbers' => $digits,
+        ]);
+
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/json',
+            'authorization: ' . $smsApiKey,
+        ]);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 8);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlErr = curl_error($ch);
+        curl_close($ch);
+    }
+
+    if ($curlErr) {
+        error_log("[TGC Notification] SMS curl error to {$digits}: {$curlErr}");
+        return ['ok' => false, 'error' => "cURL: {$curlErr}"];
+    }
+
+    $decoded = json_decode($response, true);
+    $isOk = ($httpCode >= 200 && $httpCode < 300) && (isset($decoded['return']) ? $decoded['return'] === true : true);
+
+    if (!$isOk) {
+        $errMsg = $decoded['message'] ?? $response;
+        error_log("[TGC Notification] SMS to {$digits} failed (HTTP {$httpCode}): {$errMsg}");
+        return ['ok' => false, 'error' => "HTTP {$httpCode}: {$errMsg}"];
+    }
+
+    error_log("[TGC Notification] SMS sent to {$digits} successfully.");
+    return ['ok' => true, 'error' => ''];
 }
 
 /**
@@ -373,14 +486,16 @@ function dispatchAutomatedWhatsAppGateway($gatewayUrl, $token, $toPhone, $messag
 
 /**
  * Main Attendance Notification Dispatcher
- * Triggered whenever an employee is marked present.
+ * Triggered whenever an employee checks in or checks out.
+ * Sends Email (to admin + employee), WhatsApp, and SMS (to admin) notifications.
  * 
  * @param PDO $pdo
  * @param array $attendance
  * @param array $user
+ * @param string $punchType 'check_in' or 'check_out' — auto-detected if not provided
  * @return array Notification payload with URLs, message, and delivery statuses
  */
-function sendAttendanceNotification($pdo, $attendance, $user) {
+function sendAttendanceNotification($pdo, $attendance, $user, $punchType = '') {
     global $config;
     if (!$config) {
         $config = require __DIR__ . '/config.php';
@@ -391,6 +506,7 @@ function sendAttendanceNotification($pdo, $attendance, $user) {
     $notifConfig = $config['notifications'] ?? [];
     $adminWhatsApp = $notifConfig['admin_whatsapp'] ?? '+91 87430 88888';
     $adminEmail = $notifConfig['admin_email'] ?? 'Tgcconnectglobal@gmail.com';
+    $adminSmsPhone = $notifConfig['admin_sms_phone'] ?? '8743088888';
     $companyName = $notifConfig['company_name'] ?? 'TGCConnect Team';
 
     $empName = $user['name'] ?? 'Employee';
@@ -398,24 +514,32 @@ function sendAttendanceNotification($pdo, $attendance, $user) {
     $empEmail = $user['email'] ?? '';
     $locName = $attendance['location_name'] ?? 'Verified Location';
 
-    // 1. Determine Punch Time
+    // 1. Auto-detect punch type if not provided
+    if (empty($punchType)) {
+        if (!empty($attendance['check_out_time']) && !empty($attendance['check_in_time'])) {
+            // If both times exist, it's likely the most recent action
+            $punchType = 'check_out';
+        } else {
+            $punchType = 'check_in';
+        }
+    }
+
+    // 2. Determine Punch Time based on type
     $punchTime = date('h:i A');
-    if (!empty($attendance['check_out_time']) && !empty($attendance['check_in_time']) && $attendance['check_out_time'] === $attendance['check_in_time']) {
+    if ($punchType === 'check_out' && !empty($attendance['check_out_time'])) {
         $punchTime = date('h:i A', strtotime($attendance['check_out_time']));
     } elseif (!empty($attendance['check_in_time'])) {
         $punchTime = date('h:i A', strtotime($attendance['check_in_time']));
-    } elseif (!empty($attendance['check_out_time'])) {
-        $punchTime = date('h:i A', strtotime($attendance['check_out_time']));
     }
 
-    // 2. Generate the exact required message template
-    $messageText = formatAttendanceMessage($empName, $locName, $punchTime);
+    // 3. Generate the message template (check-in vs check-out)
+    $messageText = formatAttendanceMessage($empName, $locName, $punchTime, $punchType);
 
-    // 2. Build WhatsApp Click-to-Send URLs
+    // 4. Build WhatsApp Click-to-Send URLs
     $adminWhatsAppUrl = buildWhatsAppUrl($adminWhatsApp, $messageText);
     $empWhatsAppUrl   = !empty($empPhone) ? buildWhatsAppUrl($empPhone, $messageText) : '';
 
-    // 3. Automated Server-Side WhatsApp Gateway (if configured)
+    // 5. Automated Server-Side WhatsApp Gateway (if configured)
     $gatewayUrl = $notifConfig['whatsapp_gateway_url'] ?? '';
     $gatewayToken = $notifConfig['whatsapp_gateway_token'] ?? '';
     $gatewayDispatched = false;
@@ -426,7 +550,7 @@ function sendAttendanceNotification($pdo, $attendance, $user) {
         }
     }
 
-    // 4. Send Email Notifications
+    // 6. Send Email Notifications
     $adminEmailSent = false;
     $empEmailSent = false;
     if (!empty($notifConfig['send_email'])) {
@@ -436,23 +560,34 @@ function sendAttendanceNotification($pdo, $attendance, $user) {
         }
     }
 
-    // 5. Log notification events to database
+    // 7. Send SMS to Admin Phone for every check-in / check-out
+    $adminSmsSent = false;
+    $smsResult = sendSmsNotification($adminSmsPhone, $messageText);
+    $adminSmsSent = $smsResult['ok'];
+
+    // 8. Log notification events to database
     try {
         $stmtLog = $pdo->prepare("
             INSERT INTO notification_logs (user_id, recipient_phone, recipient_email, type, channel, message, location_name, status, error_details)
-            VALUES (?, ?, ?, 'attendance_present', 'whatsapp_and_email', ?, ?, 'sent', ?)
+            VALUES (?, ?, ?, ?, 'whatsapp_email_sms', ?, ?, 'sent', ?)
         ");
+        $notifType = ($punchType === 'check_out') ? 'attendance_checkout' : 'attendance_checkin';
         $logDetails = json_encode([
             'admin_phone' => $adminWhatsApp,
             'admin_email' => $adminEmail,
+            'admin_sms_phone' => $adminSmsPhone,
             'gateway_dispatched' => $gatewayDispatched,
             'admin_email_sent' => $adminEmailSent,
             'emp_email_sent' => $empEmailSent,
+            'admin_sms_sent' => $adminSmsSent,
+            'sms_error' => $smsResult['error'] ?? '',
+            'punch_type' => $punchType,
         ]);
         $stmtLog->execute([
             $user['id'] ?? null,
             $adminWhatsApp,
-            $adminEmail,
+            $empEmail ?: $adminEmail,
+            $notifType,
             $messageText,
             $locName,
             $logDetails
@@ -463,6 +598,7 @@ function sendAttendanceNotification($pdo, $attendance, $user) {
 
     return [
         'success'             => true,
+        'punch_type'          => $punchType,
         'message_text'        => $messageText,
         'admin_phone'         => $adminWhatsApp,
         'admin_email'         => $adminEmail,
@@ -470,6 +606,7 @@ function sendAttendanceNotification($pdo, $attendance, $user) {
         'whatsapp_url_emp'    => $empWhatsAppUrl,
         'admin_email_sent'    => $adminEmailSent,
         'emp_email_sent'      => $empEmailSent,
+        'admin_sms_sent'      => $adminSmsSent,
         'gateway_dispatched'  => $gatewayDispatched,
     ];
 }

@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
-    <link rel="stylesheet" href="css/style.css?v=4.0">
+    <link rel="stylesheet" href="css/style.css?v=4.1">
     <style>
         /* Fail-safe Critical Display Rules for mobile bottom nav and command palette */
         .mobile-bottom-nav { display: none !important; }
@@ -1830,7 +1830,7 @@
     <div id="toast-container"></div>
 
     <script src="js/app.js?v=2.5"></script>
-    <script src="js/calendar.js?v=3.2"></script>
+    <script src="js/calendar.js?v=3.5"></script>
     <script>
         let attendanceChartInstance = null;
         let leafletMap = null;
@@ -2015,21 +2015,22 @@
                 if (_autoRefreshRunning) return; // skip if previous cycle still in-flight
                 _autoRefreshRunning = true;
                 try {
-                    // 1. Stats + KPI + Registration alerts
+                    // Only fetch lightweight stats/KPIs and alerts
                     const res = await apiRequest('admin.php?action=stats');
                     if (res.ok && res.data.success) {
                         const s = res.data.stats;
                         const currentPendingReg = s.pending_registrations || 0;
 
-                        // Toast if a new member registered while admin has dashboard open
+                        // Toast and reload approvals hub ONLY if a new registration actually arrived
                         if (previousPendingRegistrations !== null && currentPendingReg > previousPendingRegistrations) {
                             const newCount = currentPendingReg - previousPendingRegistrations;
                             playSound('success');
                             showToast(`🔔 ${newCount} new employee registration application received! Check Approvals Hub.`, 'info');
+                            loadPendingApprovals();
                         }
                         previousPendingRegistrations = currentPendingReg;
 
-                        // Update KPI counters (direct set, no animation on poll)
+                        // Update KPI counters ONLY when values actually change (prevents flickering/repaints)
                         const kpiMap = {
                             statTotalEmployees: s.total_employees,
                             statPresentToday: s.present_today,
@@ -2039,38 +2040,53 @@
                         };
                         for (const [id, val] of Object.entries(kpiMap)) {
                             const el = document.getElementById(id);
-                            if (el) el.textContent = val;
+                            const valStr = String(val ?? 0);
+                            if (el && el.textContent !== valStr) {
+                                el.textContent = valStr;
+                            }
                         }
 
-                        // Nav badge
+                        // Nav badge ONLY when changed
                         const navBadge = document.getElementById('navApprovalsCountBadge');
                         if (navBadge) {
-                            navBadge.textContent = s.total_pending_approvals;
-                            navBadge.style.display = s.total_pending_approvals > 0 ? 'inline-flex' : 'none';
+                            const valStr = String(s.total_pending_approvals || 0);
+                            if (navBadge.textContent !== valStr) {
+                                navBadge.textContent = valStr;
+                            }
+                            const shouldShow = (s.total_pending_approvals > 0);
+                            const isShowing = (navBadge.style.display !== 'none');
+                            if (shouldShow !== isShowing) {
+                                navBadge.style.display = shouldShow ? 'inline-flex' : 'none';
+                            }
                         }
 
-                        // Registration alert bar
+                        // Registration alert bar ONLY when changed
                         const regAlertBar = document.getElementById('pendingRegistrationsAlertBar');
                         const regCountBadge = document.getElementById('pendingAlertCountBadge');
                         const regDesc = document.getElementById('pendingAlertDescription');
-                        if (regAlertBar && currentPendingReg > 0) {
-                            regAlertBar.style.display = 'flex';
-                            if (regCountBadge) regCountBadge.textContent = `${currentPendingReg} Action${currentPendingReg === 1 ? '' : 's'} Required`;
-                            if (regDesc) regDesc.textContent = `${currentPendingReg} candidate registration${currentPendingReg === 1 ? '' : 's'} awaiting Administrator review & approval.`;
-                        } else if (regAlertBar) {
-                            regAlertBar.style.display = 'none';
+                        if (regAlertBar) {
+                            if (currentPendingReg > 0) {
+                                if (regAlertBar.style.display !== 'flex') regAlertBar.style.display = 'flex';
+                                const countText = `${currentPendingReg} Action${currentPendingReg === 1 ? '' : 's'} Required`;
+                                if (regCountBadge && regCountBadge.textContent !== countText) regCountBadge.textContent = countText;
+                                const descText = `${currentPendingReg} candidate registration${currentPendingReg === 1 ? '' : 's'} awaiting Administrator review & approval.`;
+                                if (regDesc && regDesc.textContent !== descText) regDesc.textContent = descText;
+                            } else if (regAlertBar.style.display !== 'none') {
+                                regAlertBar.style.display = 'none';
+                            }
                         }
 
-                        // GPS link & attendance window header
+                        // GPS link alert ONLY when changed
                         const activeGps = res.data.active_gps_link;
                         const gpsAlert = document.getElementById('activeGpsLinkAlert');
                         if (activeGps) {
-                            gpsAlert.style.display = 'flex';
-                            document.getElementById('gpsAlertTitle').textContent = activeGps.title;
-                            document.getElementById('gpsAlertTimer').textContent = `Expires at ${activeGps.expires_at} (${Math.round(activeGps.seconds_remaining / 60)} min remaining)`;
-                            document.getElementById('gpsUrlCopyInput').value = window.location.origin + window.location.pathname.replace('admin.html', '') + activeGps.url;
-                            document.getElementById('openGpsBtn').href = activeGps.url;
-                        } else if (gpsAlert) {
+                            if (gpsAlert && gpsAlert.style.display !== 'flex') gpsAlert.style.display = 'flex';
+                            const titleEl = document.getElementById('gpsAlertTitle');
+                            if (titleEl && titleEl.textContent !== activeGps.title) titleEl.textContent = activeGps.title;
+                            const timerEl = document.getElementById('gpsAlertTimer');
+                            const timerText = `Expires at ${activeGps.expires_at} (${Math.round(activeGps.seconds_remaining / 60)} min remaining)`;
+                            if (timerEl && timerEl.textContent !== timerText) timerEl.textContent = timerText;
+                        } else if (gpsAlert && gpsAlert.style.display !== 'none') {
                             gpsAlert.style.display = 'none';
                         }
 
@@ -2078,21 +2094,7 @@
                             updateAdminWindowHeaderState(res.data.active_attendance_window);
                         }
                     }
-
-                    // 2. Refresh all data tables silently
-                    await Promise.allSettled([
-                        loadPendingApprovals(),
-                        loadEmployees(),
-                        loadAttendanceLogs(),
-                        loadAdminLeaves(),
-                        loadAdminPayroll(),
-                        loadAdminHolidays(),
-                        loadAdminLogs(),
-                        loadAttendanceMap(),
-                        loadInventoryData()
-                    ]);
                 } catch (e) {
-                    // Silently ignore refresh errors to avoid spamming user
                     console.warn('[Auto-Refresh] cycle error:', e);
                 } finally {
                     _autoRefreshRunning = false;
@@ -3793,18 +3795,26 @@ _Log in to the TGC Connect portal to view or print your full itemized breakdown.
         let adminWindowTimerInterval = null;
         let selectedDurationMinutes = 10;
 
+        let _prevWindowHeaderStateKey = '';
         function updateAdminWindowHeaderState(winData) {
             const label = document.getElementById('adminAttendanceWindowHeaderLabel');
             const badge = document.getElementById('adminAttendanceWindowHeaderBadge');
             const btn = document.getElementById('adminAttendanceWindowHeaderBtn');
+            if (!badge) return;
 
-            if (winData && winData.is_open && winData.seconds_remaining > 0) {
+            const isOpen = Boolean(winData && winData.is_open && winData.seconds_remaining > 0);
+            const remainingMins = isOpen ? Math.ceil(winData.seconds_remaining / 60) : 0;
+            const stateKey = `${isOpen}|${remainingMins}`;
+            if (stateKey === _prevWindowHeaderStateKey) return;
+            _prevWindowHeaderStateKey = stateKey;
+
+            if (isOpen) {
                 adminWindowSecondsRemaining = winData.seconds_remaining;
                 badge.className = 'badge badge-sm badge-success';
                 badge.style.background = '#dcfce7';
                 badge.style.color = '#15803d';
                 badge.style.borderColor = '#86efac';
-                badge.textContent = `Open (${Math.ceil(adminWindowSecondsRemaining / 60)}m)`;
+                badge.textContent = `Open (${remainingMins}m)`;
                 if (btn) btn.style.borderColor = '#10b981';
             } else {
                 adminWindowSecondsRemaining = 0;

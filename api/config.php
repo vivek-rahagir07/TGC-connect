@@ -29,6 +29,7 @@ $defaultConfig = [
     'notifications' => [
         'admin_whatsapp'         => '+91 87430 88888',
         'admin_email'            => 'tgcconnectglobal@gmail.com',
+        'admin_sms_phone'        => '8743088888',    // Admin phone for SMS alerts (10-digit Indian)
         'company_name'           => 'TGC Connect',
         'send_whatsapp'          => true,
         'send_email'             => true,
@@ -37,6 +38,9 @@ $defaultConfig = [
         'smtp_port'              => 587,
         'smtp_user'              => 'tgcconnectglobal@gmail.com',
         'smtp_password'          => getenv('SMTP_PASSWORD') ?: '',  // Google App Password — generate at https://myaccount.google.com/apppasswords
+        // SMS Gateway Settings (Fast2SMS / TextLocal)
+        'sms_provider'           => getenv('SMS_PROVIDER') ?: 'fast2sms',    // 'fast2sms' or 'textlocal'
+        'sms_api_key'            => getenv('SMS_API_KEY') ?: '',              // API key from Fast2SMS or TextLocal dashboard
         // Optional webhook or automated gateway integration (UltraMsg / Twilio / Meta / Webhook)
         'whatsapp_provider'      => getenv('WHATSAPP_PROVIDER') ?: 'direct',
         'whatsapp_gateway_url'   => getenv('WHATSAPP_GATEWAY_URL') ?: '',

@@ -657,32 +657,55 @@
         color: #1e40af;
       }
 
-      /* In-Calendar Modal Dialog (For Direct Editing) */
+      /* In-Calendar Modal Dialog (For Direct Editing - Zero Grey Screen & Fully Centered) */
       .cal-modal-backdrop {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(15, 23, 42, 0.65);
-        backdrop-filter: blur(4px);
-        -webkit-backdrop-filter: blur(4px);
-        z-index: 10000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 1rem;
-        animation: fadeIn 0.2s ease-out;
+        position: fixed !important;
+        inset: 0 !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        background: transparent !important;
+        background-color: transparent !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        z-index: 99999 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 1.5rem !important;
+        box-sizing: border-box !important;
+        margin: 0 !important;
+      }
+
+      .cal-modal-backdrop[style*="display: none"] {
+        display: none !important;
       }
 
       .cal-modal-box {
-        background: #ffffff;
-        border-radius: 16px;
-        width: 100%;
-        max-width: 520px;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-        border: 1px solid #e2e8f0;
-        overflow: hidden;
+        background: #ffffff !important;
+        border-radius: 16px !important;
+        width: 100% !important;
+        max-width: 480px !important;
+        box-shadow: 0 25px 60px -10px rgba(15, 23, 42, 0.35), 0 0 0 1px rgba(15, 23, 42, 0.08) !important;
+        border: 1px solid #cbd5e1 !important;
+        overflow: hidden !important;
+        position: relative !important;
+        margin: auto !important;
+        animation: calModalZoomIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      }
+
+      @keyframes calModalZoomIn {
+        from {
+          opacity: 0;
+          transform: scale(0.95) translateY(-8px);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1) translateY(0);
+        }
       }
 
       .cal-modal-header {
@@ -859,6 +882,23 @@
 
       // Populate default holidays cache immediately
       this.populateDefaultHolidays();
+
+      // Attach ESC key dismissal for direct-edit modal
+      if (!window.__calEscapeListenerAttached) {
+        window.__calEscapeListenerAttached = true;
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') {
+            const m = document.getElementById('calEditModal');
+            if (m && m.style.display === 'flex') {
+              m.style.display = 'none';
+            }
+          }
+        });
+      }
+
+      if (this.options.editable) {
+        this.ensureEditModal();
+      }
     }
 
     setAgendaView(mode) {
@@ -1328,65 +1368,13 @@
         html += `</div>`;
       }
 
-      // In-Calendar Direct Edit / Add Modal (for Admin mode)
-      if (this.options.editable) {
-        html += `
-          <div id="calEditModal" class="cal-modal-backdrop" style="display: none;">
-            <div class="cal-modal-box">
-              <div class="cal-modal-header">
-                <h3 id="calModalTitle">Edit Company Holiday</h3>
-                <button type="button" class="cal-modal-close" onclick="window.__academicCalendarInstance.closeEditModal()">&times;</button>
-              </div>
-              <form onsubmit="window.__academicCalendarInstance.saveHoliday(event)">
-                <div class="cal-modal-body">
-                  <input type="hidden" id="calFormHolidayId" value="">
-                  
-                  <div class="cal-form-group">
-                    <label>Holiday Title *</label>
-                    <input type="text" id="calFormTitle" class="cal-form-input" required placeholder="e.g. Diwali (Deepavali) or Annual Event">
-                  </div>
-
-                  <div class="cal-form-row">
-                    <div class="cal-form-group">
-                      <label>Date (YYYY-MM-DD) *</label>
-                      <input type="date" id="calFormDate" class="cal-form-input" required>
-                    </div>
-
-                    <div class="cal-form-group">
-                      <label>Category *</label>
-                      <select id="calFormType" class="cal-form-input">
-                        <option value="national">National Holiday</option>
-                        <option value="festival">Festival Holiday</option>
-                        <option value="company">Company / Academic Event</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div class="cal-form-group">
-                    <label>Description / Details</label>
-                    <input type="text" id="calFormDesc" class="cal-form-input" placeholder="e.g. Restricted Holiday (RH) or Official Holiday">
-                  </div>
-                </div>
-
-                <div class="cal-modal-footer">
-                  <button type="button" id="calBtnDelete" class="cal-btn-danger" style="display: none;" onclick="window.__academicCalendarInstance.deleteCurrentHoliday()">
-                    🗑️ Delete Holiday
-                  </button>
-                  <div style="display: flex; gap: 0.5rem; margin-left: auto;">
-                    <button type="button" class="cal-btn-secondary" onclick="window.__academicCalendarInstance.closeEditModal()">Cancel</button>
-                    <button type="submit" id="calBtnSubmit" class="cal-btn-primary">Save Changes</button>
-                  </div>
-                </div>
-              </form>
-            </div>
-          </div>
-        `;
-      }
-
       html += `</div>`; // Close cal-map-wrapper
 
       this.container.innerHTML = html;
       this.attachEventListeners();
+      if (this.options.editable) {
+        this.ensureEditModal();
+      }
     }
 
     attachEventListeners() {
@@ -1474,9 +1462,79 @@
     }
 
     // Modal Control Methods for Direct Editing
+    ensureEditModal() {
+      if (!this.options.editable) return null;
+      let modal = document.getElementById('calEditModal');
+      if (modal) {
+        if (modal.parentElement !== document.body) {
+          document.body.appendChild(modal);
+        }
+        return modal;
+      }
+
+      modal = document.createElement('div');
+      modal.id = 'calEditModal';
+      modal.className = 'cal-modal-backdrop';
+      modal.style.display = 'none';
+      modal.onclick = (e) => {
+        if (e.target === modal) this.closeEditModal();
+      };
+      modal.innerHTML = `
+        <div class="cal-modal-box">
+          <div class="cal-modal-header">
+            <h3 id="calModalTitle">Edit Company Holiday</h3>
+            <button type="button" class="cal-modal-close" onclick="window.__academicCalendarInstance.closeEditModal()">&times;</button>
+          </div>
+          <form onsubmit="window.__academicCalendarInstance.saveHoliday(event)">
+            <div class="cal-modal-body">
+              <input type="hidden" id="calFormHolidayId" value="">
+              
+              <div class="cal-form-group">
+                <label>Holiday Title *</label>
+                <input type="text" id="calFormTitle" class="cal-form-input" required placeholder="e.g. Diwali (Deepavali) or Annual Event">
+              </div>
+
+              <div class="cal-form-row">
+                <div class="cal-form-group">
+                  <label>Date (YYYY-MM-DD) *</label>
+                  <input type="date" id="calFormDate" class="cal-form-input" required>
+                </div>
+
+                <div class="cal-form-group">
+                  <label>Category *</label>
+                  <select id="calFormType" class="cal-form-input">
+                    <option value="national">National Holiday</option>
+                    <option value="festival">Festival Holiday</option>
+                    <option value="company">Company / Academic Event</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="cal-form-group">
+                <label>Description / Details</label>
+                <input type="text" id="calFormDesc" class="cal-form-input" placeholder="e.g. Restricted Holiday (RH) or Official Holiday">
+              </div>
+            </div>
+
+            <div class="cal-modal-footer">
+              <button type="button" id="calBtnDelete" class="cal-btn-danger" style="display: none;" onclick="window.__academicCalendarInstance.deleteCurrentHoliday()">
+                🗑️ Delete Holiday
+              </button>
+              <div style="display: flex; gap: 0.5rem; margin-left: auto;">
+                <button type="button" class="cal-btn-secondary" onclick="window.__academicCalendarInstance.closeEditModal()">Cancel</button>
+                <button type="submit" id="calBtnSubmit" class="cal-btn-primary">Save Changes</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      return modal;
+    }
+
     openAddModal(dateStr) {
       if (!this.options.editable) return;
-      const modal = document.getElementById('calEditModal');
+      const modal = this.ensureEditModal();
       if (!modal) return;
 
       document.getElementById('calModalTitle').textContent = `Add Holiday on ${dateStr}`;
@@ -1488,11 +1546,15 @@
       document.getElementById('calBtnDelete').style.display = 'none';
       document.getElementById('calBtnSubmit').textContent = 'Add Holiday';
       modal.style.display = 'flex';
+      setTimeout(() => {
+        const inp = document.getElementById('calFormTitle');
+        if (inp) inp.focus();
+      }, 50);
     }
 
     openEditModal(item) {
       if (!this.options.editable) return;
-      const modal = document.getElementById('calEditModal');
+      const modal = this.ensureEditModal();
       if (!modal) return;
 
       let h = item;
@@ -1511,6 +1573,10 @@
       document.getElementById('calBtnDelete').style.display = 'inline-flex';
       document.getElementById('calBtnSubmit').textContent = 'Save Changes';
       modal.style.display = 'flex';
+      setTimeout(() => {
+        const inp = document.getElementById('calFormTitle');
+        if (inp) inp.focus();
+      }, 50);
     }
 
     closeEditModal() {

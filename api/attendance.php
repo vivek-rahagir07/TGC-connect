@@ -572,6 +572,9 @@ switch ($action) {
                 $existing['check_out_time'] = $nowTime;
                 $existing['location_name'] = $locName;
 
+                // Send checkout notification (email + SMS + WhatsApp)
+                $notifResult = sendAttendanceNotification($pdo, $existing, $userRecord, 'check_out');
+
                 sendResponse(true, [
                     'type' => 'check_out',
                     'action_type' => 'check_out',
@@ -583,6 +586,7 @@ switch ($action) {
                     'status' => $existing['status'] ?? 'present',
                     'location_name' => $locName,
                     'attendance' => $existing,
+                    'notification' => $notifResult,
                     'already_marked' => true
                 ]);
             } else {
@@ -647,7 +651,7 @@ switch ($action) {
             $stmtFinal->execute([$attendanceId]);
             $attendanceRecord = $stmtFinal->fetch();
 
-            $notifResult = sendAttendanceNotification($pdo, $attendanceRecord, $userRecord);
+            $notifResult = sendAttendanceNotification($pdo, $attendanceRecord, $userRecord, 'check_in');
 
             sendResponse(true, [
                 'type' => 'check_in',
@@ -738,7 +742,7 @@ switch ($action) {
         $stmtAtt->execute([$attendanceId]);
         $attRecord = $stmtAtt->fetch();
 
-        $notifResult = sendAttendanceNotification($pdo, $attRecord, $user);
+        $notifResult = sendAttendanceNotification($pdo, $attRecord, $user, 'check_in');
 
         sendResponse(true, [
             'message' => 'Attendance punched in successfully! Welcome, ' . $user['name'] . ' (' . ucfirst($status) . ')',
@@ -800,6 +804,9 @@ switch ($action) {
             $stmtUpdate->execute([$nowTime, $attendance['id']]);
 
             $attendance['check_out_time'] = $nowTime;
+
+            // Send checkout notification (email + SMS + WhatsApp)
+            $notifResult = sendAttendanceNotification($pdo, $attendance, $user, 'check_out');
         }
 
         sendResponse(true, [
@@ -808,6 +815,7 @@ switch ($action) {
             'message' => 'Check-out marked successfully! Have a great evening, ' . $user['name'],
             'check_out_time' => substr($nowTime, 0, 5),
             'attendance' => $attendance,
+            'notification' => $notifResult ?? null,
         ]);
         break;
 
@@ -955,7 +963,7 @@ switch ($action) {
             $stmtAtt->execute([$pdo->lastInsertId()]);
             $attRecord = $stmtAtt->fetch();
 
-            $notifResult = sendAttendanceNotification($pdo, $attRecord, $user);
+            $notifResult = sendAttendanceNotification($pdo, $attRecord, $user, 'check_in');
 
             sendResponse(true, [
                 'type' => 'check_in',
@@ -976,12 +984,16 @@ switch ($action) {
                 $attendance['check_out_time'] = $nowTime;
                 $attendance['location_name'] = $locName;
 
+                // Send checkout notification (email + SMS + WhatsApp)
+                $notifResult = sendAttendanceNotification($pdo, $attendance, $user, 'check_out');
+
                 sendResponse(true, [
                     'type' => 'check_out',
                     'message' => 'GPS Attendance Check-Out marked successfully for ' . $user['name'] . '!',
                     'employee_name' => $user['name'],
                     'location_name' => $locName,
                     'attendance' => $attendance,
+                    'notification' => $notifResult,
                 ]);
             }
 

@@ -834,6 +834,8 @@ TGC Connect</div>
         let capturedLocationName = '';
         let currentUser = null;
         let miniMap = null;
+        let _prevSlotsKey = '';
+        let _prevWindowStatusKey = '';
 
         document.addEventListener('DOMContentLoaded', async () => {
             await checkAuthNav();
@@ -1038,6 +1040,11 @@ TGC Connect</div>
             const grid = document.getElementById('timeSlotsGrid');
             if (!grid || !slots || !slots.length) return;
 
+            // Build compact state key to skip re-render if nothing changed
+            const slotsKey = slots.map(s => `${s.slot_name}|${s.is_active}|${s.is_passed}|${s.type}`).join(',');
+            if (slotsKey === _prevSlotsKey) return;
+            _prevSlotsKey = slotsKey;
+
             grid.innerHTML = slots.map(s => {
                 const isCheckout = s.type === 'check_out';
                 let stateClass = 'ts-upcoming';
@@ -1097,9 +1104,15 @@ TGC Connect</div>
                 }
 
                 if (res.ok && res.data.is_open && res.data.window) {
+                    const wKey = `open|${res.data.window.type}|${res.data.window.slot_name}`;
+                    const statusChanged = (wKey !== _prevWindowStatusKey);
+                    _prevWindowStatusKey = wKey;
+
                     isWindowOpen = true;
                     currentWindowType = res.data.window.type || 'check_in';
                     windowRemainingSeconds = res.data.window.seconds_remaining;
+
+                    if (!statusChanged) return; // Skip redundant DOM updates
 
                     if (currentWindowType === 'check_out') {
                         banner.className = 'window-banner open-evening';
@@ -1138,7 +1151,13 @@ TGC Connect</div>
                     }
                     if (window.lucide) lucide.createIcons();
                 } else {
+                    const wKey = `closed|${res.data.next_window?.slot_name || 'none'}`;
+                    const statusChanged = (wKey !== _prevWindowStatusKey);
+                    _prevWindowStatusKey = wKey;
+
                     isWindowOpen = false;
+                    if (!statusChanged) return; // Skip redundant DOM updates
+
                     banner.className = 'window-banner waiting';
                     dot.style.background = '#f59e0b';
                     title.textContent = '🔒 Attendance Window is Closed';
