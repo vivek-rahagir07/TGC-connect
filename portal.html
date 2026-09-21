@@ -7,7 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
-    <link rel="stylesheet" href="css/style.css?v=3.5">
+    <link rel="stylesheet" href="css/style.css?v=4.0">
     <style>
         /* Fail-safe Critical Display Rules for mobile bottom nav */
         .mobile-bottom-nav { display: none !important; }
@@ -708,21 +708,41 @@
             grid.innerHTML = slots.map(s => {
                 const isCheckout = s.type === 'check_out';
                 let stateClass = 'ts-upcoming';
-                if (s.is_active) stateClass = 'ts-active';
-                else if (s.is_passed) stateClass = 'ts-passed';
+                let badgeClass = 'ts-badge-upcoming';
+                let badgeContent = 'Upcoming';
+                let slotIcon = isCheckout ? '<i data-lucide="log-out" style="width: 12px; height: 12px;"></i>' : '<i data-lucide="clock" style="width: 12px; height: 12px;"></i>';
+
+                if (s.is_active) {
+                    stateClass = 'ts-active';
+                    badgeClass = 'ts-badge-active';
+                    badgeContent = '<span class="ts-pulse-ping"></span> Live';
+                } else if (s.is_passed) {
+                    stateClass = 'ts-passed';
+                    badgeClass = 'ts-badge-passed';
+                    badgeContent = '<i data-lucide="check" style="width: 11px; height: 11px;"></i> Done';
+                }
 
                 const checkoutClass = isCheckout ? ' ts-checkout' : '';
                 const timeClean = formatSlotRange(s);
-                const activeTag = s.is_active ? '<span class="ts-active-tag">Punch Now</span>' : '';
-                const icon = s.is_active ? '🟢' : (s.is_passed ? '✓' : (isCheckout ? '🌆' : '⏳'));
+                const slotTitle = s.slot_name || (isCheckout ? 'Check-Out' : 'Slot');
 
-                return `<div class="ts-tab ${stateClass}${checkoutClass}" style="min-height: 56px; padding: 0.5rem 0.35rem;">
-                    <span class="ts-status-dot"></span>
-                    <span class="ts-label" style="font-size: 0.64rem;">${icon} ${s.slot_name || (isCheckout ? 'Check-Out' : 'Slot')}</span>
-                    <span class="ts-time" style="font-size: 0.78rem;">${timeClean}</span>
-                    ${activeTag}
+                return `<div class="ts-card ts-tab ${stateClass}${checkoutClass}">
+                    <div class="ts-card-header">
+                        <div class="ts-slot-info">
+                            <span class="ts-slot-icon">${slotIcon}</span>
+                            <span class="ts-slot-title">${slotTitle}</span>
+                        </div>
+                        <span class="ts-status-badge ${badgeClass}">${badgeContent}</span>
+                    </div>
+                    <div class="ts-card-body">
+                        <div class="ts-time-text">${timeClean}</div>
+                    </div>
                 </div>`;
             }).join('');
+
+            if (window.lucide) {
+                lucide.createIcons();
+            }
         }
 
         async function loadTodayAttendance() {

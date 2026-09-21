@@ -2187,139 +2187,257 @@ button.user-nav-item.danger:hover,
   }
 }
 
-/* ── Dynamic Time-Slot Attendance Tabs ── */
+/* ── Dynamic Time-Slot Attendance Tabs & Schedule Box ── */
+.schedule-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 0.85rem 0.95rem;
+  margin: 0.9rem 0 1rem;
+  text-align: left;
+}
+.schedule-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid #edf2f7;
+  gap: 0.5rem;
+}
+.schedule-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+.schedule-icon-pill {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--primary-light, #eef2ff);
+  color: var(--primary, #4f46e5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.schedule-heading {
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: var(--text-main, #0f172a);
+  letter-spacing: -0.2px;
+  line-height: 1.2;
+}
+.schedule-subheading {
+  font-size: 0.72rem;
+  color: var(--text-muted, #64748b);
+  line-height: 1.2;
+}
+.schedule-share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 9999px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  flex-shrink: 0;
+}
+.schedule-share-btn:hover {
+  color: var(--primary, #4f46e5);
+  border-color: var(--primary, #4f46e5);
+  background: #f8fafc;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(79, 70, 229, 0.12);
+}
+.schedule-share-btn.copied {
+  background: #ecfdf5 !important;
+  border-color: #10b981 !important;
+  color: #065f46 !important;
+}
+
 .ts-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
-  margin-top: 0.65rem;
-  margin-bottom: 0.65rem;
+  gap: 0.55rem;
+  margin-top: 0.4rem;
+  margin-bottom: 0.4rem;
 }
-@media (max-width: 520px) {
+@media (max-width: 540px) {
   .ts-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
   }
 }
-.ts-tab {
+.ts-card, .ts-tab {
   position: relative;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 0.6rem 0.4rem;
+  justify-content: space-between;
+  padding: 0.6rem 0.55rem 0.55rem;
   border-radius: 10px;
   border: 1.5px solid #e2e8f0;
   background: #ffffff;
-  text-align: center;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: default;
+  text-align: left;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   min-height: 64px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
 }
-.ts-tab .ts-label {
-  font-size: 0.68rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  color: #64748b;
-  margin-bottom: 0.15rem;
+.ts-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.2rem;
+  margin-bottom: 0.3rem;
+}
+.ts-slot-info {
   display: flex;
   align-items: center;
   gap: 0.25rem;
+  min-width: 0;
+  flex: 1;
 }
-.ts-tab .ts-time {
-  font-size: 0.82rem;
+.ts-slot-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  flex-shrink: 0;
+}
+.ts-slot-title {
+  font-size: 0.71rem;
+  font-weight: 800;
+  color: #334155;
+  letter-spacing: -0.1px;
+  white-space: nowrap;
+}
+.ts-time-text {
+  font-size: 0.76rem;
   font-weight: 700;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
   color: #1e293b;
-  font-family: var(--font-mono);
-  line-height: 1.15;
+  line-height: 1.2;
+  letter-spacing: -0.2px;
 }
-.ts-tab .ts-status-dot {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 7px;
-  height: 7px;
+.ts-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 9999px;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.ts-badge-passed {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+.ts-badge-upcoming {
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+.ts-badge-active {
+  background: #059669;
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(5, 150, 105, 0.3);
+  animation: ts-badge-glow 2s infinite;
+}
+.ts-pulse-ping {
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
-  background: transparent;
+  background: #ffffff;
+  box-shadow: 0 0 0 rgba(255, 255, 255, 0.7);
+  animation: ts-ping 1.4s infinite;
 }
-/* Active (currently open) time slot: Highlighted in light green */
-.ts-tab.ts-active {
+
+/* Active (currently open) time slot */
+.ts-card.ts-active, .ts-tab.ts-active {
   background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-  border: 2px solid #10b981;
-  box-shadow: 0 4px 14px -2px rgba(16, 185, 129, 0.35), 0 0 0 2px rgba(16, 185, 129, 0.12);
+  border-color: #10b981;
+  border-width: 1.5px;
+  box-shadow: 0 4px 14px -2px rgba(16, 185, 129, 0.35), 0 0 0 2px rgba(16, 185, 129, 0.15);
   transform: translateY(-1px);
 }
-.ts-tab.ts-active .ts-label {
+.ts-card.ts-active .ts-slot-title, .ts-tab.ts-active .ts-slot-title {
   color: #065f46;
   font-weight: 900;
 }
-.ts-tab.ts-active .ts-time {
+.ts-card.ts-active .ts-slot-icon, .ts-tab.ts-active .ts-slot-icon {
+  color: #059669;
+}
+.ts-card.ts-active .ts-time-text, .ts-tab.ts-active .ts-time-text {
   color: #047857;
   font-weight: 800;
 }
-.ts-tab.ts-active .ts-status-dot {
-  background: #10b981;
-  box-shadow: 0 0 0 rgba(16, 185, 129, 0.6);
-  animation: ts-pulse 1.5s infinite;
+.ts-card.ts-checkout.ts-active, .ts-tab.ts-checkout.ts-active {
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+  border-color: #8b5cf6;
+  box-shadow: 0 4px 14px -2px rgba(139, 92, 246, 0.35), 0 0 0 2px rgba(139, 92, 246, 0.15);
 }
-.ts-tab.ts-active .ts-active-tag {
-  display: inline-block;
-  margin-top: 0.2rem;
-  font-size: 0.58rem;
-  font-weight: 800;
-  background: #059669;
-  color: #ffffff;
-  padding: 1px 6px;
-  border-radius: 9999px;
-  letter-spacing: 0.3px;
+.ts-card.ts-checkout.ts-active .ts-slot-title, .ts-tab.ts-checkout.ts-active .ts-slot-title {
+  color: #5b21b6;
 }
+.ts-card.ts-checkout.ts-active .ts-slot-icon, .ts-tab.ts-checkout.ts-active .ts-slot-icon {
+  color: #7c3aed;
+}
+.ts-card.ts-checkout.ts-active .ts-time-text, .ts-tab.ts-checkout.ts-active .ts-time-text {
+  color: #6d28d9;
+}
+
 /* Passed slot */
-.ts-tab.ts-passed {
+.ts-card.ts-passed, .ts-tab.ts-passed {
   background: #f8fafc;
   border-color: #e2e8f0;
-  opacity: 0.75;
+  opacity: 0.72;
 }
-.ts-tab.ts-passed .ts-label {
-  color: #94a3b8;
-}
-.ts-tab.ts-passed .ts-time {
+.ts-card.ts-passed .ts-slot-title, .ts-tab.ts-passed .ts-slot-title {
   color: #64748b;
 }
-.ts-tab.ts-passed .ts-status-dot {
-  background: #cbd5e1;
+.ts-card.ts-passed .ts-time-text, .ts-tab.ts-passed .ts-time-text {
+  color: #64748b;
 }
+
 /* Upcoming slot */
-.ts-tab.ts-upcoming {
+.ts-card.ts-upcoming, .ts-tab.ts-upcoming {
   background: #ffffff;
   border-color: #e2e8f0;
 }
-.ts-tab.ts-upcoming .ts-label {
-  color: #475569;
+.ts-card.ts-upcoming:hover, .ts-tab.ts-upcoming:hover {
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px -1px rgba(0, 0, 0, 0.06);
 }
-.ts-tab.ts-upcoming .ts-time {
-  color: #0f172a;
+.ts-card.ts-checkout.ts-upcoming, .ts-tab.ts-checkout.ts-upcoming {
+  background: linear-gradient(135deg, #ffffff 0%, #faf5ff 100%);
+  border-color: #e9d5ff;
 }
-/* Check-out slot styling */
-.ts-tab.ts-checkout.ts-active {
-  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
-  border: 2px solid #8b5cf6;
-  box-shadow: 0 4px 14px -2px rgba(139, 92, 246, 0.35), 0 0 0 2px rgba(139, 92, 246, 0.12);
+.ts-card.ts-checkout.ts-upcoming .ts-slot-title, .ts-tab.ts-checkout.ts-upcoming .ts-slot-title {
+  color: #6b21a8;
 }
-.ts-tab.ts-checkout.ts-active .ts-label { color: #5b21b6; }
-.ts-tab.ts-checkout.ts-active .ts-time { color: #6d28d9; }
-.ts-tab.ts-checkout.ts-active .ts-status-dot {
-  background: #8b5cf6;
-  animation-name: ts-pulse-purple;
+.ts-card.ts-checkout.ts-upcoming .ts-slot-icon, .ts-tab.ts-checkout.ts-upcoming .ts-slot-icon {
+  color: #9333ea;
 }
-@keyframes ts-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-  70% { box-shadow: 0 0 0 7px rgba(16, 185, 129, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+
+@keyframes ts-ping {
+  0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.8); }
+  70% { box-shadow: 0 0 0 4px rgba(255, 255, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
 }
-@keyframes ts-pulse-purple {
-  0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.7); }
-  70% { box-shadow: 0 0 0 7px rgba(139, 92, 246, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+@keyframes ts-badge-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
 }
 
 /* ==========================================================================

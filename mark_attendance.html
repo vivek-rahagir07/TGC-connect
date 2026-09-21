@@ -11,8 +11,295 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
-    <link rel="stylesheet" href="css/style.css?v=2.2">
+    <link rel="stylesheet" href="css/style.css?v=4.0">
     <style>
+        /* Modern Header and Schedule Design */
+        .punch-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            color: var(--primary, #4f46e5);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.72rem;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.35rem;
+            background: var(--primary-light, #eef2ff);
+            padding: 0.22rem 0.75rem;
+            border-radius: 9999px;
+            border: 1px solid rgba(79, 70, 229, 0.18);
+        }
+        .punch-main-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -0.3px;
+            margin: 0.15rem 0 0.35rem;
+            color: var(--text-main, #0f172a);
+        }
+        .punch-main-desc {
+            color: var(--text-muted, #64748b);
+            font-size: 0.82rem;
+            margin-bottom: 0.85rem;
+            line-height: 1.45;
+            max-width: 520px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Schedule Box Container */
+        .schedule-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 0.85rem 0.95rem;
+            margin: 0.9rem 0 1rem;
+            text-align: left;
+        }
+        .schedule-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.6rem;
+            border-bottom: 1px solid #edf2f7;
+            gap: 0.5rem;
+        }
+        .schedule-header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+        }
+        .schedule-icon-pill {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: var(--primary-light, #eef2ff);
+            color: var(--primary, #4f46e5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .schedule-heading {
+            font-size: 0.84rem;
+            font-weight: 800;
+            color: var(--text-main, #0f172a);
+            letter-spacing: -0.2px;
+            line-height: 1.2;
+        }
+        .schedule-subheading {
+            font-size: 0.72rem;
+            color: var(--text-muted, #64748b);
+            line-height: 1.2;
+        }
+        .schedule-share-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.3rem 0.7rem;
+            border-radius: 9999px;
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            color: #475569;
+            font-size: 0.72rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+            flex-shrink: 0;
+        }
+        .schedule-share-btn:hover {
+            color: var(--primary, #4f46e5);
+            border-color: var(--primary, #4f46e5);
+            background: #f8fafc;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 5px rgba(79, 70, 229, 0.12);
+        }
+        .schedule-share-btn.copied {
+            background: #ecfdf5 !important;
+            border-color: #10b981 !important;
+            color: #065f46 !important;
+        }
+
+        /* Modern Time-Slot Tabs Grid */
+        .ts-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.55rem;
+            margin-top: 0.4rem;
+            margin-bottom: 0.4rem;
+        }
+        @media (max-width: 540px) {
+            .ts-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.5rem;
+            }
+        }
+        .ts-card, .ts-tab {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 0.6rem 0.55rem 0.55rem;
+            border-radius: 10px;
+            border: 1.5px solid #e2e8f0;
+            background: #ffffff;
+            text-align: left;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            min-height: 64px;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+        }
+        .ts-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.2rem;
+            margin-bottom: 0.3rem;
+        }
+        .ts-slot-info {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            min-width: 0;
+            flex: 1;
+        }
+        .ts-slot-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            flex-shrink: 0;
+        }
+        .ts-slot-title {
+            font-size: 0.71rem;
+            font-weight: 800;
+            color: #334155;
+            letter-spacing: -0.1px;
+            white-space: nowrap;
+        }
+        .ts-time-text {
+            font-size: 0.76rem;
+            font-weight: 700;
+            font-family: var(--font-mono, 'JetBrains Mono', monospace);
+            color: #1e293b;
+            line-height: 1.2;
+            letter-spacing: -0.2px;
+        }
+        .ts-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.15rem;
+            padding: 0.1rem 0.35rem;
+            border-radius: 9999px;
+            font-size: 0.58rem;
+            font-weight: 800;
+            letter-spacing: 0.2px;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+        .ts-badge-passed {
+            background: #f1f5f9;
+            color: #64748b;
+            border: 1px solid #e2e8f0;
+        }
+        .ts-badge-upcoming {
+            background: #f8fafc;
+            color: #64748b;
+            border: 1px solid #e2e8f0;
+        }
+        .ts-badge-active {
+            background: #059669;
+            color: #ffffff;
+            box-shadow: 0 1px 3px rgba(5, 150, 105, 0.3);
+            animation: ts-badge-glow 2s infinite;
+        }
+        .ts-pulse-ping {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: #ffffff;
+            box-shadow: 0 0 0 rgba(255, 255, 255, 0.7);
+            animation: ts-ping 1.4s infinite;
+        }
+
+        /* Active (currently open) time slot */
+        .ts-card.ts-active, .ts-tab.ts-active {
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            border-color: #10b981;
+            border-width: 1.5px;
+            box-shadow: 0 4px 14px -2px rgba(16, 185, 129, 0.35), 0 0 0 2px rgba(16, 185, 129, 0.15);
+            transform: translateY(-1px);
+        }
+        .ts-card.ts-active .ts-slot-title, .ts-tab.ts-active .ts-slot-title {
+            color: #065f46;
+            font-weight: 900;
+        }
+        .ts-card.ts-active .ts-slot-icon, .ts-tab.ts-active .ts-slot-icon {
+            color: #059669;
+        }
+        .ts-card.ts-active .ts-time-text, .ts-tab.ts-active .ts-time-text {
+            color: #047857;
+            font-weight: 800;
+        }
+        .ts-card.ts-checkout.ts-active, .ts-tab.ts-checkout.ts-active {
+            background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+            border-color: #8b5cf6;
+            box-shadow: 0 4px 14px -2px rgba(139, 92, 246, 0.35), 0 0 0 2px rgba(139, 92, 246, 0.15);
+        }
+        .ts-card.ts-checkout.ts-active .ts-slot-title, .ts-tab.ts-checkout.ts-active .ts-slot-title {
+            color: #5b21b6;
+        }
+        .ts-card.ts-checkout.ts-active .ts-slot-icon, .ts-tab.ts-checkout.ts-active .ts-slot-icon {
+            color: #7c3aed;
+        }
+        .ts-card.ts-checkout.ts-active .ts-time-text, .ts-tab.ts-checkout.ts-active .ts-time-text {
+            color: #6d28d9;
+        }
+
+        /* Passed slot */
+        .ts-card.ts-passed, .ts-tab.ts-passed {
+            background: #f8fafc;
+            border-color: #e2e8f0;
+            opacity: 0.72;
+        }
+        .ts-card.ts-passed .ts-slot-title, .ts-tab.ts-passed .ts-slot-title {
+            color: #64748b;
+        }
+        .ts-card.ts-passed .ts-time-text, .ts-tab.ts-passed .ts-time-text {
+            color: #64748b;
+        }
+
+        /* Upcoming slot */
+        .ts-card.ts-upcoming, .ts-tab.ts-upcoming {
+            background: #ffffff;
+            border-color: #e2e8f0;
+        }
+        .ts-card.ts-upcoming:hover, .ts-tab.ts-upcoming:hover {
+            border-color: #cbd5e1;
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px -1px rgba(0, 0, 0, 0.06);
+        }
+        .ts-card.ts-checkout.ts-upcoming, .ts-tab.ts-checkout.ts-upcoming {
+            background: linear-gradient(135deg, #ffffff 0%, #faf5ff 100%);
+            border-color: #e9d5ff;
+        }
+        .ts-card.ts-checkout.ts-upcoming .ts-slot-title, .ts-tab.ts-checkout.ts-upcoming .ts-slot-title {
+            color: #6b21a8;
+        }
+        .ts-card.ts-checkout.ts-upcoming .ts-slot-icon, .ts-tab.ts-checkout.ts-upcoming .ts-slot-icon {
+            color: #9333ea;
+        }
+
+        @keyframes ts-ping {
+            0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.8); }
+            70% { box-shadow: 0 0 0 4px rgba(255, 255, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+        }
+        @keyframes ts-badge-glow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.85; }
+        }
+
         .step-badge {
             display: inline-flex;
             align-items: center;
@@ -76,34 +363,36 @@
             letter-spacing: 0.2px;
         }
         .window-banner {
-            border-radius: 10px;
-            padding: 0.7rem 0.95rem;
+            border-radius: 12px;
+            padding: 0.85rem 1rem;
             margin-bottom: 1.1rem;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 0.75rem;
+            gap: 0.85rem;
             transition: all 0.25s ease;
             text-align: left;
         }
         .window-banner.open {
-            background: #f0fdf4;
-            border: 1px solid #bbf7d0;
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border: 1.5px solid #86efac;
             color: #166534;
+            box-shadow: 0 4px 12px -2px rgba(16, 185, 129, 0.15);
         }
         .window-banner.open-evening {
-            background: #f5f3ff;
-            border: 1px solid #ddd6fe;
+            background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+            border: 1.5px solid #c7d2fe;
             color: #4338ca;
+            box-shadow: 0 4px 12px -2px rgba(99, 102, 241, 0.15);
         }
         .window-banner.waiting {
-            background: #fffbeb;
-            border: 1px solid #fde68a;
+            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+            border: 1.5px solid #fde68a;
             color: #92400e;
         }
         .window-banner.closed {
-            background: #fff1f2;
-            border: 1px solid #fecdd3;
+            background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
+            border: 1.5px solid #fecdd3;
             color: #9f1239;
         }
         .window-timer-box {
@@ -112,40 +401,12 @@
             align-items: flex-end;
             justify-content: center;
             flex-shrink: 0;
-            padding: 0.25rem 0.6rem;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.7);
-            border: 1px solid rgba(0, 0, 0, 0.05);
-        }
-        .schedule-strip {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 0.4rem;
-            margin-top: 0.45rem;
-        }
-        .schedule-share-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.3rem;
-            padding: 0.25rem 0.6rem;
-            border-radius: 9999px;
-            border: 1px solid var(--border-color);
-            background: #ffffff;
-            color: var(--text-muted);
-            font-size: 0.72rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        .schedule-share-btn:hover {
-            color: var(--primary);
-            border-color: var(--primary);
-            background: #f8fafc;
-        }
-        @media (max-width: 480px) {
-            .ts-grid { grid-template-columns: repeat(2, 1fr); }
+            padding: 0.35rem 0.75rem;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            backdrop-filter: blur(4px);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
         }
         .receipt-card {
             background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
@@ -184,55 +445,92 @@
             <div class="card animate-fade-in" style="padding: 1.4rem 1.6rem; text-align: center; box-shadow: var(--shadow-sm); border-radius: 16px; border: 1px solid var(--border-color);">
                 
                 <!-- Header -->
-                <div style="margin-bottom: 1rem;">
-                    <div style="display: inline-flex; align-items: center; gap: 0.35rem; color: var(--primary); font-weight: 700; text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.5px; margin-bottom: 0.35rem; background: var(--primary-light); padding: 0.2rem 0.65rem; border-radius: 9999px; border: 1px solid rgba(79, 70, 229, 0.15);">
-                        <i data-lucide="map-pin" style="width: 12px; height: 12px;"></i> GPS & Identity Verified Punch
+                <div style="margin-bottom: 0.75rem;">
+                    <div class="punch-badge">
+                        <i data-lucide="shield-check" style="width: 13px; height: 13px;"></i> GPS & Identity Verified Punch
                     </div>
-                    <h1 style="font-size: 1.45rem; font-weight: 800; letter-spacing: -0.3px; margin: 0.15rem 0 0.35rem; color: var(--text-main);">
+                    <h1 class="punch-main-title">
                         Mark Your Attendance Now
                     </h1>
-                    <p style="color: var(--text-muted); font-size: 0.82rem; margin-bottom: 0.65rem; line-height: 1.45;">
+                    <p class="punch-main-desc">
                         Physical location is automatically resolved via GPS satellite coordinates and verified against your employee profile.
                     </p>
 
-                    <!-- Dynamic Time-Slot Tabs Grid -->
-                    <div id="timeSlotsGrid" class="ts-grid">
-                        <!-- Populated dynamically by JS from API slots -->
-                        <div class="ts-tab ts-upcoming">
-                            <span class="ts-status-dot"></span>
-                            <span class="ts-label">Slot 1</span>
-                            <span class="ts-time">9:00–9:35</span>
+                    <!-- Shift Windows Container Card -->
+                    <div class="schedule-box">
+                        <div class="schedule-header">
+                            <div class="schedule-header-left">
+                                <div class="schedule-icon-pill">
+                                    <i data-lucide="clock" style="width: 15px; height: 15px;"></i>
+                                </div>
+                                <div>
+                                    <div class="schedule-heading">Shift Punch Windows</div>
+                                    <div class="schedule-subheading">Today's scheduled attendance checkpoints</div>
+                                </div>
+                            </div>
+                            <button type="button" onclick="copyAttendanceLink()" class="schedule-share-btn" id="shareAttendanceBtn" title="Copy attendance link">
+                                <i data-lucide="share-2" id="shareBtnIcon" style="width: 12px; height: 12px;"></i>
+                                <span id="shareBtnText">Share Link</span>
+                            </button>
                         </div>
-                        <div class="ts-tab ts-upcoming">
-                            <span class="ts-status-dot"></span>
-                            <span class="ts-label">Slot 2</span>
-                            <span class="ts-time">10:00–10:10</span>
+
+                        <!-- Dynamic Time-Slot Tabs Grid -->
+                        <div id="timeSlotsGrid" class="ts-grid">
+                            <div class="ts-card ts-upcoming">
+                                <div class="ts-card-header">
+                                    <div class="ts-slot-info">
+                                        <span class="ts-slot-title">Slot 1</span>
+                                    </div>
+                                    <span class="ts-status-badge ts-badge-upcoming">Upcoming</span>
+                                </div>
+                                <div class="ts-time-text">9:00–9:35 AM</div>
+                            </div>
+                            <div class="ts-card ts-upcoming">
+                                <div class="ts-card-header">
+                                    <div class="ts-slot-info">
+                                        <span class="ts-slot-title">Slot 2</span>
+                                    </div>
+                                    <span class="ts-status-badge ts-badge-upcoming">Upcoming</span>
+                                </div>
+                                <div class="ts-time-text">10:00–10:10 AM</div>
+                            </div>
+                            <div class="ts-card ts-upcoming">
+                                <div class="ts-card-header">
+                                    <div class="ts-slot-info">
+                                        <span class="ts-slot-title">Slot 3</span>
+                                    </div>
+                                    <span class="ts-status-badge ts-badge-upcoming">Upcoming</span>
+                                </div>
+                                <div class="ts-time-text">11:00–11:10 AM</div>
+                            </div>
+                            <div class="ts-card ts-upcoming">
+                                <div class="ts-card-header">
+                                    <div class="ts-slot-info">
+                                        <span class="ts-slot-title">Slot 4</span>
+                                    </div>
+                                    <span class="ts-status-badge ts-badge-upcoming">Upcoming</span>
+                                </div>
+                                <div class="ts-time-text">12:00–12:10 PM</div>
+                            </div>
+                            <div class="ts-card ts-upcoming">
+                                <div class="ts-card-header">
+                                    <div class="ts-slot-info">
+                                        <span class="ts-slot-title">Slot 5</span>
+                                    </div>
+                                    <span class="ts-status-badge ts-badge-upcoming">Upcoming</span>
+                                </div>
+                                <div class="ts-time-text">1:00–1:10 PM</div>
+                            </div>
+                            <div class="ts-card ts-checkout ts-upcoming">
+                                <div class="ts-card-header">
+                                    <div class="ts-slot-info">
+                                        <span class="ts-slot-title">Check-Out</span>
+                                    </div>
+                                    <span class="ts-status-badge ts-badge-upcoming">Upcoming</span>
+                                </div>
+                                <div class="ts-time-text">5:30–5:50 PM</div>
+                            </div>
                         </div>
-                        <div class="ts-tab ts-upcoming">
-                            <span class="ts-status-dot"></span>
-                            <span class="ts-label">Slot 3</span>
-                            <span class="ts-time">11:00–11:10</span>
-                        </div>
-                        <div class="ts-tab ts-upcoming">
-                            <span class="ts-status-dot"></span>
-                            <span class="ts-label">Slot 4</span>
-                            <span class="ts-time">12:00–12:10</span>
-                        </div>
-                        <div class="ts-tab ts-upcoming">
-                            <span class="ts-status-dot"></span>
-                            <span class="ts-label">Slot 5</span>
-                            <span class="ts-time">1:00–1:10</span>
-                        </div>
-                        <div class="ts-tab ts-checkout ts-upcoming">
-                            <span class="ts-status-dot"></span>
-                            <span class="ts-label">Check-Out</span>
-                            <span class="ts-time">5:30–5:50</span>
-                        </div>
-                    </div>
-                    <div class="schedule-strip">
-                        <button type="button" onclick="copyAttendanceLink()" class="schedule-share-btn" title="Copy attendance link">
-                            <i data-lucide="share-2" style="width: 12px; height: 12px;"></i> Share Link
-                        </button>
                     </div>
                 </div>
 
@@ -553,27 +851,53 @@ TGC Connect</div>
         // Copy Shareable Attendance Link
         function copyAttendanceLink() {
             const url = window.location.href.split('?')[0];
+            const btn = document.getElementById('shareAttendanceBtn');
+            const btnText = document.getElementById('shareBtnText');
+            const btnIcon = document.getElementById('shareBtnIcon');
+
+            const onCopySuccess = () => {
+                showToast('Universal Attendance Link copied to clipboard!', 'success');
+                if (typeof playSound === 'function') playSound('click');
+                if (btn) {
+                    btn.classList.add('copied');
+                    if (btnText) btnText.textContent = 'Copied!';
+                    if (btnIcon) {
+                        btnIcon.setAttribute('data-lucide', 'check');
+                        if (window.lucide) lucide.createIcons();
+                    }
+                    setTimeout(() => {
+                        btn.classList.remove('copied');
+                        if (btnText) btnText.textContent = 'Share Link';
+                        if (btnIcon) {
+                            btnIcon.setAttribute('data-lucide', 'share-2');
+                            if (window.lucide) lucide.createIcons();
+                        }
+                    }, 2500);
+                }
+            };
+
             if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(url).then(() => {
-                    showToast('Universal Attendance Link copied to clipboard!', 'success');
-                    playSound('click');
-                }).catch(() => {
-                    fallbackCopy(url);
+                navigator.clipboard.writeText(url).then(onCopySuccess).catch(() => {
+                    fallbackCopy(url, onCopySuccess);
                 });
             } else {
-                fallbackCopy(url);
+                fallbackCopy(url, onCopySuccess);
             }
         }
 
-        function fallbackCopy(text) {
+        function fallbackCopy(text, cb) {
             const inp = document.createElement('input');
             inp.value = text;
             document.body.appendChild(inp);
             inp.select();
             document.execCommand('copy');
             document.body.removeChild(inp);
-            showToast('Universal Attendance Link copied to clipboard!', 'success');
-            playSound('click');
+            if (cb) {
+                cb();
+            } else {
+                showToast('Universal Attendance Link copied to clipboard!', 'success');
+                if (typeof playSound === 'function') playSound('click');
+            }
         }
 
         // Load Current Logged In User
@@ -717,21 +1041,41 @@ TGC Connect</div>
             grid.innerHTML = slots.map(s => {
                 const isCheckout = s.type === 'check_out';
                 let stateClass = 'ts-upcoming';
-                if (s.is_active) stateClass = 'ts-active';
-                else if (s.is_passed) stateClass = 'ts-passed';
+                let badgeClass = 'ts-badge-upcoming';
+                let badgeContent = 'Upcoming';
+                let slotIcon = isCheckout ? '<i data-lucide="log-out" style="width: 12px; height: 12px;"></i>' : '<i data-lucide="clock" style="width: 12px; height: 12px;"></i>';
+
+                if (s.is_active) {
+                    stateClass = 'ts-active';
+                    badgeClass = 'ts-badge-active';
+                    badgeContent = '<span class="ts-pulse-ping"></span> Live';
+                } else if (s.is_passed) {
+                    stateClass = 'ts-passed';
+                    badgeClass = 'ts-badge-passed';
+                    badgeContent = '<i data-lucide="check" style="width: 11px; height: 11px;"></i> Done';
+                }
 
                 const checkoutClass = isCheckout ? ' ts-checkout' : '';
                 const timeClean = formatSlotRange(s);
-                const activeTag = s.is_active ? '<span class="ts-active-tag">Punching Here</span>' : '';
-                const icon = s.is_active ? '🟢' : (s.is_passed ? '✓' : (isCheckout ? '🌆' : '⏳'));
+                const slotTitle = s.slot_name || (isCheckout ? 'Check-Out' : 'Slot');
 
-                return `<div class="ts-tab ${stateClass}${checkoutClass}">
-                    <span class="ts-status-dot"></span>
-                    <span class="ts-label">${icon} ${s.slot_name || (isCheckout ? 'Check-Out' : 'Slot')}</span>
-                    <span class="ts-time">${timeClean}</span>
-                    ${activeTag}
+                return `<div class="ts-card ts-tab ${stateClass}${checkoutClass}">
+                    <div class="ts-card-header">
+                        <div class="ts-slot-info">
+                            <span class="ts-slot-icon">${slotIcon}</span>
+                            <span class="ts-slot-title">${slotTitle}</span>
+                        </div>
+                        <span class="ts-status-badge ${badgeClass}">${badgeContent}</span>
+                    </div>
+                    <div class="ts-card-body">
+                        <div class="ts-time-text">${timeClean}</div>
+                    </div>
                 </div>`;
             }).join('');
+
+            if (window.lucide) {
+                lucide.createIcons();
+            }
         }
 
         // Check Attendance Window Status (All scheduled hourly slots + checkout)
