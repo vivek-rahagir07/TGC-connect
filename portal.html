@@ -7,7 +7,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
-    <link rel="stylesheet" href="css/style.css?v=3.0">
+    <link rel="stylesheet" href="css/style.css?v=3.5">
+    <style>
+        /* Fail-safe Critical Display Rules for mobile bottom nav */
+        .mobile-bottom-nav { display: none !important; }
+        @media (max-width: 768px) {
+            .mobile-bottom-nav { display: flex !important; }
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -447,10 +454,15 @@
                 <button class="close-btn" onclick="closeModal('viewSlipModal')">&times;</button>
             </div>
             <div class="modal-body" id="slipModalBody"></div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="window.print()">
-                    <i data-lucide="printer" style="width: 16px;"></i> Print / Save as PDF
-                </button>
+            <div class="modal-footer" style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-secondary" onclick="window.print()">
+                        <i data-lucide="printer" style="width: 15px;"></i> Print / Save as PDF
+                    </button>
+                    <button type="button" class="btn btn-secondary" style="color: #059669; border-color: #a7f3d0; font-weight: 600;" onclick="sharePortalPayslipWhatsApp()">
+                        <i data-lucide="share-2" style="width: 15px;"></i> Share to WhatsApp
+                    </button>
+                </div>
                 <button type="button" class="btn btn-primary" onclick="closeModal('viewSlipModal')">Close</button>
             </div>
         </div>
@@ -492,9 +504,33 @@
         </div>
     </div>
 
+    <!-- Mobile Bottom Navigation (< 768px) -->
+    <nav class="mobile-bottom-nav">
+        <a href="#today" class="mobile-nav-item active" id="portalMobNavHome" onclick="window.scrollTo({top:0, behavior:'smooth'})">
+            <div class="mobile-nav-icon"><i data-lucide="clock" style="width: 20px;"></i></div>
+            <span class="mobile-nav-label">Today</span>
+        </a>
+        <button type="button" class="mobile-nav-item" id="portalMobNavAtt" onclick="switchTab('attendance')">
+            <div class="mobile-nav-icon"><i data-lucide="history" style="width: 20px;"></i></div>
+            <span class="mobile-nav-label">Log</span>
+        </button>
+        <button type="button" class="mobile-nav-item" id="portalMobNavCal" onclick="switchTab('calendar')">
+            <div class="mobile-nav-icon"><i data-lucide="calendar" style="width: 20px;"></i></div>
+            <span class="mobile-nav-label">Calendar</span>
+        </button>
+        <button type="button" class="mobile-nav-item" id="portalMobNavSal" onclick="switchTab('salary')">
+            <div class="mobile-nav-icon"><i data-lucide="receipt" style="width: 20px;"></i></div>
+            <span class="mobile-nav-label">Salary</span>
+        </button>
+        <button type="button" class="mobile-nav-item" id="portalMobNavProfile" onclick="openProfileEditModal()">
+            <div class="mobile-nav-icon"><i data-lucide="user" style="width: 20px;"></i></div>
+            <span class="mobile-nav-label">Profile</span>
+        </button>
+    </nav>
+
     <div id="toast-container"></div>
 
-    <script src="js/app.js?v=2.2"></script>
+    <script src="js/app.js?v=2.5"></script>
     <script src="js/calendar.js?v=3.2"></script>
     <script>
         let currentUserData = null;
@@ -604,6 +640,15 @@
             if (document.getElementById('tabRosterBtn')) {
                 document.getElementById('tabRosterBtn').className = (tab === 'roster') ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
             }
+
+            // Sync Mobile Bottom Navigation
+            const mobMap = { attendance: 'portalMobNavAtt', calendar: 'portalMobNavCal', salary: 'portalMobNavSal' };
+            const homeBtn = document.getElementById('portalMobNavHome');
+            if (homeBtn) homeBtn.classList.remove('active');
+            Object.entries(mobMap).forEach(([tKey, elId]) => {
+                const el = document.getElementById(elId);
+                if (el) el.classList.toggle('active', tKey === tab);
+            });
 
             if (tab === 'calendar') {
                 initPortalCalendar();
@@ -1055,8 +1100,9 @@
         }
 
         async function loadAttendanceHistory() {
-            const res = await apiRequest('attendance.php?action=history&my_only=1');
             const tbody = document.getElementById('attendanceHistoryTableBody');
+            if (tbody) renderTableSkeleton(tbody, 5, 6);
+            const res = await apiRequest('attendance.php?action=history&my_only=1');
             if (res.ok && res.data.success) {
                 const history = res.data.history;
                 if (history.length === 0) {
@@ -1088,8 +1134,9 @@
         }
 
         async function loadSalarySlips() {
-            const res = await apiRequest('payroll.php?action=list');
             const tbody = document.getElementById('salarySlipsTableBody');
+            if (tbody) renderTableSkeleton(tbody, 4, 8);
+            const res = await apiRequest('payroll.php?action=list');
             if (res.ok && res.data.success) {
                 const payrolls = res.data.payrolls;
                 if (payrolls.length === 0) {
@@ -1148,10 +1195,36 @@
             return 'Rupees ' + str.trim() + ' Only';
         }
 
+        let portalCurrentPayslip = null;
+
+        function sharePortalPayslipWhatsApp() {
+            if (!portalCurrentPayslip) return;
+            const p = portalCurrentPayslip;
+            const net = parseFloat(p.net_salary || 0).toLocaleString('en-IN');
+            const voucher = `PAY-${p.year}${String(p.month).padStart(2, '0')}-${String(p.id).padStart(4, '0')}`;
+            const monthNames = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            const mName = monthNames[parseInt(p.month)] || `Month ${p.month}`;
+            
+            const msg = `💼 *OFFICIAL PAYSLIP STATEMENT — TGC CONNECT*
+━━━━━━━━━━━━━━━━━━━━━
+Employee: *${p.user_name}* (#TGC-${String(p.user_id).padStart(4, '0')})
+Pay Period: *${mName} ${p.year}*
+
+💰 Net Take-Home: ₹${net}
+📅 Present / Paid Days: ${(p.present_days || 0) + (p.paid_leaves || p.paid_leave_days || 0)} Days
+🔻 Deductions: ₹${parseFloat(p.deduction_amount || 0).toLocaleString('en-IN')}
+🏷️ Voucher: #${voucher}
+🏢 ${p.user_company || 'TGC Connect'}`;
+
+            const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+            window.open(url, '_blank');
+        }
+
         async function viewPayslip(id) {
             const res = await apiRequest(`payroll.php?action=slip&id=${id}`);
             if (res.ok && res.data.success) {
                 const p = res.data.payroll;
+                portalCurrentPayslip = p;
                 const companyName = (p.user_company || 'Getting Roots Coaching & Training Pvt. Ltd.').toUpperCase();
                 const numDays = p.total_working_days || 30;
                 const dailyRate = parseFloat(p.daily_rate || 0).toFixed(2);

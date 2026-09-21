@@ -173,10 +173,14 @@
                                 </button>
                             </div>
 
-                            <!-- Camera Fallback / Test Simulator for Environment Flexibility -->
-                            <div style="text-align: center; margin-bottom: 1rem;">
-                                <button type="button" onclick="generateSimulatedAvatar()" class="btn btn-secondary btn-sm" style="width: 100%; font-size: 0.8rem; font-weight: 500;">
-                                    <i data-lucide="sparkles" style="width: 14px; color: var(--secondary);"></i> Or Generate Verified Snapshot Simulation
+                            <!-- Gallery Upload / Camera Fallback -->
+                            <div style="display: flex; gap: 0.5rem; margin-bottom: 0.85rem;">
+                                <input type="file" id="regPhotoFileInput" accept="image/*" style="display: none;" onchange="handleRegPhotoFileChange(event)">
+                                <button type="button" onclick="document.getElementById('regPhotoFileInput').click()" class="btn btn-secondary btn-sm" style="flex: 1; font-size: 0.8rem; font-weight: 600;">
+                                    <i data-lucide="upload" style="width: 14px; color: var(--primary);"></i> Upload from Gallery
+                                </button>
+                                <button type="button" onclick="generateSimulatedAvatar()" class="btn btn-secondary btn-sm" style="flex: 1; font-size: 0.8rem; font-weight: 500;" title="Simulate snapshot">
+                                    <i data-lucide="sparkles" style="width: 14px; color: var(--secondary);"></i> Simulate Photo
                                 </button>
                             </div>
 
@@ -363,6 +367,51 @@
             document.getElementById('cameraStatusBadge').innerHTML = '<span class="radar-dot"></span> LIVE FEED';
             initLiveCamera();
             lucide.createIcons();
+        }
+
+        async function handleRegPhotoFileChange(e) {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+            try {
+                const compressedDataUrl = await processImageUpload(file, { maxDimension: 500, quality: 0.82 });
+
+                // Stop active webcam stream if running
+                if (cameraStream) {
+                    cameraStream.getTracks().forEach(t => t.stop());
+                    cameraStream = null;
+                }
+
+                const video = document.getElementById('cameraVideo');
+                const canvas = document.getElementById('cameraCanvas');
+                const placeholder = document.getElementById('cameraPlaceholder');
+                const btnCapture = document.getElementById('btnCapturePhoto');
+                const btnRetake = document.getElementById('btnRetakePhoto');
+                const statusBadge = document.getElementById('cameraStatusBadge');
+
+                const img = new Image();
+                img.onload = () => {
+                    canvas.width = 480;
+                    canvas.height = 360;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, 480, 360);
+                    if (video) video.style.display = 'none';
+                    if (placeholder) placeholder.style.display = 'none';
+                    canvas.style.display = 'block';
+                };
+                img.src = compressedDataUrl;
+
+                document.getElementById('regPhotoBase64').value = compressedDataUrl;
+                if (btnCapture) btnCapture.style.display = 'none';
+                if (btnRetake) btnRetake.style.display = 'inline-flex';
+                if (statusBadge) {
+                    statusBadge.className = 'badge badge-success';
+                    statusBadge.innerHTML = '✓ PHOTO READY';
+                }
+                playSound('success');
+                showToast('Photo uploaded and cropped successfully!', 'success');
+            } catch (err) {
+                showToast(err.message || 'Could not process image', 'error');
+            }
         }
 
         function generateSimulatedAvatar() {

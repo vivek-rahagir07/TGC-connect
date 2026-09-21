@@ -12,7 +12,16 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
-    <link rel="stylesheet" href="css/style.css?v=3.0">
+    <link rel="stylesheet" href="css/style.css?v=3.5">
+    <style>
+        /* Fail-safe Critical Display Rules for mobile bottom nav and command palette */
+        .mobile-bottom-nav { display: none !important; }
+        @media (max-width: 768px) {
+            .mobile-bottom-nav { display: flex !important; }
+        }
+        .cmd-palette-backdrop { display: none !important; }
+        .cmd-palette-backdrop.active { display: flex !important; }
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -45,7 +54,12 @@
                     <h1 style="font-size: 1.55rem; font-weight: 700; letter-spacing: -0.4px; margin: 0; color: var(--text-main);">Workforce & Operations Center</h1>
                 </div>
 
-                <div style="display: flex; gap: 0.55rem; flex-wrap: wrap;">
+                <div style="display: flex; gap: 0.55rem; flex-wrap: wrap; align-items: center;">
+                    <button type="button" class="cmd-trigger-btn" onclick="openCommandPalette()" title="Open Command Palette (Ctrl+K)">
+                        <i data-lucide="search" style="width: 14px; color: var(--primary);"></i>
+                        <span style="font-weight: 600;">Search & Actions</span>
+                        <kbd>⌘K</kbd>
+                    </button>
                     <button type="button" onclick="openModal('generateGpsModal')" class="btn btn-secondary btn-sm">
                         <i data-lucide="map-pin" style="width: 15px; color: var(--warning);"></i> Time-Bound GPS Link
                     </button>
@@ -1157,6 +1171,30 @@
                         <label class="form-label">Residential Address</label>
                         <input type="text" id="adminOnboardAddress" class="form-control" placeholder="City, State, Country">
                     </div>
+                    <div class="form-group" style="background: #f8fafc; padding: 0.9rem 1rem; border-radius: var(--radius-md); border: 1px dashed #cbd5e1;">
+                        <label class="form-label" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <span style="font-weight: 700;">Profile Picture (Optional)</span>
+                            <span class="badge badge-secondary" style="font-size: 0.7rem;">Auto-Compressed</span>
+                        </label>
+                        <div style="display: flex; align-items: center; gap: 0.9rem;">
+                            <div id="adminOnboardPhotoPreviewBox" style="width: 52px; height: 52px; border-radius: 50%; background: #e2e8f0; border: 2px solid #cbd5e1; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;">
+                                <i data-lucide="user" style="width: 22px; color: #94a3b8;"></i>
+                            </div>
+                            <div style="flex: 1;">
+                                <input type="file" id="adminOnboardPhotoInput" accept="image/*" style="display: none;" onchange="handleAdminOnboardPhotoChange(event)">
+                                <input type="hidden" id="adminOnboardPhotoBase64">
+                                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('adminOnboardPhotoInput').click()">
+                                        <i data-lucide="upload" style="width: 14px;"></i> Upload from Gallery
+                                    </button>
+                                    <button type="button" id="adminOnboardPhotoClearBtn" class="btn btn-secondary btn-sm" style="display: none; color: var(--danger); border-color: #fecdd3;" onclick="clearAdminOnboardPhoto()">
+                                        <i data-lucide="trash-2" style="width: 14px;"></i> Remove
+                                    </button>
+                                </div>
+                                <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.3rem;">Auto-crops to 1:1 and optimizes to &lt;200KB</div>
+                            </div>
+                        </div>
+                    </div>
                     <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 1rem; align-items: center; background: #f8fafc; padding: 0.85rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
                         <div class="form-group" style="margin-bottom: 0;">
                             <label class="form-label" style="margin-bottom: 0.2rem;">Initial Password (Optional)</label>
@@ -1361,7 +1399,7 @@
 
     <!-- 7. Add Holiday Modal -->
     <div class="modal-overlay" id="addHolidayModal">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 460px;">
             <div class="modal-header">
                 <h3 style="font-size: 1.25rem; font-weight: 800;">Add Company Holiday</h3>
                 <button class="close-btn" onclick="closeModal('addHolidayModal')">&times;</button>
@@ -1407,10 +1445,18 @@
                 <button class="close-btn" onclick="closeModal('viewSlipModal')">&times;</button>
             </div>
             <div class="modal-body" id="slipModalBody" style="padding: 1.5rem;"></div>
-            <div class="modal-footer" style="display: flex; justify-content: space-between;">
-                <button type="button" class="btn btn-secondary" onclick="printPayslip()">
-                    <i data-lucide="printer" style="width: 16px;"></i> Print / Save as PDF
-                </button>
+            <div class="modal-footer" style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.6rem;">
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-secondary" onclick="printPayslip()">
+                        <i data-lucide="printer" style="width: 15px;"></i> Print / Save as PDF
+                    </button>
+                    <button type="button" class="btn btn-secondary" style="color: #059669; border-color: #a7f3d0; font-weight: 600;" onclick="shareCurrentPayslipWhatsApp()">
+                        <i data-lucide="share-2" style="width: 15px;"></i> Send via WhatsApp
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="copyCurrentPayslipText()">
+                        <i data-lucide="copy" style="width: 15px;"></i> Copy Statement
+                    </button>
+                </div>
                 <button type="button" class="btn btn-primary" onclick="closeModal('viewSlipModal')">Close</button>
             </div>
         </div>
@@ -1739,9 +1785,51 @@
         </div>
     </div>
 
+    <!-- Mobile Bottom Navigation (< 768px) -->
+    <nav class="mobile-bottom-nav">
+        <button type="button" class="mobile-nav-item active" id="mobNavApprovals" onclick="showAdminTab('approvals')">
+            <div class="mobile-nav-icon"><i data-lucide="check-circle" style="width: 20px;"></i></div>
+            <span class="mobile-nav-label">Approvals</span>
+        </button>
+        <button type="button" class="mobile-nav-item" id="mobNavEmployees" onclick="showAdminTab('employees')">
+            <div class="mobile-nav-icon"><i data-lucide="users" style="width: 20px;"></i></div>
+            <span class="mobile-nav-label">Staff</span>
+        </button>
+        <button type="button" class="mobile-nav-item" id="mobNavAttendance" onclick="showAdminTab('attendance')">
+            <div class="mobile-nav-icon"><i data-lucide="clock" style="width: 20px;"></i></div>
+            <span class="mobile-nav-label">Attendance</span>
+        </button>
+        <button type="button" class="mobile-nav-item" id="mobNavPayroll" onclick="showAdminTab('payroll')">
+            <div class="mobile-nav-icon"><i data-lucide="calculator" style="width: 20px;"></i></div>
+            <span class="mobile-nav-label">Payroll</span>
+        </button>
+        <button type="button" class="mobile-nav-item" id="mobNavCmd" onclick="openCommandPalette()">
+            <div class="mobile-nav-icon"><i data-lucide="search" style="width: 20px;"></i></div>
+            <span class="mobile-nav-label">Actions</span>
+        </button>
+    </nav>
+
+    <!-- Command Palette Modal (Ctrl+K / Cmd+K) -->
+    <div class="cmd-palette-backdrop" id="cmdPaletteBackdrop" style="display: none !important;" onclick="if(event.target===this)closeCommandPalette()">
+        <div class="cmd-palette-modal">
+            <div class="cmd-palette-header">
+                <i data-lucide="search" style="width: 20px; color: var(--primary);"></i>
+                <input type="text" id="cmdPaletteInput" class="cmd-palette-input" placeholder="Type a command, jump to tab, or search employee..." oninput="handleCommandPaletteInput(event)" onkeydown="handleCommandPaletteKeydown(event)">
+                <kbd class="cmd-kbd" style="cursor: pointer;" onclick="closeCommandPalette()">ESC</kbd>
+            </div>
+            <div class="cmd-palette-body" id="cmdPaletteResults">
+                <!-- Dynamically populated -->
+            </div>
+            <div class="cmd-palette-footer">
+                <span>Navigate: <kbd class="cmd-kbd">&uarr;</kbd> <kbd class="cmd-kbd">&darr;</kbd> &bull; Select: <kbd class="cmd-kbd">&crarr;</kbd></span>
+                <span>Press <kbd class="cmd-kbd">Esc</kbd> to exit</span>
+            </div>
+        </div>
+    </div>
+
     <div id="toast-container"></div>
 
-    <script src="js/app.js?v=2.2"></script>
+    <script src="js/app.js?v=2.5"></script>
     <script src="js/calendar.js?v=3.2"></script>
     <script>
         let attendanceChartInstance = null;
@@ -1782,6 +1870,14 @@
             loadAdminLogs();
             loadInventoryData();
             initAdminNotificationsPoller();
+
+            // Auto-restore tab from URL hash if present
+            if (window.location.hash) {
+                const initialTab = window.location.hash.replace('#', '');
+                if (['approvals', 'employees', 'attendance', 'leaves', 'payroll', 'inventory', 'holidays', 'logs', 'roster', 'departments'].includes(initialTab)) {
+                    showAdminTab(initialTab);
+                }
+            }
         });
 
         function initMonthYearSelectors() {
@@ -1824,6 +1920,21 @@
                 if (sec) sec.style.display = (t === tab) ? 'block' : 'none';
                 if (btn) btn.className = (t === tab) ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
             });
+
+            // Sync Mobile Bottom Navigation
+            const mobMap = { approvals: 'mobNavApprovals', employees: 'mobNavEmployees', attendance: 'mobNavAttendance', payroll: 'mobNavPayroll' };
+            Object.entries(mobMap).forEach(([tKey, elId]) => {
+                const el = document.getElementById(elId);
+                if (el) el.classList.toggle('active', tKey === tab);
+            });
+
+            // Sync URL hash
+            if (history.replaceState) {
+                history.replaceState(null, null, `#${tab}`);
+            } else {
+                window.location.hash = tab;
+            }
+
             if (tab === 'inventory') loadInventoryData();
             if (tab === 'roster') loadAdminRoster();
             if (tab === 'holidays') initAdminAcademicCalendar();
@@ -2087,8 +2198,9 @@
         async function loadPendingApprovals() {
             try {
                 // 1. Pending Registrations
-                const resReg = await apiRequest('admin.php?action=pending_registrations');
                 const tbodyReg = document.getElementById('pendingRegistrationsTableBody');
+                if (tbodyReg) renderTableSkeleton(tbodyReg, 3, 7);
+                const resReg = await apiRequest('admin.php?action=pending_registrations');
                 if (resReg.ok && resReg.data.success) {
                     const pending = resReg.data.pending || [];
                     const countBadge = document.getElementById('countPendingReg');
@@ -2122,8 +2234,9 @@
                 }
 
                 // 2. Pending Profile Changes
-                const resProf = await apiRequest('admin.php?action=pending_profile_changes');
                 const tbodyProf = document.getElementById('pendingProfileTableBody');
+                if (tbodyProf) renderTableSkeleton(tbodyProf, 3, 5);
+                const resProf = await apiRequest('admin.php?action=pending_profile_changes');
                 if (resProf.ok && resProf.data.success) {
                     const requests = resProf.data.requests || [];
                     const countProfBadge = document.getElementById('countPendingProfile');
@@ -2231,11 +2344,47 @@
             }
         }
 
-        // Direct Admin Onboarding
+        // Direct Admin Onboarding & Photo Upload
+        async function handleAdminOnboardPhotoChange(e) {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+            try {
+                const compressedDataUrl = await processImageUpload(file, { maxDimension: 500, quality: 0.82 });
+                document.getElementById('adminOnboardPhotoBase64').value = compressedDataUrl;
+                const previewBox = document.getElementById('adminOnboardPhotoPreviewBox');
+                if (previewBox) {
+                    previewBox.innerHTML = `<img src="${compressedDataUrl}" style="width: 100%; height: 100%; object-fit: cover;">`;
+                    previewBox.style.borderColor = 'var(--primary)';
+                }
+                const clearBtn = document.getElementById('adminOnboardPhotoClearBtn');
+                if (clearBtn) clearBtn.style.display = 'inline-flex';
+                showToast('Photo uploaded and optimized successfully!', 'success');
+            } catch (err) {
+                showToast(err.message || 'Could not process image', 'error');
+            }
+        }
+
+        function clearAdminOnboardPhoto() {
+            const input = document.getElementById('adminOnboardPhotoInput');
+            if (input) input.value = '';
+            const hidden = document.getElementById('adminOnboardPhotoBase64');
+            if (hidden) hidden.value = '';
+            const previewBox = document.getElementById('adminOnboardPhotoPreviewBox');
+            if (previewBox) {
+                previewBox.innerHTML = `<i data-lucide="user" style="width: 22px; color: #94a3b8;"></i>`;
+                previewBox.style.borderColor = '#cbd5e1';
+                if (window.lucide) lucide.createIcons();
+            }
+            const clearBtn = document.getElementById('adminOnboardPhotoClearBtn');
+            if (clearBtn) clearBtn.style.display = 'none';
+        }
+
         async function handleAdminOnboardSubmit(e) {
             e.preventDefault();
             const btn = document.getElementById('btnAdminOnboardSubmit');
             btn.disabled = true;
+
+            const photoVal = document.getElementById('adminOnboardPhotoBase64') ? document.getElementById('adminOnboardPhotoBase64').value : null;
 
             const payload = {
                 name: document.getElementById('adminOnboardName').value.trim(),
@@ -2250,6 +2399,7 @@
                 address: document.getElementById('adminOnboardAddress').value.trim(),
                 password: document.getElementById('adminOnboardCustomPass').value.trim(),
                 first_login_required: document.getElementById('adminOnboardFirstLoginCheck').checked ? 1 : 0,
+                photo_base64: photoVal || null,
             };
 
             const res = await apiRequest('admin.php?action=admin_register', 'POST', payload);
@@ -2261,6 +2411,7 @@
                 document.getElementById('resCredPass').textContent = res.data.credentials.temp_password;
                 document.getElementById('adminOnboardResultBox').style.display = 'block';
                 loadStats();
+                loadEmployees();
             } else {
                 playSound('error');
                 showToast(res.data.message || 'Could not onboard employee', 'error');
@@ -2294,8 +2445,10 @@
             if (pDate) params.append('presence_date', pDate);
             if (pStatus && pStatus !== 'all') params.append('presence_status', pStatus);
 
-            const res = await apiRequest(`admin.php?action=employees&${params.toString()}`);
             const tbody = document.getElementById('employeesTableBody');
+            if (tbody) renderTableSkeleton(tbody, 6, 8);
+
+            const res = await apiRequest(`admin.php?action=employees&${params.toString()}`);
 
             if (res.ok && res.data.success) {
                 const emps = res.data.employees;
@@ -2859,9 +3012,11 @@
                 query += `&end_date=${endDate}`;
             }
 
-            const res = await apiRequest(query);
             const tbody = document.getElementById('adminAttendanceTableBody');
             const countBadge = document.getElementById('attendanceRecordCountBadge');
+            if (tbody) renderTableSkeleton(tbody, 6, 8);
+
+            const res = await apiRequest(query);
 
             if (res.ok && res.data.success) {
                 const history = res.data.history;
@@ -2999,8 +3154,10 @@
         async function loadAdminPayroll() {
             const m = document.getElementById('payrollMonthSelect').value;
             const y = document.getElementById('payrollYearSelect').value;
-            const res = await apiRequest(`payroll.php?action=list&month=${m}&year=${y}`);
             const tbody = document.getElementById('adminPayrollTableBody');
+            if (tbody) renderTableSkeleton(tbody, 5, 8);
+
+            const res = await apiRequest(`payroll.php?action=list&month=${m}&year=${y}`);
 
             if (res.ok && res.data.success) {
                 const payrolls = res.data.payrolls;
@@ -3026,10 +3183,15 @@
                                 <option value="paid" ${p.status === 'paid' ? 'selected' : ''}>Paid</option>
                             </select>
                         </td>
-                        <td>
-                            <button onclick="viewAdminPayslip(${p.id})" class="btn btn-secondary btn-sm">
-                                <i data-lucide="file-text" style="width: 14px;"></i> Slip
-                            </button>
+                        <td style="white-space: nowrap;">
+                            <div style="display: flex; gap: 0.35rem; align-items: center;">
+                                <button onclick="viewAdminPayslip(${p.id})" class="btn btn-secondary btn-sm" title="View Payslip">
+                                    <i data-lucide="file-text" style="width: 14px;"></i> Slip
+                                </button>
+                                <button onclick="shareDirectWhatsApp(${p.id})" class="btn btn-secondary btn-sm" style="color: #059669; border-color: #a7f3d0; padding: 0.38rem 0.55rem;" title="Send via WhatsApp">
+                                    <i data-lucide="share-2" style="width: 14px;"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 `).join('');
@@ -3109,6 +3271,59 @@
             return 'Rupees ' + str.trim() + ' Only';
         }
 
+        let currentViewedPayslip = null;
+
+        function formatPayslipWhatsAppMessage(p) {
+            const net = parseFloat(p.net_salary || 0).toLocaleString('en-IN');
+            const voucher = `PAY-${p.year}${String(p.month).padStart(2, '0')}-${String(p.id).padStart(4, '0')}`;
+            const monthNames = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            const mName = monthNames[parseInt(p.month)] || `Month ${p.month}`;
+            
+            return `💼 *OFFICIAL PAYSLIP STATEMENT — TGC CONNECT*
+━━━━━━━━━━━━━━━━━━━━━
+Dear *${p.user_name}*,
+Your salary statement for *${mName} ${p.year}* has been generated.
+
+💰 *Net Payable Take-Home:* ₹${net}
+📅 *Present + Paid Leaves:* ${(p.present_days || 0) + (p.paid_leaves || p.paid_leave_days || 0)} Days
+🔻 *Deductions (Unpaid):* ₹${parseFloat(p.deduction_amount || 0).toLocaleString('en-IN')} (${p.unpaid_days || 0} d)
+🏷️ *Voucher Ref:* #${voucher}
+🏢 *Company:* ${p.user_company || 'TGC Connect'}
+
+_Log in to the TGC Connect portal to view or print your full itemized breakdown._`;
+        }
+
+        function shareCurrentPayslipWhatsApp() {
+            if (!currentViewedPayslip) return;
+            const msg = formatPayslipWhatsAppMessage(currentViewedPayslip);
+            const phone = (currentViewedPayslip.user_phone || '').replace(/[^0-9]/g, '');
+            const url = phone ? `https://wa.me/${phone.startsWith('91') ? phone : '91' + phone}?text=${encodeURIComponent(msg)}` : `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+            window.open(url, '_blank');
+        }
+
+        function copyCurrentPayslipText() {
+            if (!currentViewedPayslip) return;
+            const msg = formatPayslipWhatsAppMessage(currentViewedPayslip);
+            navigator.clipboard.writeText(msg).then(() => {
+                showToast('Payslip statement copied to clipboard!', 'success');
+            }).catch(() => {
+                showToast('Could not copy statement to clipboard', 'error');
+            });
+        }
+
+        async function shareDirectWhatsApp(id) {
+            const res = await apiRequest(`payroll.php?action=slip&id=${id}`);
+            if (res.ok && res.data.success) {
+                const p = res.data.payroll;
+                const msg = formatPayslipWhatsAppMessage(p);
+                const phone = (p.user_phone || '').replace(/[^0-9]/g, '');
+                const url = phone ? `https://wa.me/${phone.startsWith('91') ? phone : '91' + phone}?text=${encodeURIComponent(msg)}` : `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+                window.open(url, '_blank');
+            } else {
+                showToast('Could not load payslip for WhatsApp dispatch', 'error');
+            }
+        }
+
         function printPayslip() {
             window.print();
         }
@@ -3117,6 +3332,7 @@
             const res = await apiRequest(`payroll.php?action=slip&id=${id}`);
             if (res.ok && res.data.success) {
                 const p = res.data.payroll;
+                currentViewedPayslip = p;
                 const companyName = (p.user_company || 'Getting Roots Coaching & Training Pvt. Ltd.').toUpperCase();
                 const numDays = p.total_working_days || 30;
                 const dailyRate = parseFloat(p.daily_rate || 0).toFixed(2);
@@ -3883,8 +4099,10 @@
             const stockFilter = document.getElementById('invStockFilter')?.value || 'all';
 
             const params = new URLSearchParams({ search, category, stock_filter: stockFilter });
-            const res = await apiRequest(`inventory.php?action=list&${params}`);
             const tbody = document.getElementById('inventoryCatalogTableBody');
+            if (tbody) renderTableSkeleton(tbody, 5, 6);
+
+            const res = await apiRequest(`inventory.php?action=list&${params}`);
 
             if (res.ok && res.data.success !== false) {
                 inventoryItemsCache = res.data.items || [];
@@ -4979,6 +5197,149 @@
                 return;
             }
             window.location.href = `api/admin.php?action=export_roster_csv&start_date=${start}&end_date=${end}`;
+        }
+
+        // ==========================================================================
+        // Command Palette Controller & Fuzzy Search Engine
+        // ==========================================================================
+        const _adminCommands = [
+            { id: 'tab_approvals', title: 'Go to Approvals Hub', subtitle: 'Review pending registrations & profile changes', icon: 'check-circle', group: 'Navigation', action: () => showAdminTab('approvals') },
+            { id: 'tab_employees', title: 'Go to Employee Directory', subtitle: 'Search staff, department filters & 360 profiles', icon: 'users', group: 'Navigation', action: () => showAdminTab('employees') },
+            { id: 'tab_attendance', title: 'Go to Attendance Records', subtitle: 'Daily check-in logs & punch reports', icon: 'clock', group: 'Navigation', action: () => showAdminTab('attendance') },
+            { id: 'tab_leaves', title: 'Go to Leave Management', subtitle: 'Review & approve employee leave requests', icon: 'calendar', group: 'Navigation', action: () => showAdminTab('leaves') },
+            { id: 'tab_payroll', title: 'Go to Payroll Ledger', subtitle: 'Monthly salary calculation & payslips', icon: 'calculator', group: 'Navigation', action: () => showAdminTab('payroll') },
+            { id: 'tab_inventory', title: 'Go to Inventory & Assets', subtitle: 'Office supplies, devices & employee issuances', icon: 'package', group: 'Navigation', action: () => showAdminTab('inventory') },
+            { id: 'tab_holidays', title: 'Go to Academic & Holiday Calendar', subtitle: 'Company holidays, academic events & schedules', icon: 'calendar-days', group: 'Navigation', action: () => showAdminTab('holidays') },
+            { id: 'tab_roster', title: 'Go to Duty Roster & Shifts', subtitle: 'Weekly shift schedules and weekly-off allocation', icon: 'calendar-clock', group: 'Navigation', action: () => showAdminTab('roster') },
+            { id: 'tab_departments', title: 'Go to Departments & Roles', subtitle: 'Organization structure & designations', icon: 'building-2', group: 'Navigation', action: () => showAdminTab('departments') },
+            { id: 'tab_logs', title: 'Go to Audit Logs', subtitle: 'Security actions & administrator history', icon: 'shield-alert', group: 'Navigation', action: () => showAdminTab('logs') },
+            { id: 'act_onboard', title: 'Direct Onboard Employee', subtitle: 'Create staff profile with first-login setup', icon: 'user-plus', group: 'Quick Actions', action: () => openModal('adminOnboardModal') },
+            { id: 'act_payroll', title: 'Run Payroll Engine', subtitle: 'Auto-calculate monthly salary & attendance deductions', icon: 'calculator', group: 'Quick Actions', action: () => openModal('runPayrollModal') },
+            { id: 'act_holiday', title: 'Add New Holiday', subtitle: 'Declare holiday in academic calendar', icon: 'plus-circle', group: 'Quick Actions', action: () => openModal('addHolidayModal') },
+            { id: 'act_gps', title: 'Generate Time-Bound GPS Link', subtitle: 'Create expiring geofenced attendance punch URL', icon: 'map-pin', group: 'Quick Actions', action: () => openModal('generateGpsModal') },
+            { id: 'act_override', title: 'Attendance Window Override', subtitle: 'Manually open or extend attendance window for today', icon: 'play-circle', group: 'Quick Actions', action: () => openAttendanceWindowModal() },
+            { id: 'act_punch', title: 'Punch Attendance Anytime', subtitle: 'Record check-in/out for any employee directly', icon: 'check-circle-2', group: 'Quick Actions', action: () => openAdminMarkAttendanceModal() },
+        ];
+
+        let _cmdSelectedIndex = 0;
+        let _currentCmdResults = [];
+
+        function renderCommandResults(query) {
+            const container = document.getElementById('cmdPaletteResults');
+            if (!container) return;
+            const q = (query || '').trim().toLowerCase();
+            _cmdSelectedIndex = 0;
+            _currentCmdResults = [];
+
+            let filteredCommands = _adminCommands.filter(c => 
+                !q || c.title.toLowerCase().includes(q) || c.subtitle.toLowerCase().includes(q)
+            );
+
+            let employeeResults = [];
+            if (q && Array.isArray(allEmployeesCache)) {
+                employeeResults = allEmployeesCache.filter(e => 
+                    (e.name && e.name.toLowerCase().includes(q)) ||
+                    (e.email && e.email.toLowerCase().includes(q)) ||
+                    (e.department && e.department.toLowerCase().includes(q)) ||
+                    (e.job_profile && e.job_profile.toLowerCase().includes(q)) ||
+                    (String(e.id).includes(q))
+                ).slice(0, 6).map(e => ({
+                    id: `emp_${e.id}`,
+                    title: e.name,
+                    subtitle: `#TGC-${String(e.id).padStart(4, '0')} • ${e.department || 'General'} • ${e.job_profile || 'Staff'}`,
+                    icon: 'user',
+                    group: 'Matching Staff Members',
+                    action: () => {
+                        viewCandidateHistory(e.id);
+                    }
+                }));
+            }
+
+            _currentCmdResults = [...filteredCommands, ...employeeResults];
+
+            if (_currentCmdResults.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 2.5rem 1rem; color: #94a3b8;">
+                        <i data-lucide="search-x" style="width: 32px; margin: 0 auto 0.5rem; display: block;"></i>
+                        <p style="margin: 0; font-weight: 500;">No commands or employees matching "<strong>${escapeHtml(q)}</strong>"</p>
+                    </div>
+                `;
+                if (window.lucide) lucide.createIcons();
+                return;
+            }
+
+            const groups = {};
+            _currentCmdResults.forEach((item, idx) => {
+                const g = item.group || 'Commands';
+                if (!groups[g]) groups[g] = [];
+                groups[g].push({ ...item, globalIndex: idx });
+            });
+
+            let html = '';
+            Object.entries(groups).forEach(([gTitle, items]) => {
+                html += `<div class="cmd-group-title">${escapeHtml(gTitle)}</div>`;
+                items.forEach(it => {
+                    const isSelected = it.globalIndex === _cmdSelectedIndex;
+                    html += `
+                        <div class="cmd-item ${isSelected ? 'selected' : ''}" data-index="${it.globalIndex}" onclick="executeCommand(${it.globalIndex})">
+                            <div class="cmd-item-left">
+                                <div class="cmd-item-icon">
+                                    <i data-lucide="${it.icon}" style="width: 16px;"></i>
+                                </div>
+                                <div style="min-width: 0;">
+                                    <div class="cmd-item-title">${escapeHtml(it.title)}</div>
+                                    <div class="cmd-item-subtitle">${escapeHtml(it.subtitle)}</div>
+                                </div>
+                            </div>
+                            <span class="cmd-kbd">Jump</span>
+                        </div>
+                    `;
+                });
+            });
+
+            container.innerHTML = html;
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function handleCommandPaletteInput(e) {
+            renderCommandResults(e.target.value);
+        }
+
+        function handleCommandPaletteKeydown(e) {
+            if (_currentCmdResults.length === 0) return;
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                _cmdSelectedIndex = (_cmdSelectedIndex + 1) % _currentCmdResults.length;
+                updateCmdSelectionUI();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                _cmdSelectedIndex = (_cmdSelectedIndex - 1 + _currentCmdResults.length) % _currentCmdResults.length;
+                updateCmdSelectionUI();
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                executeCommand(_cmdSelectedIndex);
+            }
+        }
+
+        function updateCmdSelectionUI() {
+            const items = document.querySelectorAll('#cmdPaletteResults .cmd-item');
+            items.forEach(el => {
+                const idx = parseInt(el.getAttribute('data-index'));
+                if (idx === _cmdSelectedIndex) {
+                    el.classList.add('selected');
+                    el.scrollIntoView({ block: 'nearest' });
+                } else {
+                    el.classList.remove('selected');
+                }
+            });
+        }
+
+        function executeCommand(index) {
+            const cmd = _currentCmdResults[index];
+            if (cmd && typeof cmd.action === 'function') {
+                closeCommandPalette();
+                cmd.action();
+            }
         }
     </script>
 

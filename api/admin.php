@@ -278,15 +278,30 @@ switch ($action) {
             sendResponse(false, ['message' => 'An employee with this email already exists.'], 422);
         }
 
+        // Photo handling
+        $photoFileName = null;
+        $photoBase64 = $input['photo_base64'] ?? null;
+        if (!empty($photoBase64)) {
+            if (preg_match('/^data:image\/(\w+);base64,/', $photoBase64, $type)) {
+                $photoData = substr($photoBase64, strpos($photoBase64, ',') + 1);
+                $ext = strtolower($type[1]) === 'jpeg' ? 'jpg' : strtolower($type[1]);
+                $decoded = base64_decode($photoData);
+                if ($decoded !== false) {
+                    $photoFileName = 'emp_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+                    @file_put_contents(__DIR__ . '/../uploads/' . $photoFileName, $decoded);
+                }
+            }
+        }
+
         // Password handling
         $tempPassword = !empty($customPassword) ? $customPassword : ('TGC#' . strtoupper(substr(md5(uniqid()), 0, 6)) . '!');
         $hashedPass = password_hash($tempPassword, PASSWORD_DEFAULT);
 
         $stmt = $pdo->prepare("
-            INSERT INTO users (name, email, password, phone, dob, address, company, department, job_profile, date_of_joining, role, status, base_salary, first_login_required)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'employee', 'active', ?, ?)
+            INSERT INTO users (name, email, password, phone, dob, address, company, department, job_profile, date_of_joining, role, status, base_salary, first_login_required, photo_path)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'employee', 'active', ?, ?, ?)
         ");
-        $stmt->execute([$name, $email, $hashedPass, $phone, $dob, $address, $company, $department, $job_profile, $doj, $baseSalary, $firstLoginRequired]);
+        $stmt->execute([$name, $email, $hashedPass, $phone, $dob, $address, $company, $department, $job_profile, $doj, $baseSalary, $firstLoginRequired, $photoFileName]);
         $newId = $pdo->lastInsertId();
 
         // Initialize Leave Quota (12 CL, 12 SL, 12 EL = 1 per month in 1-year cycle)

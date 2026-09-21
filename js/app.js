@@ -271,11 +271,31 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-document.addEventListener('click', (e) => {
-  if (e.target.classList && e.target.classList.contains('modal-overlay')) {
+// Track mousedown target so scroll-then-release doesn't dismiss
+let _modalDismissTarget = null;
+document.addEventListener('mousedown', (e) => {
+  _modalDismissTarget = e.target;
+});
+document.addEventListener('mouseup', (e) => {
+  // Only dismiss if BOTH mousedown and mouseup were on the overlay itself
+  if (_modalDismissTarget && _modalDismissTarget === e.target &&
+      e.target.classList && e.target.classList.contains('modal-overlay')) {
     e.target.classList.remove('active');
   }
+  _modalDismissTarget = null;
 });
+// Also handle touch: use touchstart/touchend for mobile
+let _modalTouchTarget = null;
+document.addEventListener('touchstart', (e) => {
+  _modalTouchTarget = e.target;
+}, { passive: true });
+document.addEventListener('touchend', (e) => {
+  if (_modalTouchTarget && _modalTouchTarget === e.target &&
+      e.target.classList && e.target.classList.contains('modal-overlay')) {
+    e.target.classList.remove('active');
+  }
+  _modalTouchTarget = null;
+}, { passive: true });
 
 // 8. Workplace Digital Clock
 function initDigitalClock(elementId) {
@@ -676,4 +696,169 @@ async function handleGlobalChangePassword(e) {
 function closeGlobalModal(id) {
   const modal = document.getElementById(id);
   if (modal) modal.classList.remove('active');
+}
+
+// ==========================================================================
+// 10. Shimmering Skeleton Renderers
+// ==========================================================================
+function renderTableSkeleton(tbody, rows = 5, cols = 6) {
+  if (!tbody) return;
+  const colWidths = ['40%', '75%', '55%', '85%', '50%', '30%', '65%', '45%'];
+  let html = '';
+  for (let r = 0; r < rows; r++) {
+    html += '<tr class="skeleton-row">';
+    for (let c = 0; c < cols; c++) {
+      const w = colWidths[(r + c) % colWidths.length];
+      if (c === 0 && cols > 4) {
+        // First column often has avatar + name in directory
+        html += `<td>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div class="skeleton skeleton-avatar"></div>
+            <div style="flex: 1;">
+              <div class="skeleton skeleton-text" style="width: ${w};"></div>
+              <div class="skeleton skeleton-text" style="width: 45%; height: 10px; margin-bottom: 0;"></div>
+            </div>
+          </div>
+        </td>`;
+      } else if (c === cols - 1) {
+        // Last column is often actions
+        html += `<td><div class="skeleton skeleton-btn" style="width: 70px; height: 28px;"></div></td>`;
+      } else {
+        html += `<td><div class="skeleton skeleton-text" style="width: ${w};"></div></td>`;
+      }
+    }
+    html += '</tr>';
+  }
+  tbody.innerHTML = html;
+}
+
+function renderCardsSkeleton(container, count = 4) {
+  if (!container) return;
+  let html = '';
+  for (let i = 0; i < count; i++) {
+    html += `
+      <div class="skeleton-card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div class="skeleton skeleton-badge"></div>
+          <div class="skeleton skeleton-avatar" style="width: 28px; height: 28px;"></div>
+        </div>
+        <div class="skeleton skeleton-title" style="width: 60%; margin-top: 0.5rem;"></div>
+        <div class="skeleton skeleton-text" style="width: 80%;"></div>
+        <div class="skeleton skeleton-text" style="width: 40%; margin-bottom: 0;"></div>
+      </div>
+    `;
+  }
+  container.innerHTML = html;
+}
+
+// ==========================================================================
+// 11. Image Processing & Auto-Compression (Canvas Square Cropper < 200KB)
+// ==========================================================================
+function processImageUpload(file, options = {}) {
+  return new Promise((resolve, reject) => {
+    if (!file || !file.type.startsWith('image/')) {
+      reject(new Error('Please select a valid image file.'));
+      return;
+    }
+
+    const maxDim = options.maxDimension || 500;
+    const quality = options.quality || 0.82;
+    const reader = new FileReader();
+
+    reader.onerror = () => reject(new Error('Failed to read image file.'));
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Failed to parse image data.'));
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = maxDim;
+        canvas.height = maxDim;
+        const ctx = canvas.getContext('2d');
+
+        // Center-crop 1:1 aspect ratio like passport photo
+        const size = Math.min(img.width, img.height);
+        const startX = (img.width - size) / 2;
+        const startY = (img.height - size) / 2;
+
+        // Smooth rendering
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+
+        // Draw cropped & resized square
+        ctx.drawImage(img, startX, startY, size, size, 0, 0, maxDim, maxDim);
+
+        // Compress to JPEG data URL
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(dataUrl);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ==========================================================================
+// 12. Command Palette Controller (Ctrl+K / Cmd+K)
+// ==========================================================================
+let _cmdPaletteInitialized = false;
+
+function initCommandPalette() {
+  if (_cmdPaletteInitialized) return;
+  _cmdPaletteInitialized = true;
+
+  // Global Keyboard listener for Ctrl+K / Cmd+K
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      toggleCommandPalette();
+    } else if (e.key === 'Escape') {
+      closeCommandPalette();
+    }
+  });
+}
+
+function openCommandPalette() {
+  const backdrop = document.getElementById('cmdPaletteBackdrop');
+  if (!backdrop) return;
+  backdrop.style.setProperty('display', 'flex', 'important');
+  backdrop.classList.add('active');
+  const input = document.getElementById('cmdPaletteInput');
+  if (input) {
+    input.value = '';
+    input.focus();
+    if (typeof renderCommandResults === 'function') {
+      renderCommandResults('');
+    }
+  }
+}
+
+function closeCommandPalette() {
+  const backdrop = document.getElementById('cmdPaletteBackdrop');
+  if (backdrop) {
+    backdrop.classList.remove('active');
+    backdrop.style.setProperty('display', 'none', 'important');
+  }
+}
+
+function toggleCommandPalette() {
+  const backdrop = document.getElementById('cmdPaletteBackdrop');
+  if (!backdrop) return;
+  if (backdrop.classList.contains('active') && backdrop.style.display !== 'none') {
+    closeCommandPalette();
+  } else {
+    openCommandPalette();
+  }
+}
+
+// Auto-init on script load
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    initCommandPalette();
+    const backdrop = document.getElementById('cmdPaletteBackdrop');
+    if (backdrop) backdrop.style.setProperty('display', 'none', 'important');
+  });
+} else {
+  initCommandPalette();
+  const backdrop = document.getElementById('cmdPaletteBackdrop');
+  if (backdrop) backdrop.style.setProperty('display', 'none', 'important');
 }
