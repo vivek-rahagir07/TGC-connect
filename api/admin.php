@@ -475,23 +475,26 @@ switch ($action) {
                 sendResponse(false, ['message' => 'This email address is already in use by another account.'], 409);
             }
 
+            // Handle company: if empty, keep existing value (avoids collation mismatch with NULLIF)
+            $companyParam = !empty($company) ? $company : null;
+
             if (!empty($newPassword)) {
                 $hashed = password_hash($newPassword, PASSWORD_DEFAULT);
                 $stmt = $pdo->prepare("
                     UPDATE users
-                    SET name = ?, email = ?, phone = ?, dob = ?, address = ?, company = COALESCE(NULLIF(?, ''), company), department = ?, job_profile = ?, 
+                    SET name = ?, email = ?, phone = ?, dob = ?, address = ?, company = COALESCE(?, company), department = ?, job_profile = ?, 
                         date_of_joining = COALESCE(?, date_of_joining), base_salary = ?, status = ?, password = ?
                     WHERE id = ?
                 ");
-                $stmt->execute([$name, $email, $phone, $dob, $address, $company, $department, $job_profile, $doj, $baseSalary, $status, $hashed, $id]);
+                $stmt->execute([$name, $email, $phone, $dob, $address, $companyParam, $department, $job_profile, $doj, $baseSalary, $status, $hashed, $id]);
             } else {
                 $stmt = $pdo->prepare("
                     UPDATE users
-                    SET name = ?, email = ?, phone = ?, dob = ?, address = ?, company = COALESCE(NULLIF(?, ''), company), department = ?, job_profile = ?, 
+                    SET name = ?, email = ?, phone = ?, dob = ?, address = ?, company = COALESCE(?, company), department = ?, job_profile = ?, 
                         date_of_joining = COALESCE(?, date_of_joining), base_salary = ?, status = ?
                     WHERE id = ?
                 ");
-                $stmt->execute([$name, $email, $phone, $dob, $address, $company, $department, $job_profile, $doj, $baseSalary, $status, $id]);
+                $stmt->execute([$name, $email, $phone, $dob, $address, $companyParam, $department, $job_profile, $doj, $baseSalary, $status, $id]);
             }
 
             if ($firstLogin !== null) {

@@ -40,6 +40,8 @@ try {
         PDO::ATTR_EMULATE_PREPARES   => false,
         PDO::ATTR_TIMEOUT            => 5,
     ]);
+    // Force consistent collation to prevent "Illegal mix of collations" errors
+    $pdo->exec("SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci");
     // Ensure company column exists on users table (Idempotent Migration)
     try {
         $cols = $pdo->query("SHOW COLUMNS FROM `users` LIKE 'company'")->fetchAll();

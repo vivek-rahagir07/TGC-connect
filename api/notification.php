@@ -610,3 +610,313 @@ function sendAttendanceNotification($pdo, $attendance, $user, $punchType = '') {
         'gateway_dispatched'  => $gatewayDispatched,
     ];
 }
+
+/**
+ * Generate and dispatch Executive Daily Attendance Digest (10:00 AM snapshot)
+ * Calculates on-time arrivals, late check-ins, approved leaves, and unmarked absentees.
+ *
+ * @param PDO $pdo Active PDO database instance
+ * @param string|null $targetDate Date in Y-m-d format (defaults to current date)
+ * @param bool $sendImmediate Whether to trigger email and automated gateway dispatch immediately
+ * @return array Digest metrics, breakdown lists, formatted message, and dispatch status
+ */
+function generateDailyAttendanceDigest($pdo, $targetDate = null, $sendImmediate = false) {
+    global $config;
+    if (!$config) {
+        $config = require __DIR__ . '/config.php';
+    }
+
+    ensureNotificationTable($pdo);
+    $notifConfig = $config['notifications'] ?? [];
+
+    $date = $targetDate ? trim($targetDate) : date('Y-m-d');
+    $dateFormatted = date('l, d M Y', strtotime($date));
+    $adminEmail = $notifConfig['admin_email'] ?? 'tgcconnectglobal@gmail.com';
+    $adminWhatsApp = $notifConfig['admin_whatsapp'] ?? '+91 87430 88888';
+    $companyName = $notifConfig['company_name'] ?? 'TGC Connect';
+
+    // 1. Fetch active employees
+    $stmtEmp = $pdo->query("
+        SELECT id, name, email, phone, department, company, job_profile 
+        FROM users 
+        WHERE role = 'employee' AND status = 'active'
+        ORDER BY name ASC
+    ");
+    $employees = $stmtEmp->fetchAll();
+    $totalStaff = count($employees);
+
+    // 2. Fetch today's attendances
+    $stmtAtt = $pdo->prepare("
+        SELECT a.*, u.name as employee_name, u.department, u.phone 
+        FROM attendances a 
+        JOIN users u ON a.user_id = u.id 
+        WHERE a.date = ?
+    ");
+    $stmtAtt->execute([$date]);
+    $attendances = $stmtAtt->fetchAll();
+    $attByUserId = [];
+    foreach ($attendances as $a) {
+        $attByUserId[$a['user_id']] = $a;
+    }
+
+    // 3. Fetch today's approved leaves
+    $stmtLeaves = $pdo->prepare("
+        SELECT l.*, u.name as employee_name, u.department 
+        FROM leaves l 
+        JOIN users u ON l.user_id = u.id 
+        WHERE ? BETWEEN DATE(l.start_date) AND DATE(l.end_date)
+          AND l.status = 'approved'
+    ");
+    $stmtLeaves->execute([$date]);
+    $leaves = $stmtLeaves->fetchAll();
+    $leavesByUserId = [];
+    foreach ($leaves as $l) {
+        $leavesByUserId[$l['user_id']] = $l;
+    }
+
+    // 4. Categorize workforce
+    $onTimeList = [];
+    $lateList = [];
+    $halfDayList = [];
+    $onLeaveList = [];
+    $absentList = [];
+
+    foreach ($employees as $emp) {
+        $uid = $emp['id'];
+        if (isset($attByUserId[$uid])) {
+            $att = $attByUserId[$uid];
+            $checkIn = $att['check_in_time'] ? substr($att['check_in_time'], 0, 5) : null;
+            $info = [
+                'user_id'     => $uid,
+                'name'        => $emp['name'],
+                'department'  => $emp['department'] ?: 'General',
+                'check_in'    => $checkIn,
+                'status'      => $att['status'],
+                'method'      => strtoupper($att['method'] ?? 'GPS'),
+                'notes'       => $att['notes'] ?? '',
+            ];
+
+            if ($att['status'] === 'late') {
+                $lateList[] = $info;
+            } elseif ($att['status'] === 'half_day') {
+                $halfDayList[] = $info;
+            } else {
+                $onTimeList[] = $info;
+            }
+        } elseif (isset($leavesByUserId[$uid])) {
+            $lev = $leavesByUserId[$uid];
+            $onLeaveList[] = [
+                'user_id'    => $uid,
+                'name'       => $emp['name'],
+                'department' => $emp['department'] ?: 'General',
+                'leave_type' => ucwords(str_replace('_', ' ', $lev['leave_type'] ?? 'Leave')),
+                'reason'     => $lev['reason'] ?? '',
+            ];
+        } else {
+            $absentList[] = [
+                'user_id'    => $uid,
+                'name'       => $emp['name'],
+                'department' => $emp['department'] ?: 'General',
+                'phone'      => $emp['phone'] ?? '',
+            ];
+        }
+    }
+
+    $onTimeCount = count($onTimeList);
+    $lateCount   = count($lateList);
+    $halfDayCount = count($halfDayList);
+    $leaveCount  = count($onLeaveList);
+    $absentCount = count($absentList);
+    $presentTotal = $onTimeCount + $lateCount + $halfDayCount;
+    $presenceRate = $totalStaff > 0 ? round(($presentTotal / $totalStaff) * 100, 1) : 0;
+
+    // 5. Build WhatsApp Markdown Message
+    $lateDetails = '';
+    if ($lateCount > 0) {
+        $names = array_map(function($e) {
+            return $e['name'] . ($e['check_in'] ? " (@{$e['check_in']})" : "");
+        }, array_slice($lateList, 0, 4));
+        $lateDetails = " (" . implode(', ', $names) . ($lateCount > 4 ? " + " . ($lateCount - 4) . " more" : "") . ")";
+    }
+
+    $leaveDetails = '';
+    if ($leaveCount > 0) {
+        $lNames = array_map(function($l) {
+            return $l['name'] . " - " . $l['leave_type'];
+        }, array_slice($onLeaveList, 0, 3));
+        $leaveDetails = " (" . implode(', ', $lNames) . ")";
+    }
+
+    $absentDetails = '';
+    if ($absentCount > 0) {
+        $aNames = array_map(function($a) { return $a['name']; }, array_slice($absentList, 0, 4));
+        $absentDetails = " (" . implode(', ', $aNames) . ($absentCount > 4 ? " + " . ($absentCount - 4) . " more" : "") . ")";
+    }
+
+    $whatsappMsg = "🌅 *TGC CONNECT — DAILY EXECUTIVE ATTENDANCE DIGEST*\n"
+        . "📅 *Date:* {$dateFormatted} (10:00 AM Snapshot)\n"
+        . "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        . "👥 *Total Workforce:* {$totalStaff} Staff\n"
+        . "✅ *Present On-Time:* {$onTimeCount}\n"
+        . "⏰ *Late Arrivals:* {$lateCount}{$lateDetails}\n"
+        . ($halfDayCount > 0 ? "⛅ *Half-Day Punches:* {$halfDayCount}\n" : "")
+        . "🏖️ *On Approved Leave:* {$leaveCount}{$leaveDetails}\n"
+        . "❌ *Unmarked / Absent:* {$absentCount}{$absentDetails}\n\n"
+        . "📊 *Workforce Presence Rate:* {$presenceRate}%\n"
+        . "🏢 *Organization:* {$companyName}\n"
+        . "🔗 *Operations Center:* https://tgcconnect.in/admin.html";
+
+    // 6. Build HTML Email
+    $emailHtml = '
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8fafc; margin: 0; padding: 20px; color: #1e293b; }
+            .card { background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; max-width: 600px; margin: 0 auto; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+            .header { background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); color: #ffffff; padding: 24px; }
+            .content { padding: 24px; }
+            .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 18px 0; }
+            .kpi-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; text-align: center; }
+            .kpi-num { font-size: 1.5rem; font-weight: 800; }
+            .kpi-label { font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #64748b; margin-top: 4px; }
+            .btn { display: inline-block; background: #4f46e5; color: #ffffff !important; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: 700; font-size: 0.9rem; margin-top: 15px; }
+            .section-title { font-size: 0.85rem; font-weight: 700; color: #475569; text-transform: uppercase; margin-top: 16px; margin-bottom: 6px; }
+            .pill { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin: 2px; }
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <div class="header">
+                <div style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; opacity: 0.9;">Executive Briefing</div>
+                <h2 style="margin: 4px 0 0 0; font-size: 1.35rem;">Daily Attendance Digest</h2>
+                <div style="font-size: 0.85rem; opacity: 0.85; margin-top: 4px;">' . htmlspecialchars($dateFormatted) . ' • 10:00 AM Snapshot</div>
+            </div>
+            <div class="content">
+                <div class="grid">
+                    <div class="kpi-box" style="border-left: 4px solid #10b981;">
+                        <div class="kpi-num" style="color: #059669;">' . $onTimeCount . ' / ' . $totalStaff . '</div>
+                        <div class="kpi-label">On-Time Present</div>
+                    </div>
+                    <div class="kpi-box" style="border-left: 4px solid #f59e0b;">
+                        <div class="kpi-num" style="color: #d97706;">' . $lateCount . '</div>
+                        <div class="kpi-label">Late Arrivals</div>
+                    </div>
+                    <div class="kpi-box" style="border-left: 4px solid #3b82f6;">
+                        <div class="kpi-num" style="color: #2563eb;">' . $leaveCount . '</div>
+                        <div class="kpi-label">On Approved Leave</div>
+                    </div>
+                    <div class="kpi-box" style="border-left: 4px solid #ef4444;">
+                        <div class="kpi-num" style="color: #dc2626;">' . $absentCount . '</div>
+                        <div class="kpi-label">Unmarked / Absent</div>
+                    </div>
+                </div>
+
+                <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px; margin-top: 15px; font-size: 0.86rem; color: #1e40af;">
+                    <strong>Workforce Presence Rate: ' . $presenceRate . '%</strong> &bull; Total Staff: ' . $totalStaff . '
+                </div>';
+
+    if ($lateCount > 0) {
+        $emailHtml .= '<div class="section-title">⏰ Late Check-Ins:</div><div>';
+        foreach ($lateList as $lt) {
+            $emailHtml .= '<span class="pill" style="background:#fef3c7; color:#b45309;">' . htmlspecialchars($lt['name']) . ($lt['check_in'] ? " (" . $lt['check_in'] . ")" : "") . '</span> ';
+        }
+        $emailHtml .= '</div>';
+    }
+
+    if ($leaveCount > 0) {
+        $emailHtml .= '<div class="section-title">🏖️ Approved Leaves Today:</div><div>';
+        foreach ($onLeaveList as $ol) {
+            $emailHtml .= '<span class="pill" style="background:#e0e7ff; color:#4338ca;">' . htmlspecialchars($ol['name']) . ' (' . htmlspecialchars($ol['leave_type']) . ')</span> ';
+        }
+        $emailHtml .= '</div>';
+    }
+
+    if ($absentCount > 0) {
+        $emailHtml .= '<div class="section-title">❌ Unmarked Absentees:</div><div>';
+        foreach ($absentList as $ab) {
+            $emailHtml .= '<span class="pill" style="background:#fee2e2; color:#b91c1c;">' . htmlspecialchars($ab['name']) . '</span> ';
+        }
+        $emailHtml .= '</div>';
+    }
+
+    $emailHtml .= '
+                <div style="text-align: center; margin-top: 20px;">
+                    <a href="https://tgcconnect.in/admin.html" class="btn">Open Operations Command Center &rarr;</a>
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>';
+
+    $emailSent = false;
+    $gatewaySent = false;
+
+    // 7. Dispatch if requested
+    if ($sendImmediate) {
+        // Send email via existing SMTP infrastructure
+        $subject = "🌅 {$companyName} Daily Attendance Digest - " . date('d M Y', strtotime($date));
+        $smtpHost = $notifConfig['smtp_host'] ?? 'smtp.gmail.com';
+        $smtpPort = (int)($notifConfig['smtp_port'] ?? 587);
+        $smtpUser = $notifConfig['smtp_user'] ?? $adminEmail;
+        $smtpPass = $notifConfig['smtp_password'] ?? '';
+        if (!empty($smtpPass)) {
+            $emailResult = smtpSendMail($smtpHost, $smtpPort, $smtpUser, $smtpPass, 'TGC Connect', $adminEmail, $adminEmail, $subject, $emailHtml, strip_tags($whatsappMsg));
+            $emailSent = $emailResult['ok'];
+        } else {
+            error_log('[TGC Notification] SMTP password not configured for daily digest.');
+        }
+
+        // Send WhatsApp via gateway if configured
+        $gatewayUrl = $notifConfig['whatsapp_gateway_url'] ?? '';
+        $gatewayToken = $notifConfig['whatsapp_gateway_token'] ?? '';
+        if (!empty($gatewayUrl) && !empty($gatewayToken) && !empty($adminWhatsApp)) {
+            $gatewaySent = dispatchAutomatedWhatsAppGateway($gatewayUrl, $gatewayToken, $adminWhatsApp, $whatsappMsg);
+        }
+
+        // Log to notification_logs
+        try {
+            $stmtLog = $pdo->prepare("
+                INSERT INTO notification_logs (user_id, recipient_phone, recipient_email, type, channel, message, location_name, status, error_details)
+                VALUES (NULL, ?, ?, 'daily_digest', 'whatsapp_and_email', ?, 'Central Operations', 'sent', ?)
+            ");
+            $stmtLog->execute([
+                $adminWhatsApp,
+                $adminEmail,
+                $whatsappMsg,
+                json_encode(['email_sent' => $emailSent, 'gateway_sent' => $gatewaySent, 'presence_rate' => $presenceRate])
+            ]);
+        } catch (Exception $e) {}
+    }
+
+    $whatsappUrl = buildWhatsAppUrl($adminWhatsApp, $whatsappMsg);
+
+    return [
+        'success'           => true,
+        'date'              => $date,
+        'date_formatted'    => $dateFormatted,
+        'metrics'           => [
+            'total_staff'      => $totalStaff,
+            'present_count'    => $onTimeCount,
+            'late_count'       => $lateCount,
+            'half_day_count'   => $halfDayCount,
+            'on_leave_count'   => $leaveCount,
+            'absent_count'     => $absentCount,
+            'presence_rate'    => $presenceRate,
+        ],
+        'breakdown'         => [
+            'on_time'   => $onTimeList,
+            'late'      => $lateList,
+            'half_day'  => $halfDayList,
+            'on_leave'  => $onLeaveList,
+            'absent'    => $absentList,
+        ],
+        'whatsapp_message'  => $whatsappMsg,
+        'whatsapp_url'      => $whatsappUrl,
+        'admin_phone'       => $adminWhatsApp,
+        'admin_email'       => $adminEmail,
+        'email_sent'        => $emailSent,
+        'gateway_sent'      => $gatewaySent,
+    ];
+}
