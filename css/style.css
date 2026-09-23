@@ -1363,61 +1363,87 @@ button.user-nav-item.danger:hover,
   letter-spacing: 10px;
 }
 
-/* Print Stylesheet */
+/* ==========================================================================
+   Consolidated Print Stylesheet (@media print)
+   Optimized for Crisp, Clean Salary Payslip Exports & Printing
+   ========================================================================== */
 @media print {
-  /* Page setup for A4 salary slip */
   @page {
     size: A4 portrait;
-    margin: 12mm 15mm 12mm 15mm;
+    margin: 10mm 15mm;
   }
 
-  /* Base reset */
-  body {
+  html, body {
     background: #ffffff !important;
     background-image: none !important;
-    color: #000000 !important;
+    color: #0f172a !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
-    font-size: 11pt !important;
+    font-size: 10.5pt !important;
+    overflow: visible !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
-  /* Hide everything on the page first */
-  body > * {
+  /* Hide background ambient orbs and decorative pseudo-elements */
+  body::before, body::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  /* Hide navigation, toolbars, alerts, buttons, non-active modals */
+  .navbar,
+  .nav-menu,
+  #navUserArea,
+  .mobile-bottom-nav,
+  #toast-container,
+  #confettiCanvas,
+  .main-container,
+  .admin-sidebar,
+  .sidebar,
+  .sidebar-nav,
+  .admin-tab-header,
+  .cmd-palette-backdrop,
+  #activeGpsLinkAlert,
+  .nav-tabs,
+  nav,
+  .btn,
+  .close-btn,
+  .modal-header,
+  .modal-footer {
     display: none !important;
   }
 
-  /* Then show only the active payslip modal */
-  body > #viewSlipModal.active,
-  body > .modal-overlay#viewSlipModal.active {
+  /* Hide ALL inactive modals and non-slip modals */
+  .modal-overlay:not(.active),
+  .modal-overlay:not(#viewSlipModal) {
+    display: none !important;
+  }
+
+  /* Only display the active payslip modal */
+  #viewSlipModal.active,
+  .modal-overlay#viewSlipModal.active {
     display: block !important;
     position: static !important;
     background: none !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
     overflow: visible !important;
+    opacity: 1 !important;
     z-index: auto !important;
   }
 
-  /* Hide non-printable UI elements */
-  body::before, body::after,
-  .navbar, .nav-menu, #navUserArea,
-  #toast-container, #confettiCanvas,
-  .modal-header, .modal-footer,
-  .close-btn, .btn,
-  .main-container, .admin-sidebar,
-  .tab-content:not(.active),
-  .sidebar-nav, .admin-tab-header {
-    display: none !important;
-  }
-
-  /* Style the visible modal content */
-  .modal-content {
+  #viewSlipModal .modal-content {
     box-shadow: none !important;
-    max-width: 100% !important;
-    width: 100% !important;
     border: none !important;
     border-radius: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
     padding: 0 !important;
     margin: 0 !important;
     background: #ffffff !important;
@@ -1426,33 +1452,40 @@ button.user-nav-item.danger:hover,
     position: static !important;
   }
 
-  .modal-body {
+  #viewSlipModal .modal-body {
     padding: 0 !important;
+    margin: 0 !important;
     max-height: none !important;
     overflow: visible !important;
   }
 
-  /* Payslip container print optimizations */
+  /* Payslip Container Print Styling */
   .payslip-container {
     box-shadow: none !important;
-    border: none !important;
-    border-radius: 0 !important;
-    padding: 0 !important;
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    padding: 1.5rem !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
     page-break-inside: avoid;
     break-inside: avoid;
   }
 
-  /* Ensure backgrounds and colors print */
-  .payslip-header, .payslip-table th,
-  .badge, [style*="background"] {
+  .payslip-header,
+  .payslip-table th,
+  .badge,
+  [style*="background"] {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* Tables should not break across pages */
   .payslip-table {
     page-break-inside: avoid;
     break-inside: avoid;
+    width: 100% !important;
   }
 
   .payslip-table th {
@@ -1460,12 +1493,10 @@ button.user-nav-item.danger:hover,
     color: #ffffff !important;
   }
 
-  /* Watermark print handling */
   .payslip-watermark {
     opacity: 0.04 !important;
   }
 
-  /* Prevent links from showing URLs */
   a[href]:after {
     content: none !important;
   }
@@ -2871,62 +2902,7 @@ button.user-nav-item.danger:hover,
   color: #475569;
 }
 
-/* ==========================================================================
-   Dedicated Payslip Print Stylesheet (@media print)
-   ========================================================================== */
-@media print {
-  body {
-    background: #ffffff !important;
-    padding: 0 !important;
-    margin: 0 !important;
-  }
 
-  .navbar,
-  .mobile-bottom-nav,
-  .modal-header,
-  .modal-footer,
-  .cmd-palette-backdrop,
-  .btn,
-  .close-btn,
-  #activeGpsLinkAlert,
-  .sidebar,
-  .nav-tabs,
-  nav {
-    display: none !important;
-  }
-
-  .modal-overlay {
-    position: static !important;
-    display: block !important;
-    background: none !important;
-    padding: 0 !important;
-    opacity: 1 !important;
-  }
-
-  .modal-content {
-    border: none !important;
-    box-shadow: none !important;
-    max-width: 100% !important;
-    width: 100% !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    overflow: visible !important;
-  }
-
-  .payslip-container {
-    border: none !important;
-    box-shadow: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    width: 100% !important;
-    color: #000000 !important;
-  }
-
-  @page {
-    size: A4 portrait;
-    margin: 1.2cm;
-  }
-}
 
 
 

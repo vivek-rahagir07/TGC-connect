@@ -448,51 +448,64 @@ switch ($action) {
         break;
 
     case 'update_employee':
-        $id = intval($input['id'] ?? 0);
-        $name = trim($input['name'] ?? '');
-        $email = trim($input['email'] ?? '');
-        $phone = trim($input['phone'] ?? '');
-        $dob = !empty($input['dob']) ? trim($input['dob']) : null;
-        $doj = !empty($input['date_of_joining']) ? trim($input['date_of_joining']) : null;
-        $address = trim($input['address'] ?? '');
-        $company = trim($input['company'] ?? '');
-        $department = trim($input['department'] ?? '');
-        $job_profile = trim($input['job_profile'] ?? '');
-        $baseSalary = floatval($input['base_salary'] ?? 30000.00);
-        $status = trim($input['status'] ?? 'active');
-        $newPassword = trim($input['new_password'] ?? '');
-        $firstLogin = isset($input['first_login_required']) ? intval($input['first_login_required']) : null;
+        try {
+            $id = intval($input['id'] ?? 0);
+            $name = trim($input['name'] ?? '');
+            $email = trim($input['email'] ?? '');
+            $phone = trim($input['phone'] ?? '');
+            $dob = !empty($input['dob']) ? trim($input['dob']) : null;
+            $doj = !empty($input['date_of_joining']) ? trim($input['date_of_joining']) : null;
+            $address = trim($input['address'] ?? '');
+            $company = trim($input['company'] ?? '');
+            $department = trim($input['department'] ?? '');
+            $job_profile = trim($input['job_profile'] ?? '');
+            $baseSalary = (isset($input['base_salary']) && is_numeric($input['base_salary'])) ? floatval($input['base_salary']) : 30000.00;
+            $status = trim($input['status'] ?? 'active');
+            $newPassword = trim($input['new_password'] ?? '');
+            $firstLogin = isset($input['first_login_required']) ? intval($input['first_login_required']) : null;
 
-        if (!$id || !$name || !$email) {
-            sendResponse(false, ['message' => 'ID, name, and email are required.'], 400);
+            if (!$id || !$name || !$email) {
+                sendResponse(false, ['message' => 'ID, name, and email are required.'], 400);
+            }
+
+            // Check if email already belongs to another user
+            $stmtCheck = $pdo->prepare("SELECT id FROM users WHERE email = ? AND id != ? LIMIT 1");
+            $stmtCheck->execute([$email, $id]);
+            if ($stmtCheck->fetch()) {
+                sendResponse(false, ['message' => 'This email address is already in use by another account.'], 409);
+            }
+
+            if (!empty($newPassword)) {
+                $hashed = password_hash($newPassword, PASSWORD_DEFAULT);
+                $stmt = $pdo->prepare("
+                    UPDATE users
+                    SET name = ?, email = ?, phone = ?, dob = ?, address = ?, company = COALESCE(NULLIF(?, ''), company), department = ?, job_profile = ?, 
+                        date_of_joining = COALESCE(?, date_of_joining), base_salary = ?, status = ?, password = ?
+                    WHERE id = ?
+                ");
+                $stmt->execute([$name, $email, $phone, $dob, $address, $company, $department, $job_profile, $doj, $baseSalary, $status, $hashed, $id]);
+            } else {
+                $stmt = $pdo->prepare("
+                    UPDATE users
+                    SET name = ?, email = ?, phone = ?, dob = ?, address = ?, company = COALESCE(NULLIF(?, ''), company), department = ?, job_profile = ?, 
+                        date_of_joining = COALESCE(?, date_of_joining), base_salary = ?, status = ?
+                    WHERE id = ?
+                ");
+                $stmt->execute([$name, $email, $phone, $dob, $address, $company, $department, $job_profile, $doj, $baseSalary, $status, $id]);
+            }
+
+            if ($firstLogin !== null) {
+                $pdo->prepare("UPDATE users SET first_login_required = ? WHERE id = ?")->execute([$firstLogin, $id]);
+            }
+
+            logAdminAction($pdo, $user['id'], 'update_employee', $id, "Updated profile for {$name} ({$email}) [Status: {$status}].");
+
+            sendResponse(true, ['message' => 'Employee profile updated successfully.']);
+        } catch (PDOException $e) {
+            sendResponse(false, ['message' => 'Database error: ' . $e->getMessage()], 500);
+        } catch (Exception $e) {
+            sendResponse(false, ['message' => 'Error: ' . $e->getMessage()], 500);
         }
-
-        if (!empty($newPassword)) {
-            $hashed = password_hash($newPassword, PASSWORD_DEFAULT);
-            $stmt = $pdo->prepare("
-                UPDATE users
-                SET name = ?, email = ?, phone = ?, dob = ?, address = ?, company = COALESCE(NULLIF(?, ''), company), department = ?, job_profile = ?, 
-                    date_of_joining = COALESCE(?, date_of_joining), base_salary = ?, status = ?, password = ?
-                WHERE id = ?
-            ");
-            $stmt->execute([$name, $email, $phone, $dob, $address, $company, $department, $job_profile, $doj, $baseSalary, $status, $hashed, $id]);
-        } else {
-            $stmt = $pdo->prepare("
-                UPDATE users
-                SET name = ?, email = ?, phone = ?, dob = ?, address = ?, company = COALESCE(NULLIF(?, ''), company), department = ?, job_profile = ?, 
-                    date_of_joining = COALESCE(?, date_of_joining), base_salary = ?, status = ?
-                WHERE id = ?
-            ");
-            $stmt->execute([$name, $email, $phone, $dob, $address, $company, $department, $job_profile, $doj, $baseSalary, $status, $id]);
-        }
-
-        if ($firstLogin !== null) {
-            $pdo->prepare("UPDATE users SET first_login_required = ? WHERE id = ?")->execute([$firstLogin, $id]);
-        }
-
-        logAdminAction($pdo, $user['id'], 'update_employee', $id, "Updated profile for {$name} ({$email}) [Status: {$status}].");
-
-        sendResponse(true, ['message' => 'Employee profile updated successfully.']);
         break;
 
     case 'update_leave_quota':

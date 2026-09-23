@@ -251,7 +251,395 @@ switch ($action) {
         fclose($fp);
         exit;
 
+    case 'range_list':
+        $user = getCurrentUser($pdo);
+        if (!$user) {
+            sendResponse(false, ['message' => 'Unauthorized'], 401);
+        }
+
+        $startDate = trim($_GET['start_date'] ?? ($input['start_date'] ?? ''));
+        $endDate = trim($_GET['end_date'] ?? ($input['end_date'] ?? ''));
+        $filterUserId = intval($_GET['user_id'] ?? ($input['user_id'] ?? 0));
+
+        if ($user['role'] !== 'admin') {
+            $filterUserId = $user['id'];
+        }
+
+        $res = calculateCustomRangePayroll($pdo, $startDate, $endDate, $filterUserId);
+        if (!$res['success']) {
+            sendResponse(false, ['message' => $res['message']], 400);
+        }
+        sendResponse(true, $res);
+        break;
+
+    case 'range_slip':
+        $user = getCurrentUser($pdo);
+        if (!$user) {
+            sendResponse(false, ['message' => 'Unauthorized'], 401);
+        }
+
+        $startDate = trim($_GET['start_date'] ?? ($input['start_date'] ?? ''));
+        $endDate = trim($_GET['end_date'] ?? ($input['end_date'] ?? ''));
+        $targetUserId = intval($_GET['user_id'] ?? ($input['user_id'] ?? 0));
+
+        if ($user['role'] !== 'admin') {
+            $targetUserId = $user['id'];
+        }
+
+        if ($targetUserId <= 0) {
+            sendResponse(false, ['message' => 'Valid user_id is required.'], 400);
+        }
+
+        $res = calculateCustomRangePayroll($pdo, $startDate, $endDate, $targetUserId);
+        if (!$res['success'] || empty($res['employees'])) {
+            sendResponse(false, ['message' => $res['message'] ?? 'Employee record not found.'], 404);
+        }
+
+        sendResponse(true, [
+            'payroll' => $res['employees'][0],
+            'meta' => [
+                'start_date' => $res['start_date'],
+                'end_date' => $res['end_date'],
+                'total_calendar_days' => $res['total_calendar_days'],
+                'total_working_days' => $res['total_working_days'],
+                'sundays_count' => $res['sundays_count'],
+                'holidays_count' => $res['holidays_count'],
+            ]
+        ]);
+        break;
+
+    case 'range_export_csv':
+        $user = getCurrentUser($pdo);
+        if (!$user || $user['role'] !== 'admin') {
+            sendResponse(false, ['message' => 'Unauthorized. Admin access required.'], 403);
+        }
+
+        $startDate = trim($_GET['start_date'] ?? '');
+        $endDate = trim($_GET['end_date'] ?? '');
+        $filterUserId = intval($_GET['user_id'] ?? 0);
+
+        $res = calculateCustomRangePayroll($pdo, $startDate, $endDate, $filterUserId);
+        if (!$res['success']) {
+            die($res['message']);
+        }
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header("Content-Disposition: attachment; filename=payroll_custom_{$startDate}_to_{$endDate}.csv");
+        $fp = fopen('php://output', 'w');
+        // UTF-8 BOM
+        fprintf($fp, chr(0xEF).chr(0xBB).chr(0xBF));
+        fputcsv($fp, [
+            'Period Start', 'Period End', 'Calendar Days', 'Working Days', 'Employee Name', 'Email',
+            'Company', 'Department', 'Job Profile', 'Monthly Base Salary (INR)', 'Period Target Gross (INR)',
+            'Daily Rate (INR)', 'Present Days', 'Paid Leaves', 'Unpaid Absent Days', 'Deductions (INR)',
+            'Net Payable Take-Home (INR)', 'Remarks'
+        ], ',', '"', "\\");
+
+        foreach ($res['employees'] as $r) {
+            fputcsv($fp, [
+                $res['start_date'],
+                $res['end_date'],
+                $res['total_calendar_days'],
+                $res['total_working_days'],
+                $r['user_name'],
+                $r['user_email'],
+                $r['user_company'],
+                $r['user_dept'],
+                $r['user_job'],
+                $r['base_salary'],
+                $r['period_gross'],
+                $r['daily_rate'],
+                $r['present_days'],
+                $r['paid_leaves'],
+                $r['unpaid_days'],
+                $r['deduction_amount'],
+                $r['net_salary'],
+                $r['remarks'],
+            ], ',', '"', "\\");
+        }
+        fclose($fp);
+        exit;
+
     default:
         sendResponse(false, ['message' => 'Invalid payroll action.'], 400);
         break;
 }
+
+/**
+ * Helper function to calculate pro-rata payroll and itemized attendance/leave statement
+ * for any arbitrary date range (single day, week, fortnight, month, or custom period).
+ */
+function calculateCustomRangePayroll($pdo, $startDate, $endDate, $filterUserId = 0) {
+    if (empty($startDate) || empty($endDate)) {
+        return ['success' => false, 'message' => 'start_date and end_date are required (YYYY-MM-DD).'];
+    }
+
+    if ($startDate > $endDate) {
+        $temp = $startDate;
+        $startDate = $endDate;
+        $endDate = $temp;
+    }
+
+    $startTime = strtotime($startDate . ' 00:00:00');
+    $endTime = strtotime($endDate . ' 00:00:00');
+    if (!$startTime || !$endTime) {
+        return ['success' => false, 'message' => 'Invalid date format. Expected YYYY-MM-DD.'];
+    }
+
+    $diffDays = (int)round(($endTime - $startTime) / 86400) + 1;
+    if ($diffDays > 366) {
+        return ['success' => false, 'message' => 'Date range cannot exceed 366 days.'];
+    }
+
+    // Company holidays in range
+    $stmtH = $pdo->prepare("SELECT holiday_date, title, type AS holiday_type FROM holidays WHERE holiday_date BETWEEN ? AND ? ORDER BY holiday_date ASC");
+    $stmtH->execute([$startDate, $endDate]);
+    $holidaysList = $stmtH->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    $holidayMap = [];
+    foreach ($holidaysList as $h) {
+        $holidayMap[$h['holiday_date']] = $h;
+    }
+
+    // Build timeline of each calendar day in the range
+    $calendarDates = [];
+    $totalWorkingDays = 0;
+    $sundaysCount = 0;
+    $holidaysCount = 0;
+
+    for ($t = $startTime; $t <= $endTime; $t += 86400) {
+        $curDateStr = date('Y-m-d', $t);
+        $dayOfWeek = (int)date('N', $t);
+        $isSunday = ($dayOfWeek === 7);
+        $isHoliday = isset($holidayMap[$curDateStr]);
+        $holidayInfo = $isHoliday ? $holidayMap[$curDateStr] : null;
+
+        if ($isSunday) {
+            $sundaysCount++;
+        } elseif ($isHoliday) {
+            $holidaysCount++;
+        } else {
+            $totalWorkingDays++;
+        }
+
+        $m = (int)date('n', $t);
+        $y = (int)date('Y', $t);
+        $monthDays = (int)cal_days_in_month(CAL_GREGORIAN, $m, $y);
+
+        $calendarDates[] = [
+            'date' => $curDateStr,
+            'day_name' => date('D', $t),
+            'day_num' => date('d', $t),
+            'month_name' => date('M', $t),
+            'year' => $y,
+            'is_sunday' => $isSunday,
+            'is_holiday' => $isHoliday,
+            'holiday_title' => $holidayInfo['title'] ?? null,
+            'holiday_type' => $holidayInfo['holiday_type'] ?? null,
+            'month_days' => $monthDays,
+        ];
+    }
+
+    // Active employees
+    $empSql = "SELECT * FROM users WHERE role = 'employee' AND status = 'active'";
+    $empParams = [];
+    if ($filterUserId > 0) {
+        $empSql .= " AND id = ?";
+        $empParams[] = $filterUserId;
+    }
+    $empSql .= " ORDER BY name ASC";
+    $stmtEmp = $pdo->prepare($empSql);
+    $stmtEmp->execute($empParams);
+    $employees = $stmtEmp->fetchAll(PDO::FETCH_ASSOC);
+
+    $results = [];
+
+    foreach ($employees as $emp) {
+        $baseSalary = floatval($emp['base_salary'] ?: 30000.00);
+
+        // Calculate period gross & daily rates using month calendar days for each date
+        $periodGross = 0.0;
+        foreach ($calendarDates as $cd) {
+            $periodGross += ($baseSalary / $cd['month_days']);
+        }
+        $avgDailyRate = $diffDays > 0 ? round($periodGross / $diffDays, 2) : 0.00;
+        $periodGross = round($periodGross, 2);
+
+        // Fetch verified attendances in range
+        $stmtAtt = $pdo->prepare("SELECT * FROM attendances WHERE user_id = ? AND date BETWEEN ? AND ? ORDER BY date ASC");
+        $stmtAtt->execute([$emp['id'], $startDate, $endDate]);
+        $attendances = $stmtAtt->fetchAll(PDO::FETCH_ASSOC);
+        $attMap = [];
+        $presentDays = 0.0;
+        foreach ($attendances as $a) {
+            $attMap[$a['date']] = $a;
+            if ($a['status'] === 'present' || $a['status'] === 'late') {
+                $presentDays += 1.0;
+            } elseif ($a['status'] === 'half_day') {
+                $presentDays += 0.5;
+            }
+        }
+
+        // Fetch approved paid leaves covering this range
+        $stmtL = $pdo->prepare("
+            SELECT * FROM leaves
+            WHERE user_id = ? AND status = 'approved' AND leave_type IN ('casual', 'sick', 'earned', 'comp_off')
+            AND start_date <= ? AND end_date >= ?
+        ");
+        $stmtL->execute([$emp['id'], $endDate, $startDate]);
+        $leaves = $stmtL->fetchAll(PDO::FETCH_ASSOC);
+
+        // Evaluate day by day breakdown
+        $paidLeaves = 0.0;
+        $dayBreakdown = [];
+
+        foreach ($calendarDates as $cd) {
+            $d = $cd['date'];
+            $att = $attMap[$d] ?? null;
+
+            // Check if day falls in approved leave
+            $coveringLeave = null;
+            foreach ($leaves as $lv) {
+                if ($d >= $lv['start_date'] && $d <= $lv['end_date']) {
+                    $coveringLeave = $lv;
+                    break;
+                }
+            }
+
+            $dayStatus = 'unmarked';
+            $statusLabel = 'Absent / Unmarked';
+            $badgeClass = 'danger';
+            $paidCredit = 0.0;
+
+            if ($cd['is_sunday']) {
+                $dayStatus = 'sunday';
+                $statusLabel = 'Sunday (Weekly Off)';
+                $badgeClass = 'info';
+                $paidCredit = 1.0;
+            } elseif ($cd['is_holiday']) {
+                $dayStatus = 'holiday';
+                $statusLabel = 'Holiday: ' . $cd['holiday_title'];
+                $badgeClass = 'primary';
+                $paidCredit = 1.0;
+            } elseif ($att) {
+                if ($att['status'] === 'present') {
+                    $dayStatus = 'present';
+                    $statusLabel = 'Present (' . strtoupper($att['method'] ?? 'QR') . ')';
+                    $badgeClass = 'success';
+                    $paidCredit = 1.0;
+                } elseif ($att['status'] === 'late') {
+                    $dayStatus = 'late';
+                    $checkInStr = !empty($att['check_in_time']) ? substr($att['check_in_time'], 0, 5) : 'Late';
+                    $statusLabel = 'Present (Late - ' . $checkInStr . ')';
+                    $badgeClass = 'warning';
+                    $paidCredit = 1.0;
+                } elseif ($att['status'] === 'half_day') {
+                    $dayStatus = 'half_day';
+                    $statusLabel = 'Half Day';
+                    $badgeClass = 'warning';
+                    $paidCredit = 0.5;
+                } else {
+                    $dayStatus = 'absent';
+                    $statusLabel = 'Absent';
+                    $badgeClass = 'danger';
+                    $paidCredit = 0.0;
+                }
+            } elseif ($coveringLeave) {
+                $dayStatus = 'leave';
+                $statusLabel = 'Paid Leave (' . ucfirst($coveringLeave['leave_type']) . ')';
+                $badgeClass = 'primary';
+                $paidCredit = 1.0;
+                $paidLeaves += 1.0;
+            } else {
+                $dayStatus = 'absent';
+                $statusLabel = 'Absent / Unmarked';
+                $badgeClass = 'danger';
+                $paidCredit = 0.0;
+            }
+
+            $dayBreakdown[] = [
+                'date' => $d,
+                'day_name' => $cd['day_name'],
+                'day_num' => $cd['day_num'],
+                'month_name' => $cd['month_name'],
+                'year' => $cd['year'],
+                'is_sunday' => $cd['is_sunday'],
+                'is_holiday' => $cd['is_holiday'],
+                'holiday_title' => $cd['holiday_title'],
+                'status' => $dayStatus,
+                'status_label' => $statusLabel,
+                'badge_class' => $badgeClass,
+                'paid_credit' => $paidCredit,
+                'check_in' => $att['check_in_time'] ?? null,
+                'check_out' => $att['check_out_time'] ?? null,
+                'notes' => $att['notes'] ?? ($coveringLeave['reason'] ?? null),
+            ];
+        }
+
+        // Deductions & net salary
+        if ($totalWorkingDays > 0) {
+            $paidTotal = $presentDays + $paidLeaves;
+            $unpaidDays = max(0.0, (float)$totalWorkingDays - $paidTotal);
+            $deductionAmount = round($avgDailyRate * $unpaidDays, 2);
+
+            // If completely absent during entire period with 0 working days attended
+            if ($paidTotal <= 0 && $presentDays <= 0 && $paidLeaves <= 0) {
+                $netSalary = 0.00;
+                $deductionAmount = $periodGross;
+                $unpaidDays = (float)$totalWorkingDays;
+            } else {
+                $netSalary = max(0.00, round($periodGross - $deductionAmount, 2));
+            }
+        } else {
+            // Range with no regular working days (e.g. Sunday or holiday only)
+            $unpaidDays = 0.0;
+            $deductionAmount = 0.00;
+            $netSalary = $periodGross;
+        }
+
+        $voucherCode = 'PAY-RNG-' . date('Ymd', $startTime) . '-' . date('Ymd', $endTime) . '-' . str_pad($emp['id'], 4, '0', STR_PAD_LEFT);
+        $remarks = "Custom Range ({$diffDays}d) | {$presentDays}d pres, {$paidLeaves}d leave, {$unpaidDays}d absent";
+
+        $results[] = [
+            'user_id' => (int)$emp['id'],
+            'user_name' => $emp['name'],
+            'user_email' => $emp['email'],
+            'user_phone' => $emp['phone'] ?: '',
+            'user_company' => !empty($emp['company']) ? $emp['company'] : 'Getting Roots Coaching & Training Pvt. Ltd.',
+            'user_dept' => $emp['department'] ?: 'General',
+            'user_job' => $emp['job_profile'] ?: 'Staff',
+            'date_of_joining' => $emp['date_of_joining'] ?: null,
+            'photo_url' => $emp['photo_path'] ? 'uploads/' . $emp['photo_path'] : null,
+            'base_salary' => $baseSalary,
+            'period_gross' => $periodGross,
+            'daily_rate' => $avgDailyRate,
+            'total_calendar_days' => $diffDays,
+            'total_working_days' => $totalWorkingDays,
+            'sundays_count' => $sundaysCount,
+            'holidays_count' => $holidaysCount,
+            'present_days' => $presentDays,
+            'paid_leaves' => $paidLeaves,
+            'unpaid_days' => $unpaidDays,
+            'deduction_amount' => $deductionAmount,
+            'bonus_amount' => 0.00,
+            'net_salary' => $netSalary,
+            'voucher_code' => $voucherCode,
+            'remarks' => $remarks,
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'day_breakdown' => $dayBreakdown,
+        ];
+    }
+
+    return [
+        'success' => true,
+        'start_date' => $startDate,
+        'end_date' => $endDate,
+        'total_calendar_days' => $diffDays,
+        'total_working_days' => $totalWorkingDays,
+        'sundays_count' => $sundaysCount,
+        'holidays_count' => $holidaysCount,
+        'holidays' => $holidaysList,
+        'employees' => $results,
+    ];
+}
+

@@ -137,12 +137,33 @@ try {
     } catch (Exception $e) {}
 
 } catch (PDOException $e) {
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'message' => 'Database connection failed: ' . $e->getMessage()
-    ]);
-    exit;
+    // If connection to localhost or 127.0.0.1 failed with socket/refusal error 2002, try fallback
+    if (($host === 'localhost' || $host === '127.0.0.1') && $e->getCode() == 2002) {
+        $fallbackHost = ($host === 'localhost') ? '127.0.0.1' : 'localhost';
+        try {
+            $dsnFallback = "mysql:host={$fallbackHost};port={$port};dbname={$dbName};charset={$charset}";
+            $pdo = new PDO($dsnFallback, $user, $pass, [
+                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES   => false,
+                PDO::ATTR_TIMEOUT            => 5,
+            ]);
+        } catch (PDOException $e2) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Database connection failed: ' . $e2->getMessage()
+            ]);
+            exit;
+        }
+    } else {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Database connection failed: ' . $e->getMessage()
+        ]);
+        exit;
+    }
 }
 
 /**

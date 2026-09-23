@@ -756,8 +756,15 @@ function renderCardsSkeleton(container, count = 4) {
 // ==========================================================================
 function processImageUpload(file, options = {}) {
   return new Promise((resolve, reject) => {
-    if (!file || !file.type.startsWith('image/')) {
-      reject(new Error('Please select a valid image file.'));
+    if (!file) {
+      reject(new Error('No file selected.'));
+      return;
+    }
+
+    const isImage = (file.type && file.type.startsWith('image/')) ||
+                    /\.(jpe?g|png|webp|gif|bmp|heic|heif)$/i.test(file.name || '');
+    if (!isImage) {
+      reject(new Error('Please select a valid image file (JPG, PNG, or WebP).'));
       return;
     }
 
@@ -765,31 +772,35 @@ function processImageUpload(file, options = {}) {
     const quality = options.quality || 0.82;
     const reader = new FileReader();
 
-    reader.onerror = () => reject(new Error('Failed to read image file.'));
+    reader.onerror = () => reject(new Error('Failed to read image from device storage.'));
     reader.onload = (e) => {
       const img = new Image();
-      img.onerror = () => reject(new Error('Failed to parse image data.'));
+      img.onerror = () => reject(new Error('Unable to parse image data. Please select a standard JPG or PNG photo.'));
       img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = maxDim;
-        canvas.height = maxDim;
-        const ctx = canvas.getContext('2d');
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = maxDim;
+          canvas.height = maxDim;
+          const ctx = canvas.getContext('2d');
 
-        // Center-crop 1:1 aspect ratio like passport photo
-        const size = Math.min(img.width, img.height);
-        const startX = (img.width - size) / 2;
-        const startY = (img.height - size) / 2;
+          // Center-crop 1:1 aspect ratio like passport photo
+          const size = Math.min(img.width, img.height);
+          const startX = (img.width - size) / 2;
+          const startY = (img.height - size) / 2;
 
-        // Smooth rendering
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
+          // Smooth rendering
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
 
-        // Draw cropped & resized square
-        ctx.drawImage(img, startX, startY, size, size, 0, 0, maxDim, maxDim);
+          // Draw cropped & resized square
+          ctx.drawImage(img, startX, startY, size, size, 0, 0, maxDim, maxDim);
 
-        // Compress to JPEG data URL
-        const dataUrl = canvas.toDataURL('image/jpeg', quality);
-        resolve(dataUrl);
+          // Compress to JPEG data URL
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          resolve(dataUrl);
+        } catch (canvasErr) {
+          reject(new Error('Image processing error: ' + canvasErr.message));
+        }
       };
       img.src = e.target.result;
     };
