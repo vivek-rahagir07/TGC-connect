@@ -50,6 +50,20 @@ try {
         }
     } catch (Exception $e) {}
 
+    // Ensure employee_code column exists on users table (Idempotent Migration)
+    try {
+        $cols = $pdo->query("SHOW COLUMNS FROM `users` LIKE 'employee_code'")->fetchAll();
+        if (empty($cols)) {
+            $pdo->exec("ALTER TABLE `users` ADD COLUMN `employee_code` VARCHAR(50) DEFAULT NULL AFTER `job_profile`");
+            $pdo->exec("UPDATE `users` SET `employee_code` = CONCAT('TGC-', LPAD(id, 4, '0')) WHERE `employee_code` IS NULL OR `employee_code` = ''");
+        }
+    } catch (Exception $e) {}
+
+    // Ensure attendances table method allows admin punches and status allows absent
+    try {
+        $pdo->exec("ALTER TABLE `attendances` MODIFY COLUMN `method` VARCHAR(30) DEFAULT 'qr'");
+    } catch (Exception $e) {}
+
     // Idempotent Migration: Departments table
     try {
         $pdo->exec("

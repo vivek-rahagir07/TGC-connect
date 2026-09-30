@@ -586,7 +586,8 @@
             document.getElementById('userNameHeading').textContent = `Welcome, ${u.name}`;
             const companyDisplay = u.company ? u.company.toUpperCase() : 'GETTING ROOTS COACHING & TRAINING PVT. LTD.';
             document.getElementById('userDeptProfile').textContent = `${companyDisplay} • ${u.department || 'General'} • ${u.job_profile || 'Staff'}`;
-            document.getElementById('userSubInfo').textContent = `Employee ID: #TGC-${String(u.id).padStart(4, '0')} • Base Salary: ₹${parseFloat(u.base_salary).toLocaleString()}/mo`;
+            const empCodeDisplay = u.employee_code || `TGC-${String(u.id).padStart(4, '0')}`;
+            document.getElementById('userSubInfo').textContent = `Employee ID: ${empCodeDisplay} • Base Salary: ₹${parseFloat(u.base_salary).toLocaleString()}/mo`;
 
             const avatarBox = document.getElementById('userAvatarBox');
             if (u.photo_url) {
@@ -1224,10 +1225,11 @@
             const voucher = `PAY-${p.year}${String(p.month).padStart(2, '0')}-${String(p.id).padStart(4, '0')}`;
             const monthNames = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
             const mName = monthNames[parseInt(p.month)] || `Month ${p.month}`;
+            const empCodeStr = p.employee_code || `TGC-${String(p.user_id).padStart(4, '0')}`;
             
             const msg = `💼 *OFFICIAL PAYSLIP STATEMENT — TGC CONNECT*
 ━━━━━━━━━━━━━━━━━━━━━
-Employee: *${p.user_name}* (#TGC-${String(p.user_id).padStart(4, '0')})
+Employee: *${p.user_name}* (${empCodeStr})
 Pay Period: *${mName} ${p.year}*
 
 💰 Net Take-Home: ₹${net}
@@ -1255,6 +1257,7 @@ Pay Period: *${mName} ${p.year}*
                 const netSal = parseFloat(p.net_salary || 0);
                 const words = numberToWordsINR(netSal);
                 const voucherCode = `PAY-${p.year}${String(p.month).padStart(2, '0')}-${String(p.id).padStart(4, '0')}`;
+                const empCodeFormatted = p.employee_code || `TGC-${String(p.user_id).padStart(4, '0')}`;
 
                 document.getElementById('slipModalBody').innerHTML = `
                     <div class="payslip-container" style="position: relative; padding: 2rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b;">
@@ -1281,7 +1284,7 @@ Pay Period: *${mName} ${p.year}*
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; background: #f8fafc; padding: 1.2rem; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 1.25rem; font-size: 0.88rem; position: relative; z-index: 2;">
                             <div style="display: flex; flex-direction: column; gap: 0.35rem;">
                                 <div><span style="color: #64748b;">Employee Name:</span> <strong style="color: #0f172a; font-size: 0.96rem;">${p.user_name}</strong></div>
-                                <div><span style="color: #64748b;">Employee Code:</span> <strong style="font-family: var(--font-mono); color: #4f46e5;">#TGC-${String(p.user_id).padStart(4, '0')}</strong></div>
+                                <div><span style="color: #64748b;">Employee Code:</span> <strong style="font-family: var(--font-mono); color: #4f46e5;">${empCodeFormatted}</strong></div>
                                 <div><span style="color: #64748b;">Official Email:</span> <span>${p.user_email}</span></div>
                                 <div><span style="color: #64748b;">Profession / Designation:</span> <strong>${p.user_job || 'Staff'}</strong></div>
                             </div>

@@ -377,6 +377,16 @@
                         </div>
                     </div>
 
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.65rem; margin-bottom: 0.85rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem; color: var(--text-main); user-select: none; font-weight: 500;">
+                            <input type="checkbox" id="rememberMe" style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); border-radius: 4px;">
+                            <span>Remember me</span>
+                        </label>
+                        <span style="font-size: 0.76rem; color: var(--text-muted); display: inline-flex; align-items: center; gap: 0.25rem;">
+                            <i data-lucide="shield-check" style="width: 13px; color: #10b981;"></i> 30-day session
+                        </span>
+                    </div>
+
                     <button type="submit" id="loginSubmitBtn" class="btn btn-primary" style="width: 100%; padding: 0.62rem 1rem; font-size: 0.9rem; margin-top: 0.35rem; font-weight: 600;">
                         <i data-lucide="log-in" style="width: 16px;"></i>
                         <span id="loginBtnText">Sign In as Administrator</span>
@@ -408,6 +418,11 @@
     <script>
         let currentRole = 'admin';
 
+        function getRememberedEmail(role) {
+            return localStorage.getItem('tgc_remember_email_' + role) || 
+                   (localStorage.getItem('tgc_remember_role') === role ? localStorage.getItem('tgc_remember_email') : null);
+        }
+
         function switchRole(role) {
             playSound('click');
             currentRole = role;
@@ -421,7 +436,10 @@
             const loginPassword = document.getElementById('loginPassword');
             const loginBtnText = document.getElementById('loginBtnText');
             const alertBox = document.getElementById('loginStatusAlert');
+            const rememberMe = document.getElementById('rememberMe');
             alertBox.style.display = 'none';
+
+            const rememberedEmail = getRememberedEmail(role);
 
             if (role === 'admin') {
                 adminBtn.className = 'role-segment-btn active admin-mode';
@@ -435,11 +453,10 @@
                 portalSubtitle.textContent = 'Executive command center & workforce management.';
                 emailLabel.textContent = 'Official Admin Email';
                 loginEmail.placeholder = 'Enter admin email';
-                loginEmail.value = '';
+                loginEmail.value = rememberedEmail || '';
                 loginPassword.value = '';
                 loginBtnText.textContent = 'Sign In as Administrator';
-
-
+                if (rememberMe) rememberMe.checked = !!rememberedEmail;
             } else {
                 empBtn.className = 'role-segment-btn active employee-mode';
                 adminBtn.className = 'role-segment-btn';
@@ -452,11 +469,10 @@
                 portalSubtitle.textContent = 'Punch attendance, manage leaves, view payslips & profile.';
                 emailLabel.textContent = 'Official Work Email';
                 loginEmail.placeholder = 'Enter your work email';
-                loginEmail.value = '';
+                loginEmail.value = rememberedEmail || '';
                 loginPassword.value = '';
                 loginBtnText.textContent = 'Sign In to Employee Portal';
-
-
+                if (rememberMe) rememberMe.checked = !!rememberedEmail;
             }
             lucide.createIcons();
         }
@@ -478,19 +494,36 @@
             e.preventDefault();
             const btn = document.getElementById('loginSubmitBtn');
             const alertBox = document.getElementById('loginStatusAlert');
+            const rememberMe = document.getElementById('rememberMe') ? document.getElementById('rememberMe').checked : false;
             alertBox.style.display = 'none';
 
             btn.disabled = true;
             btn.innerHTML = '<i data-lucide="loader" class="spin" style="width: 18px;"></i> Authenticating...';
             lucide.createIcons();
 
+            const emailVal = document.getElementById('loginEmail').value.trim();
             const payload = {
-                email: document.getElementById('loginEmail').value.trim(),
-                password: document.getElementById('loginPassword').value
+                email: emailVal,
+                password: document.getElementById('loginPassword').value,
+                remember_me: rememberMe
             };
 
             const res = await apiRequest('auth.php?action=login', 'POST', payload);
             if (res.ok && res.data.success) {
+                // Save or clear Remember Me
+                if (rememberMe) {
+                    localStorage.setItem('tgc_remember_email', emailVal);
+                    localStorage.setItem('tgc_remember_email_' + currentRole, emailVal);
+                    localStorage.setItem('tgc_remember_role', currentRole);
+                    localStorage.setItem('tgc_remember_me', 'true');
+                } else {
+                    localStorage.removeItem('tgc_remember_email_' + currentRole);
+                    if (localStorage.getItem('tgc_remember_role') === currentRole) {
+                        localStorage.removeItem('tgc_remember_email');
+                        localStorage.removeItem('tgc_remember_me');
+                    }
+                }
+
                 playSound('success');
                 showToast(`Welcome back, ${res.data.user.name}! Accessing workspace...`, 'success');
 
@@ -541,13 +574,27 @@
             }
         }
 
-        // Check if role is pre-selected via query string (e.g. login.html?role=employee)
+        // Initialize and auto-fill remembered account if present
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
-            const role = urlParams.get('role');
-            if (role === 'employee') {
+            const roleParam = urlParams.get('role');
+            const rememberedRole = localStorage.getItem('tgc_remember_role');
+
+            if (roleParam === 'employee') {
                 switchRole('employee');
+            } else if (!roleParam && rememberedRole === 'employee') {
+                switchRole('employee');
+            } else {
+                // Admin role default
+                const remAdmin = getRememberedEmail('admin');
+                if (remAdmin) {
+                    const loginEmail = document.getElementById('loginEmail');
+                    const rememberMe = document.getElementById('rememberMe');
+                    if (loginEmail) loginEmail.value = remAdmin;
+                    if (rememberMe) rememberMe.checked = true;
+                }
             }
+
             if (window.lucide) {
                 lucide.createIcons();
             }

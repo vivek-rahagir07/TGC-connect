@@ -40,12 +40,30 @@ switch ($action) {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['role'] = $user['role'];
 
+            // Handle Remember Me: extend session cookie to 30 days
+            $rememberMe = !empty($input['remember_me']);
+            if ($rememberMe) {
+                $cookieLifetime = 30 * 86400; // 30 days
+                $params = session_get_cookie_params();
+                setcookie(
+                    session_name(),
+                    session_id(),
+                    time() + $cookieLifetime,
+                    $params['path'] ?? '/',
+                    $params['domain'] ?? '',
+                    !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+                    true
+                );
+            }
+
             $isFirstLogin = !empty($user['first_login_required']) && (int) $user['first_login_required'] === 1;
+            $empCode = !empty($user['employee_code']) ? $user['employee_code'] : ('TGC-' . str_pad($user['id'], 4, '0', STR_PAD_LEFT));
 
             sendResponse(true, [
                 'message' => 'Login successful',
                 'user' => [
                     'id' => $user['id'],
+                    'employee_code' => $empCode,
                     'name' => $user['name'],
                     'email' => $user['email'],
                     'role' => $user['role'],
@@ -232,6 +250,7 @@ switch ($action) {
             'authenticated' => true,
             'user' => [
                 'id' => $user['id'],
+                'employee_code' => !empty($user['employee_code']) ? $user['employee_code'] : ('TGC-' . str_pad($user['id'], 4, '0', STR_PAD_LEFT)),
                 'name' => $user['name'],
                 'email' => $user['email'],
                 'role' => $user['role'],

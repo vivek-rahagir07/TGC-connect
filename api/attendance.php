@@ -317,19 +317,40 @@ switch ($action) {
             $attDate = date('Y-m-d');
         }
 
-        $actionType = trim($input['action_type'] ?? 'check_in'); // 'check_in', 'check_out', 'both'
-        $checkInTime = trim($input['check_in_time'] ?? date('H:i:s'));
+        $actionType = trim($input['action_type'] ?? 'both'); // 'check_in', 'check_out', 'both'
+        $checkInTime = trim($input['check_in_time'] ?? '');
         $checkOutTime = trim($input['check_out_time'] ?? '');
-        $status = trim($input['status'] ?? 'present'); // 'present', 'late', 'half_day'
+        $status = trim($input['status'] ?? 'present'); // 'present', 'late', 'half_day', 'absent'
+        if (!in_array($status, ['present', 'late', 'half_day', 'absent'])) {
+            $status = 'present';
+        }
         $locName = trim($input['location_name'] ?? 'Office Hub (Admin Authorized)');
-        $notes = trim($input['notes'] ?? 'Admin Manual Punch');
+        $notes = trim($input['notes'] ?? 'Executive Authorized Punch');
         $sendNotif = isset($input['send_notification']) ? (bool)$input['send_notification'] : true;
 
-        if (strlen($checkInTime) === 5) {
+        if (!empty($checkInTime) && strlen($checkInTime) === 5) {
             $checkInTime .= ':00';
         }
         if (!empty($checkOutTime) && strlen($checkOutTime) === 5) {
             $checkOutTime .= ':00';
+        }
+
+        // If absent, times are typically null
+        if ($status === 'absent') {
+            $actualIn = !empty($checkInTime) ? $checkInTime : null;
+            $actualOut = !empty($checkOutTime) ? $checkOutTime : null;
+        } else {
+            if ($actionType === 'check_out') {
+                $actualIn = !empty($checkInTime) ? $checkInTime : null;
+                $actualOut = !empty($checkOutTime) ? $checkOutTime : date('H:i:s');
+            } elseif ($actionType === 'both') {
+                $actualIn = !empty($checkInTime) ? $checkInTime : date('H:i:s');
+                $actualOut = !empty($checkOutTime) ? $checkOutTime : null;
+            } else {
+                // check_in
+                $actualIn = !empty($checkInTime) ? $checkInTime : date('H:i:s');
+                $actualOut = !empty($checkOutTime) ? $checkOutTime : null;
+            }
         }
 
         // Check if attendance row exists for this user and date
@@ -342,43 +363,38 @@ switch ($action) {
         if ($existing) {
             $attendanceId = $existing['id'];
             if ($actionType === 'check_out') {
-                $actualOut = $checkOutTime ?: date('H:i:s');
                 $stmtUp = $pdo->prepare("
                     UPDATE attendances
                     SET check_out_time = ?, location_name = COALESCE(?, location_name),
-                        notes = CONCAT(COALESCE(notes, ''), ' | ', ?)
+                        notes = ?, status = ?
                     WHERE id = ?
                 ");
-                $stmtUp->execute([$actualOut, $locName, "Admin Check-Out: {$notes}", $attendanceId]);
+                $stmtUp->execute([$actualOut, $locName, $notes, $status, $attendanceId]);
             } elseif ($actionType === 'both') {
-                $actualOut = $checkOutTime ?: date('H:i:s');
                 $stmtUp = $pdo->prepare("
                     UPDATE attendances
                     SET check_in_time = ?, check_out_time = ?, status = ?, location_name = ?,
-                        notes = CONCAT(COALESCE(notes, ''), ' | ', ?)
+                        notes = ?
                     WHERE id = ?
                 ");
-                $stmtUp->execute([$checkInTime, $actualOut, $status, $locName, "Admin Override: {$notes}", $attendanceId]);
+                $stmtUp->execute([$actualIn, $actualOut, $status, $locName, $notes, $attendanceId]);
             } else {
                 // check_in
                 $stmtUp = $pdo->prepare("
                     UPDATE attendances
                     SET check_in_time = ?, status = ?, location_name = ?,
-                        notes = CONCAT(COALESCE(notes, ''), ' | ', ?)
+                        notes = ?
                     WHERE id = ?
                 ");
-                $stmtUp->execute([$checkInTime, $status, $locName, "Admin Check-In: {$notes}", $attendanceId]);
+                $stmtUp->execute([$actualIn, $status, $locName, $notes, $attendanceId]);
             }
         } else {
-            $actualOut = ($actionType === 'both' || $actionType === 'check_out') ? ($checkOutTime ?: date('H:i:s')) : null;
-            $actualIn = ($actionType === 'check_out') ? ($checkInTime ?: date('H:i:s')) : $checkInTime;
-
             $stmtIns = $pdo->prepare("
                 INSERT INTO attendances (user_id, date, check_in_time, check_out_time, method, status, location_name, notes)
-                VALUES (?, ?, ?, ?, 'gps', ?, ?, ?)
+                VALUES (?, ?, ?, ?, 'admin', ?, ?, ?)
             ");
             $stmtIns->execute([
-                $targetUser['id'], $attDate, $actualIn, $actualOut, $status, $locName, "Admin Punch: {$notes}"
+                $targetUser['id'], $attDate, $actualIn, $actualOut, $status, $locName, $notes
             ]);
             $attendanceId = $pdo->lastInsertId();
         }
@@ -394,12 +410,12 @@ switch ($action) {
             $admin['id'],
             'admin_mark_attendance',
             $targetUser['id'],
-            "Admin marked {$actionType} for {$targetUser['name']} on {$attDate} [Status: {$status}, Loc: {$locName}]."
+            "Admin marked {$actionType} for {$targetUser['name']} on {$attDate} [Status: {$status}, In: " . ($actualIn ?? '--') . ", Out: " . ($actualOut ?? '--') . "]."
         );
 
         // Send WhatsApp & Email notification
         $notifResult = null;
-        if ($sendNotif) {
+        if ($sendNotif && $status !== 'absent') {
             $notifResult = sendAttendanceNotification($pdo, $finalRecord, $targetUser);
         }
 
@@ -414,6 +430,197 @@ switch ($action) {
             ],
             'notification' => $notifResult
         ]);
+        break;
+
+    case 'get_attendance_record':
+        $admin = getCurrentUser($pdo);
+        if (!$admin || $admin['role'] !== 'admin') {
+            sendResponse(false, ['message' => 'Unauthorized. Administrator access required.'], 403);
+        }
+
+        $attId = intval($_GET['id'] ?? 0);
+        $userId = intval($_GET['user_id'] ?? 0);
+        $date = trim($_GET['date'] ?? '');
+
+        $record = null;
+        if ($attId > 0) {
+            $stmt = $pdo->prepare("
+                SELECT a.*, u.name as user_name, u.email as user_email, u.department as user_dept, u.job_profile, u.employee_code
+                FROM attendances a
+                JOIN users u ON a.user_id = u.id
+                WHERE a.id = ?
+            ");
+            $stmt->execute([$attId]);
+            $record = $stmt->fetch();
+        } elseif ($userId > 0 && !empty($date)) {
+            $stmt = $pdo->prepare("
+                SELECT a.*, u.name as user_name, u.email as user_email, u.department as user_dept, u.job_profile, u.employee_code
+                FROM attendances a
+                JOIN users u ON a.user_id = u.id
+                WHERE a.user_id = ? AND a.date = ?
+            ");
+            $stmt->execute([$userId, $date]);
+            $record = $stmt->fetch();
+        }
+
+        sendResponse(true, [
+            'found' => (bool)$record,
+            'record' => $record ?: null
+        ]);
+        break;
+
+    case 'admin_edit_attendance':
+        $admin = getCurrentUser($pdo);
+        if (!$admin || $admin['role'] !== 'admin') {
+            sendResponse(false, ['message' => 'Unauthorized. Administrator access required.'], 403);
+        }
+
+        $attId = intval($input['id'] ?? 0);
+        $userId = intval($input['user_id'] ?? 0);
+        $attDate = trim($input['date'] ?? '');
+
+        if (!$attId && (!$userId || !$attDate)) {
+            sendResponse(false, ['message' => 'Attendance ID or valid Employee and Date required.'], 400);
+        }
+
+        if (!empty($attDate) && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $attDate)) {
+            sendResponse(false, ['message' => 'Invalid date format (YYYY-MM-DD required).'], 400);
+        }
+
+        // If attId provided, find the existing record
+        $existing = null;
+        if ($attId > 0) {
+            $stmt = $pdo->prepare("SELECT * FROM attendances WHERE id = ?");
+            $stmt->execute([$attId]);
+            $existing = $stmt->fetch();
+            if ($existing) {
+                $userId = (int)$existing['user_id'];
+                if (empty($attDate)) {
+                    $attDate = $existing['date'];
+                }
+            }
+        } elseif ($userId > 0 && !empty($attDate)) {
+            $stmt = $pdo->prepare("SELECT * FROM attendances WHERE user_id = ? AND date = ?");
+            $stmt->execute([$userId, $attDate]);
+            $existing = $stmt->fetch();
+            if ($existing) {
+                $attId = (int)$existing['id'];
+            }
+        }
+
+        // Verify target employee exists
+        $stmtUser = $pdo->prepare("SELECT * FROM users WHERE id = ?");
+        $stmtUser->execute([$userId]);
+        $targetUser = $stmtUser->fetch();
+        if (!$targetUser) {
+            sendResponse(false, ['message' => 'Employee not found.'], 404);
+        }
+
+        $status = trim($input['status'] ?? ($existing['status'] ?? 'present'));
+        if (!in_array($status, ['present', 'late', 'half_day', 'absent'])) {
+            $status = 'present';
+        }
+
+        $checkInTime = isset($input['check_in_time']) ? trim($input['check_in_time']) : ($existing['check_in_time'] ?? null);
+        $checkOutTime = isset($input['check_out_time']) ? trim($input['check_out_time']) : ($existing['check_out_time'] ?? null);
+        $locName = trim($input['location_name'] ?? ($existing['location_name'] ?? 'Office Hub (Admin Authorized)'));
+        $notes = trim($input['notes'] ?? ($existing['notes'] ?? 'Updated by Admin'));
+        $sendNotif = !empty($input['send_notification']);
+
+        if (!empty($checkInTime) && strlen($checkInTime) === 5) {
+            $checkInTime .= ':00';
+        }
+        if (!empty($checkOutTime) && strlen($checkOutTime) === 5) {
+            $checkOutTime .= ':00';
+        }
+        if (empty($checkInTime) || $status === 'absent') {
+            $checkInTime = !empty($checkInTime) && $status !== 'absent' ? $checkInTime : null;
+        }
+        if (empty($checkOutTime) || $status === 'absent') {
+            $checkOutTime = !empty($checkOutTime) && $status !== 'absent' ? $checkOutTime : null;
+        }
+
+        if ($existing) {
+            $stmtUp = $pdo->prepare("
+                UPDATE attendances
+                SET date = ?, check_in_time = ?, check_out_time = ?, status = ?, location_name = ?, notes = ?
+                WHERE id = ?
+            ");
+            $stmtUp->execute([$attDate, $checkInTime, $checkOutTime, $status, $locName, $notes, $existing['id']]);
+            $attendanceId = $existing['id'];
+        } else {
+            $stmtIns = $pdo->prepare("
+                INSERT INTO attendances (user_id, date, check_in_time, check_out_time, method, status, location_name, notes)
+                VALUES (?, ?, ?, ?, 'admin', ?, ?, ?)
+            ");
+            $stmtIns->execute([$userId, $attDate, $checkInTime, $checkOutTime, $status, $locName, $notes]);
+            $attendanceId = $pdo->lastInsertId();
+        }
+
+        // Fetch final
+        $stmtFinal = $pdo->prepare("SELECT * FROM attendances WHERE id = ?");
+        $stmtFinal->execute([$attendanceId]);
+        $finalRecord = $stmtFinal->fetch();
+
+        // Audit Log
+        logAdminAction(
+            $pdo,
+            $admin['id'],
+            'admin_edit_attendance',
+            $userId,
+            "Admin edited attendance for {$targetUser['name']} on {$attDate} [Status: {$status}, In: " . ($checkInTime ?? '--') . ", Out: " . ($checkOutTime ?? '--') . "]."
+        );
+
+        // Optional notification
+        $notifResult = null;
+        if ($sendNotif && $status !== 'absent') {
+            $notifResult = sendAttendanceNotification($pdo, $finalRecord, $targetUser);
+        }
+
+        sendResponse(true, [
+            'message' => "Attendance for {$targetUser['name']} on {$attDate} successfully updated!",
+            'attendance' => $finalRecord,
+            'notification' => $notifResult
+        ]);
+        break;
+
+    case 'admin_delete_attendance':
+        $admin = getCurrentUser($pdo);
+        if (!$admin || $admin['role'] !== 'admin') {
+            sendResponse(false, ['message' => 'Unauthorized. Administrator access required.'], 403);
+        }
+
+        $attId = intval($input['id'] ?? 0);
+        $userId = intval($input['user_id'] ?? 0);
+        $attDate = trim($input['date'] ?? '');
+
+        $record = null;
+        if ($attId > 0) {
+            $stmt = $pdo->prepare("SELECT * FROM attendances WHERE id = ?");
+            $stmt->execute([$attId]);
+            $record = $stmt->fetch();
+        } elseif ($userId > 0 && !empty($attDate)) {
+            $stmt = $pdo->prepare("SELECT * FROM attendances WHERE user_id = ? AND date = ?");
+            $stmt->execute([$userId, $attDate]);
+            $record = $stmt->fetch();
+        }
+
+        if (!$record) {
+            sendResponse(false, ['message' => 'Attendance record not found.'], 404);
+        }
+
+        $stmtDel = $pdo->prepare("DELETE FROM attendances WHERE id = ?");
+        $stmtDel->execute([$record['id']]);
+
+        logAdminAction(
+            $pdo,
+            $admin['id'],
+            'admin_delete_attendance',
+            $record['user_id'],
+            "Admin deleted attendance record #{$record['id']} for user #{$record['user_id']} on {$record['date']}."
+        );
+
+        sendResponse(true, ['message' => 'Attendance record removed successfully.']);
         break;
 
     case 'mark_attendance':
@@ -1123,7 +1330,7 @@ switch ($action) {
         $endDate = trim($_GET['end_date'] ?? '');
 
         $sql = "
-            SELECT a.*, u.name as user_name, u.email as user_email, u.department as user_dept, u.photo_path
+            SELECT a.*, u.name as user_name, u.email as user_email, u.department as user_dept, u.photo_path, u.employee_code
             FROM attendances a
             JOIN users u ON a.user_id = u.id
             WHERE 1=1
@@ -1133,6 +1340,12 @@ switch ($action) {
         if ($myOnly) {
             $sql .= " AND a.user_id = ?";
             $params[] = $user['id'];
+        } else {
+            $filterUserId = intval($_GET['user_id'] ?? 0);
+            if ($filterUserId > 0) {
+                $sql .= " AND a.user_id = ?";
+                $params[] = $filterUserId;
+            }
         }
 
         if ($filterDate) {

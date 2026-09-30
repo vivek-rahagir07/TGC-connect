@@ -134,7 +134,7 @@ switch ($action) {
         $year = intval($_GET['year'] ?? date('Y'));
 
         $sql = "
-            SELECT p.*, u.name as user_name, u.email as user_email, u.company as user_company, u.department as user_dept, u.job_profile as user_job, u.phone as user_phone, u.photo_path
+            SELECT p.*, u.employee_code, u.name as user_name, u.email as user_email, u.company as user_company, u.department as user_dept, u.job_profile as user_job, u.phone as user_phone, u.photo_path
             FROM payrolls p
             JOIN users u ON p.user_id = u.id
             WHERE p.month = ? AND p.year = ?
@@ -172,7 +172,7 @@ switch ($action) {
 
         $id = intval($_GET['id'] ?? 0);
         $stmt = $pdo->prepare("
-            SELECT p.*, u.name as user_name, u.email as user_email, u.company as user_company, u.address as user_address, u.department as user_dept, u.job_profile as user_job, u.date_of_joining, u.phone, u.photo_path
+            SELECT p.*, u.employee_code, u.name as user_name, u.email as user_email, u.company as user_company, u.address as user_address, u.department as user_dept, u.job_profile as user_job, u.date_of_joining, u.phone, u.photo_path
             FROM payrolls p
             JOIN users u ON p.user_id = u.id
             WHERE p.id = ?
@@ -221,7 +221,7 @@ switch ($action) {
         $year = intval($_GET['year'] ?? date('Y'));
 
         $sql = "
-            SELECT p.month, p.year, u.name, u.email, u.company, u.department, u.job_profile,
+            SELECT p.month, p.year, u.employee_code, u.name, u.email, u.company, u.department, u.job_profile,
                    p.base_salary, p.total_working_days, p.present_days, p.paid_leaves,
                    p.unpaid_days, p.daily_rate, p.deduction_amount, p.net_salary, p.status, p.payment_date, p.remarks
             FROM payrolls p
@@ -238,11 +238,11 @@ switch ($action) {
         $fp = fopen('php://output', 'w');
         // UTF-8 BOM for Microsoft Excel / Sheets compatibility
         fprintf($fp, chr(0xEF).chr(0xBB).chr(0xBF));
-        fputcsv($fp, ['Month', 'Year', 'Employee Name', 'Email', 'Company', 'Department', 'Job Profile', 'Base Salary (INR)', 'Days Divisor', 'Present Days', 'Paid Leaves', 'Unpaid Days', 'Daily Rate (Base/Divisor)', 'Deductions (INR)', 'Net Payable (INR)', 'Status', 'Payment Date', 'Remarks'], ',', '"', "\\");
+        fputcsv($fp, ['Month', 'Year', 'Employee Code', 'Employee Name', 'Email', 'Company', 'Department', 'Job Profile', 'Base Salary (INR)', 'Days Divisor', 'Present Days', 'Paid Leaves', 'Unpaid Days', 'Daily Rate (Base/Divisor)', 'Deductions (INR)', 'Net Payable (INR)', 'Status', 'Payment Date', 'Remarks'], ',', '"', "\\");
 
         foreach ($rows as $r) {
             fputcsv($fp, [
-                $r['month'], $r['year'], $r['name'], $r['email'], $r['company'] ?: 'Getting Roots Coaching & Training Pvt. Ltd.', $r['department'], $r['job_profile'],
+                $r['month'], $r['year'], $r['employee_code'] ?: ('TGC-' . str_pad($r['id'] ?? '0', 4, '0', STR_PAD_LEFT)), $r['name'], $r['email'], $r['company'] ?: 'Getting Roots Coaching & Training Pvt. Ltd.', $r['department'], $r['job_profile'],
                 $r['base_salary'], $r['total_working_days'], $r['present_days'], $r['paid_leaves'],
                 $r['unpaid_days'], $r['daily_rate'], $r['deduction_amount'], $r['net_salary'],
                 ucfirst($r['status']), $r['payment_date'] ?: '-', $r['remarks']

@@ -211,7 +211,8 @@ switch ($action) {
         }
 
         if ($search) {
-            $sql .= " AND (u.name LIKE ? OR u.email LIKE ? OR u.department LIKE ? OR u.job_profile LIKE ? OR u.phone LIKE ?)";
+            $sql .= " AND (u.name LIKE ? OR u.email LIKE ? OR u.department LIKE ? OR u.job_profile LIKE ? OR u.phone LIKE ? OR u.employee_code LIKE ?)";
+            $params[] = "%{$search}%";
             $params[] = "%{$search}%";
             $params[] = "%{$search}%";
             $params[] = "%{$search}%";
@@ -263,6 +264,7 @@ switch ($action) {
         $department = trim($input['department'] ?? 'General Operations');
         $job_profile = trim($input['job_profile'] ?? 'Team Member');
         $doj = !empty($input['date_of_joining']) ? trim($input['date_of_joining']) : date('Y-m-d');
+        $employeeCode = trim($input['employee_code'] ?? '');
         $baseSalary = floatval($input['base_salary'] ?? 35000.00);
         $customPassword = trim($input['password'] ?? '');
         $firstLoginRequired = isset($input['first_login_required']) ? intval($input['first_login_required']) : 1;
@@ -298,11 +300,16 @@ switch ($action) {
         $hashedPass = password_hash($tempPassword, PASSWORD_DEFAULT);
 
         $stmt = $pdo->prepare("
-            INSERT INTO users (name, email, password, phone, dob, address, company, department, job_profile, date_of_joining, role, status, base_salary, first_login_required, photo_path)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'employee', 'active', ?, ?, ?)
+            INSERT INTO users (name, email, password, phone, dob, address, company, department, job_profile, employee_code, date_of_joining, role, status, base_salary, first_login_required, photo_path)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'employee', 'active', ?, ?, ?)
         ");
-        $stmt->execute([$name, $email, $hashedPass, $phone, $dob, $address, $company, $department, $job_profile, $doj, $baseSalary, $firstLoginRequired, $photoFileName]);
+        $stmt->execute([$name, $email, $hashedPass, $phone, $dob, $address, $company, $department, $job_profile, $employeeCode ?: null, $doj, $baseSalary, $firstLoginRequired, $photoFileName]);
         $newId = $pdo->lastInsertId();
+
+        if (empty($employeeCode)) {
+            $employeeCode = 'TGC-' . str_pad($newId, 4, '0', STR_PAD_LEFT);
+            $pdo->prepare("UPDATE users SET employee_code = ? WHERE id = ?")->execute([$employeeCode, $newId]);
+        }
 
         // Initialize Leave Quota (12 CL, 12 SL, 12 EL = 1 per month in 1-year cycle)
         $currentYear = (int) date('Y');
@@ -311,12 +318,13 @@ switch ($action) {
             VALUES (?, ?, 12.0, 12.0, 12.0, 0.0, 0.0, 0.0)
         ")->execute([$newId, $currentYear]);
 
-        logAdminAction($pdo, $user['id'], 'admin_onboard_employee', $newId, "Admin directly registered {$name} ({$email}) [First-login required: {$firstLoginRequired}].");
+        logAdminAction($pdo, $user['id'], 'admin_onboard_employee', $newId, "Admin directly registered {$name} ({$email}) [Emp Code: {$employeeCode}, First-login: {$firstLoginRequired}].");
 
         sendResponse(true, [
             'message' => 'Employee created successfully. Provide the temporary credentials to the employee.',
             'credentials' => [
                 'id' => $newId,
+                'employee_code' => $employeeCode,
                 'name' => $name,
                 'email' => $email,
                 'temp_password' => $tempPassword,
@@ -331,6 +339,11 @@ switch ($action) {
         $pending = $stmt->fetchAll();
         foreach ($pending as &$p) {
             $p['photo_url'] = $p['photo_path'] ? 'uploads/' . $p['photo_path'] : null;
+            if (empty($p['employee_code'])) {
+                $p['suggested_code'] = 'TGC-' . str_pad($p['id'], 4, '0', STR_PAD_LEFT);
+            } else {
+                $p['suggested_code'] = $p['employee_code'];
+            }
         }
         sendResponse(true, ['pending' => $pending]);
         break;
@@ -357,11 +370,19 @@ switch ($action) {
         $stmtUpdate->execute([$newStatus, $empId]);
 
         if ($decision === 'approve') {
-            // Update base_salary if provided by admin during approval
+            // Update base_salary & employee_code if provided by admin during approval
             $baseSalary = isset($input['base_salary']) ? floatval($input['base_salary']) : 0;
+            $employeeCode = trim($input['employee_code'] ?? '');
+            if (empty($employeeCode)) {
+                $employeeCode = !empty($emp['employee_code']) ? $emp['employee_code'] : ('TGC-' . str_pad($empId, 4, '0', STR_PAD_LEFT));
+            }
+
             if ($baseSalary > 0) {
-                $stmtSal = $pdo->prepare("UPDATE users SET base_salary = ? WHERE id = ?");
-                $stmtSal->execute([$baseSalary, $empId]);
+                $stmtSal = $pdo->prepare("UPDATE users SET base_salary = ?, employee_code = ? WHERE id = ?");
+                $stmtSal->execute([$baseSalary, $employeeCode, $empId]);
+            } else {
+                $stmtSal = $pdo->prepare("UPDATE users SET employee_code = ? WHERE id = ?");
+                $stmtSal->execute([$employeeCode, $empId]);
             }
 
             // Initialize leave quota if not present (12 CL, 12 SL, 12 EL = 1 per month in 1-year cycle)
@@ -376,7 +397,7 @@ switch ($action) {
             }
         }
 
-        logAdminAction($pdo, $user['id'], "registration_{$decision}d", $empId, "Admin {$decision}d registration for {$emp['name']}. Note: {$notes}");
+        logAdminAction($pdo, $user['id'], "registration_{$decision}d", $empId, "Admin {$decision}d registration for {$emp['name']} [Emp Code: " . ($employeeCode ?? 'N/A') . "]. Note: {$notes}");
 
         sendResponse(true, ['message' => "Employee registration has been {$decision}d."]);
         break;
@@ -459,6 +480,7 @@ switch ($action) {
             $company = trim($input['company'] ?? '');
             $department = trim($input['department'] ?? '');
             $job_profile = trim($input['job_profile'] ?? '');
+            $employeeCode = trim($input['employee_code'] ?? '');
             $baseSalary = (isset($input['base_salary']) && is_numeric($input['base_salary'])) ? floatval($input['base_salary']) : 30000.00;
             $status = trim($input['status'] ?? 'active');
             $newPassword = trim($input['new_password'] ?? '');
@@ -466,6 +488,10 @@ switch ($action) {
 
             if (!$id || !$name || !$email) {
                 sendResponse(false, ['message' => 'ID, name, and email are required.'], 400);
+            }
+
+            if (empty($employeeCode)) {
+                $employeeCode = 'TGC-' . str_pad($id, 4, '0', STR_PAD_LEFT);
             }
 
             // Check if email already belongs to another user
@@ -482,26 +508,26 @@ switch ($action) {
                 $hashed = password_hash($newPassword, PASSWORD_DEFAULT);
                 $stmt = $pdo->prepare("
                     UPDATE users
-                    SET name = ?, email = ?, phone = ?, dob = ?, address = ?, company = COALESCE(?, company), department = ?, job_profile = ?, 
+                    SET name = ?, email = ?, phone = ?, dob = ?, address = ?, company = COALESCE(?, company), department = ?, job_profile = ?, employee_code = ?,
                         date_of_joining = COALESCE(?, date_of_joining), base_salary = ?, status = ?, password = ?
                     WHERE id = ?
                 ");
-                $stmt->execute([$name, $email, $phone, $dob, $address, $companyParam, $department, $job_profile, $doj, $baseSalary, $status, $hashed, $id]);
+                $stmt->execute([$name, $email, $phone, $dob, $address, $companyParam, $department, $job_profile, $employeeCode, $doj, $baseSalary, $status, $hashed, $id]);
             } else {
                 $stmt = $pdo->prepare("
                     UPDATE users
-                    SET name = ?, email = ?, phone = ?, dob = ?, address = ?, company = COALESCE(?, company), department = ?, job_profile = ?, 
+                    SET name = ?, email = ?, phone = ?, dob = ?, address = ?, company = COALESCE(?, company), department = ?, job_profile = ?, employee_code = ?,
                         date_of_joining = COALESCE(?, date_of_joining), base_salary = ?, status = ?
                     WHERE id = ?
                 ");
-                $stmt->execute([$name, $email, $phone, $dob, $address, $companyParam, $department, $job_profile, $doj, $baseSalary, $status, $id]);
+                $stmt->execute([$name, $email, $phone, $dob, $address, $companyParam, $department, $job_profile, $employeeCode, $doj, $baseSalary, $status, $id]);
             }
 
             if ($firstLogin !== null) {
                 $pdo->prepare("UPDATE users SET first_login_required = ? WHERE id = ?")->execute([$firstLogin, $id]);
             }
 
-            logAdminAction($pdo, $user['id'], 'update_employee', $id, "Updated profile for {$name} ({$email}) [Status: {$status}].");
+            logAdminAction($pdo, $user['id'], 'update_employee', $id, "Updated profile for {$name} ({$email}) [Emp Code: {$employeeCode}, Status: {$status}].");
 
             sendResponse(true, ['message' => 'Employee profile updated successfully.']);
         } catch (PDOException $e) {

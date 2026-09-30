@@ -403,11 +403,14 @@
                             <i data-lucide="calendar-check" style="color: var(--primary);"></i> Verified Attendance Records (Date-Wise)
                         </div>
                         <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-                            <button type="button" onclick="exportAttendanceCsv('filtered')" class="btn btn-primary btn-sm" style="display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 700;">
+                            <button type="button" onclick="openAdminMarkAttendanceModal()" class="btn btn-primary btn-sm" style="display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 700; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; color: #fff;">
+                                <i data-lucide="calendar-plus" style="width: 15px;"></i> Mark / Edit Attendance
+                            </button>
+                            <button type="button" onclick="exportAttendanceCsv('filtered')" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 700;">
                                 <i data-lucide="file-spreadsheet" style="width: 15px;"></i> Export Filtered CSV
                             </button>
                             <button type="button" onclick="exportAttendanceCsv('all')" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 600;">
-                                <i data-lucide="download" style="width: 15px;"></i> Export All Records (Full CSV)
+                                <i data-lucide="download" style="width: 15px;"></i> Export All Records
                             </button>
                         </div>
                     </div>
@@ -415,6 +418,12 @@
                     <!-- Date & Range Filtering Bar -->
                     <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.75rem 0.95rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
                         <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 0.35rem;">
+                                <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted);">Staff:</span>
+                                <select id="attendanceEmployeeFilter" onchange="loadAttendanceLogs()" class="form-control" style="font-size: 0.82rem; padding: 0.35rem 0.6rem; min-width: 160px;">
+                                    <option value="">All Employees</option>
+                                </select>
+                            </div>
                             <div style="display: flex; align-items: center; gap: 0.35rem;">
                                 <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted);">From:</span>
                                 <input type="date" id="attendanceStartDate" onchange="loadAttendanceLogs()" class="form-control" style="font-size: 0.82rem; padding: 0.35rem 0.6rem; width: 140px;">
@@ -446,10 +455,11 @@
                                 <th>Method</th>
                                 <th>Status</th>
                                 <th>Notes / Location / IP</th>
+                                <th style="text-align: center; width: 90px;">Action</th>
                             </tr>
                         </thead>
                         <tbody id="adminAttendanceTableBody">
-                            <tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Loading logs...</td></tr>
+                            <tr><td colspan="9" style="text-align: center; color: var(--text-muted);">Loading logs...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -1074,61 +1084,68 @@
         <div class="modal-content" style="max-width: 580px;">
             <div class="modal-header">
                 <div>
-                    <div style="font-size: 0.72rem; font-weight: 700; color: #059669; text-transform: uppercase; letter-spacing: 0.5px;">Executive Privilege</div>
-                    <h3 style="font-size: 1.25rem; font-weight: 800; margin: 0; color: var(--text-main);">Mark Employee Attendance (Anytime)</h3>
+                    <div id="adminPunchModalBadge" style="font-size: 0.72rem; font-weight: 700; color: #059669; text-transform: uppercase; letter-spacing: 0.5px;">Executive Privilege</div>
+                    <h3 id="adminPunchModalTitle" style="font-size: 1.25rem; font-weight: 800; margin: 0; color: var(--text-main);">Mark / Edit Employee Attendance</h3>
                 </div>
                 <button class="close-btn" onclick="closeModal('adminMarkAttendanceModal')">&times;</button>
             </div>
             <form id="adminMarkAttendanceForm" onsubmit="handleAdminMarkAttendance(event)">
+                <input type="hidden" id="adminPunchAttId" value="">
                 <div class="modal-body" style="padding: 1.25rem 1.5rem;">
+                    <!-- Notice for existing record -->
+                    <div id="adminPunchExistingNotice" style="display: none; background: #eff6ff; border: 1.5px solid #93c5fd; border-radius: var(--radius-sm); padding: 0.65rem 0.9rem; margin-bottom: 0.85rem; font-size: 0.82rem; color: #1e40af;">
+                        <i data-lucide="info" style="width: 15px; vertical-align: middle;"></i> <strong>Existing Record Found:</strong> You are editing an already recorded attendance entry for this date.
+                    </div>
+
                     <div class="form-group">
                         <label class="form-label" style="font-weight: 700;">Select Employee *</label>
-                        <select id="adminPunchEmployeeSelect" class="form-control" required style="font-weight: 600;">
+                        <select id="adminPunchEmployeeSelect" class="form-control" required style="font-weight: 600;" onchange="checkExistingAttendanceForPunch()">
                             <option value="">-- Choose Employee --</option>
                         </select>
                     </div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem;">
                         <div class="form-group">
-                            <label class="form-label">Attendance Date *</label>
-                            <input type="date" id="adminPunchDate" class="form-control" required>
+                            <label class="form-label" style="font-weight: 700;">Attendance Date *</label>
+                            <input type="date" id="adminPunchDate" class="form-control" required onchange="checkExistingAttendanceForPunch()">
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Punch Type *</label>
+                            <label class="form-label" style="font-weight: 700;">Punch Type *</label>
                             <select id="adminPunchActionType" class="form-control" onchange="toggleAdminPunchTimeInputs()" required>
-                                <option value="check_in">Check-In (Morning / Shift Start)</option>
-                                <option value="check_out">Check-Out (Evening / Shift End)</option>
                                 <option value="both">Both (Check-In & Check-Out)</option>
+                                <option value="check_in">Check-In Only</option>
+                                <option value="check_out">Check-Out Only</option>
                             </select>
                         </div>
                     </div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem;">
                         <div class="form-group" id="adminPunchInTimeWrap">
-                            <label class="form-label">Check-In Time *</label>
-                            <input type="time" id="adminPunchInTime" class="form-control" required>
+                            <label class="form-label">Check-In Time</label>
+                            <input type="time" id="adminPunchInTime" class="form-control">
                         </div>
-                        <div class="form-group" id="adminPunchOutTimeWrap" style="display: none;">
+                        <div class="form-group" id="adminPunchOutTimeWrap">
                             <label class="form-label">Check-Out Time</label>
                             <input type="time" id="adminPunchOutTime" class="form-control">
                         </div>
-                        <div class="form-group" id="adminPunchStatusWrap">
-                            <label class="form-label">Status *</label>
-                            <select id="adminPunchStatus" class="form-control">
+                        <div class="form-group" id="adminPunchStatusWrap" style="grid-column: span 2;">
+                            <label class="form-label" style="font-weight: 700;">Attendance Status *</label>
+                            <select id="adminPunchStatus" class="form-control" onchange="handleAdminPunchStatusChange()" style="font-weight: 600;">
                                 <option value="present">Present (On-Time)</option>
                                 <option value="late">Late Arrival</option>
                                 <option value="half_day">Half Day</option>
+                                <option value="absent">Absent (Leave / Off / No-Show)</option>
                             </select>
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label">Location Name *</label>
+                        <label class="form-label">Location / Work Station</label>
                         <input type="text" id="adminPunchLocation" class="form-control" value="Office Hub (Admin Authorized)" required>
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label">Remarks / Notes</label>
+                        <label class="form-label">Remarks / Audit Note</label>
                         <input type="text" id="adminPunchNotes" class="form-control" placeholder="e.g. Executive authorization, client site, on-duty" value="Executive Authorized Punch">
                     </div>
 
@@ -1150,7 +1167,7 @@
                     <!-- Success Confirmation Result Card -->
                     <div id="adminPunchResultBox" style="display: none; background: #ffffff; border: 1.5px solid #10b981; border-radius: var(--radius-sm); padding: 1rem; margin-top: 1rem;">
                         <div style="display: flex; align-items: center; gap: 0.4rem; color: #065f46; font-weight: 700; font-size: 0.88rem; margin-bottom: 0.45rem;">
-                            <i data-lucide="check-circle" style="width: 18px; color: #10b981;"></i> Attendance Recorded & Email Sent!
+                            <i data-lucide="check-circle" style="width: 18px; color: #10b981;"></i> Attendance Saved & Dispatched!
                         </div>
                         <div id="adminPunchResultMsg" style="font-size: 0.8rem; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 4px; padding: 0.6rem; color: #334155; white-space: pre-wrap; margin-bottom: 0.6rem;"></div>
                         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem;">
@@ -1162,11 +1179,18 @@
                     </div>
                 </div>
 
-                <div class="modal-footer" style="padding: 0.85rem 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 0.5rem;">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('adminMarkAttendanceModal')">Cancel</button>
-                    <button type="submit" id="adminPunchSubmitBtn" class="btn btn-primary" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none;">
-                        <i data-lucide="check" style="width: 16px;"></i> Record & Notify
-                    </button>
+                <div class="modal-footer" style="padding: 0.85rem 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;">
+                    <div>
+                        <button type="button" id="adminPunchDeleteBtn" class="btn btn-danger btn-sm" style="display: none; align-items: center; gap: 0.35rem;" onclick="handleAdminDeleteAttendance()">
+                            <i data-lucide="trash-2" style="width: 14px;"></i> Delete Record
+                        </button>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('adminMarkAttendanceModal')">Cancel</button>
+                        <button type="submit" id="adminPunchSubmitBtn" class="btn btn-primary" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none;">
+                            <i data-lucide="check" style="width: 16px;"></i> <span id="adminPunchSubmitBtnText">Save Attendance</span>
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -1267,7 +1291,11 @@
                             </select>
                         </div>
                     </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.85rem;">
+                        <div class="form-group">
+                            <label class="form-label">Employee Code / ID</label>
+                            <input type="text" id="adminOnboardEmpCode" class="form-control" placeholder="e.g. TGC-0042">
+                        </div>
                         <div class="form-group">
                             <label class="form-label">Date of Joining</label>
                             <input type="date" id="adminOnboardDoj" class="form-control">
@@ -1333,6 +1361,7 @@
                 </p>
                 <div style="background: var(--bg-main); border: 1.5px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem; text-align: left; margin-bottom: 1.5rem; font-family: var(--font-mono); font-size: 0.92rem;">
                     <div><strong>Email:</strong> <span id="resCredEmail"></span></div>
+                    <div style="margin-top: 0.4rem;"><strong>Employee Code:</strong> <span id="resCredCode" style="color: #0284c7; font-weight: 800;"></span></div>
                     <div style="margin-top: 0.4rem;"><strong>Temporary Password:</strong> <span id="resCredPass" style="color: var(--primary); font-weight: 800;"></span></div>
                     <div style="margin-top: 0.4rem; color: var(--text-muted); font-size: 0.82rem;">Sign-in Portal: login.html</div>
                 </div>
@@ -1395,7 +1424,11 @@
                             </select>
                         </div>
                     </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.85rem;">
+                        <div class="form-group">
+                            <label class="form-label">Employee Code / ID</label>
+                            <input type="text" id="editEmpCode" class="form-control" placeholder="e.g. TGC-0042">
+                        </div>
                         <div class="form-group">
                             <label class="form-label">Date of Joining</label>
                             <input type="date" id="editEmpDoj" class="form-control">
@@ -1432,6 +1465,63 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('editEmployeeModal')">Cancel</button>
                     <button type="submit" class="btn btn-primary">Save Profile Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 4b. Candidate Approval Modal (Base Salary & Employee Code Assignment) -->
+    <div class="modal-overlay" id="approveCandidateModal">
+        <div class="modal-content" style="max-width: 540px;">
+            <div class="modal-header">
+                <div>
+                    <div style="font-size: 0.72rem; font-weight: 700; color: #059669; text-transform: uppercase; letter-spacing: 0.5px;">Onboarding Approval</div>
+                    <h3 style="font-size: 1.25rem; font-weight: 800; margin: 0; color: var(--text-main);">Approve Candidate & Set Code</h3>
+                </div>
+                <button class="close-btn" onclick="closeModal('approveCandidateModal')">&times;</button>
+            </div>
+            <form id="approveCandidateForm" onsubmit="handleConfirmApproveCandidate(event)">
+                <input type="hidden" id="approveCandidateId">
+                <div class="modal-body" style="padding: 1.25rem 1.5rem;">
+                    <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.85rem 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.85rem;">
+                        <div id="approveCandidateAvatar" class="avatar-sm" style="background: var(--primary); color: #fff; font-weight: 700; width: 44px; height: 44px; font-size: 1.1rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;">C</div>
+                        <div>
+                            <strong id="approveCandidateName" style="font-size: 0.98rem; color: var(--text-main); display: block;">Candidate Name</strong>
+                            <div id="approveCandidateEmail" style="font-size: 0.8rem; color: var(--text-muted);">candidate@example.com</div>
+                            <div id="approveCandidateMeta" style="font-size: 0.76rem; color: var(--primary); font-weight: 600; margin-top: 0.15rem;">Operations &bull; Staff</div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem;">
+                        <div class="form-group">
+                            <label class="form-label" style="font-weight: 700;">Employee Code / ID *</label>
+                            <input type="text" id="approveCandidateEmpCode" class="form-control" placeholder="e.g. TGC-0042" required style="font-weight: 700; font-family: var(--font-mono); letter-spacing: 0.5px;">
+                            <span style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">Unique identifier for payroll & records</span>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" style="font-weight: 700;">Monthly Base Salary (₹) *</label>
+                            <input type="number" id="approveCandidateSalary" class="form-control" placeholder="e.g. 40000" min="1" step="100" required style="font-weight: 700;">
+                            <span style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">Base monthly salary for candidate</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 0.4rem;">
+                        <label class="form-label">Approval Remarks / Notes (Optional)</label>
+                        <input type="text" id="approveCandidateNotes" class="form-control" placeholder="e.g. Standard probation, authorized by Management" value="Approved by Administration">
+                    </div>
+
+                    <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: var(--radius-sm); padding: 0.75rem 0.95rem; font-size: 0.8rem; color: #166534; display: flex; align-items: flex-start; gap: 0.5rem; margin-top: 0.5rem;">
+                        <i data-lucide="shield-check" style="width: 18px; color: #16a34a; flex-shrink: 0; margin-top: 2px;"></i>
+                        <div>
+                            Approving will immediately activate the candidate's account, grant portal access, and initialize their leave quotas (12 CL, 12 SL, 12 EL).
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="padding: 0.85rem 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 0.5rem;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('approveCandidateModal')">Cancel</button>
+                    <button type="submit" id="btnConfirmApproveCandidate" class="btn btn-success" style="font-weight: 700; background: #059669; border-color: #059669;">
+                        <i data-lucide="user-check" style="width: 16px;"></i> Approve & Set Credentials
+                    </button>
                 </div>
             </form>
         </div>
@@ -2320,6 +2410,7 @@
                 const resReg = await apiRequest('admin.php?action=pending_registrations');
                 if (resReg.ok && resReg.data.success) {
                     const pending = resReg.data.pending || [];
+                    window.pendingRegistrationsCache = pending;
                     const countBadge = document.getElementById('countPendingReg');
                     if (countBadge) countBadge.textContent = `${pending.length} Pending`;
                     if (tbodyReg) {
@@ -2333,19 +2424,25 @@
                                             ${p.photo_url ? `<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;">` : (p.name ? p.name.charAt(0) : 'E')}
                                         </div>
                                     </td>
-                                    <td><strong>${escapeHtml(p.name || '')}</strong></td>
+                                    <td>
+                                        <strong>${escapeHtml(p.name || '')}</strong>
+                                        ${p.suggested_code ? `<span class="badge" style="background: rgba(14,165,233,0.12); color: #0284c7; font-size: 0.68rem; font-weight: 700; margin-left: 0.35rem; font-family: var(--font-mono);">${escapeHtml(p.suggested_code)}</span>` : ''}
+                                    </td>
                                     <td>${escapeHtml(p.email || '')}</td>
                                     <td>${escapeHtml(p.department || '')} &bull; <span style="color: var(--text-muted);">${escapeHtml(p.job_profile || '')}</span></td>
                                     <td>DOB: ${p.dob || '-'} &bull; DOJ: ${p.date_of_joining || '-'}</td>
                                     <td>${parseFloat(p.base_salary || 0) > 0 ? '₹' + parseFloat(p.base_salary).toLocaleString() : '<span class="badge badge-warning" style="font-size: 0.75rem;">⚠️ Pending</span>'}</td>
                                     <td>
                                         <div style="display: flex; gap: 0.4rem;">
-                                            <button onclick="reviewRegistration(${p.id}, 'approve')" class="btn btn-success btn-sm">Approve</button>
+                                            <button onclick="openApproveCandidateModal(${p.id})" class="btn btn-success btn-sm" title="Approve with salary and employee code">
+                                                <i data-lucide="check" style="width: 13px; height: 13px; vertical-align: middle;"></i> Approve
+                                            </button>
                                             <button onclick="reviewRegistration(${p.id}, 'reject')" class="btn btn-danger btn-sm">Reject</button>
                                         </div>
                                     </td>
                                 </tr>
                             `).join('');
+                            lucide.createIcons();
                         }
                     }
                 }
@@ -2390,6 +2487,7 @@
                                     </tr>
                                 `;
                             }).join('');
+                            lucide.createIcons();
                         }
                     }
                 }
@@ -2398,45 +2496,110 @@
             }
         }
 
+        function openApproveCandidateModal(id) {
+            playSound('click');
+            const pendingList = window.pendingRegistrationsCache || [];
+            const candidate = pendingList.find(p => p.id == id);
+            if (!candidate) {
+                showToast('Candidate record not found.', 'error');
+                return;
+            }
+
+            document.getElementById('approveCandidateId').value = candidate.id;
+            document.getElementById('approveCandidateName').textContent = candidate.name || 'Candidate';
+            document.getElementById('approveCandidateEmail').textContent = candidate.email || '';
+            document.getElementById('approveCandidateMeta').textContent = `${candidate.department || 'Operations'} • ${candidate.job_profile || 'Staff'}`;
+
+            const avatarEl = document.getElementById('approveCandidateAvatar');
+            if (avatarEl) {
+                if (candidate.photo_url) {
+                    avatarEl.innerHTML = `<img src="${candidate.photo_url}" style="width:100%;height:100%;object-fit:cover;">`;
+                } else {
+                    avatarEl.textContent = (candidate.name ? candidate.name.charAt(0) : 'C').toUpperCase();
+                }
+            }
+
+            document.getElementById('approveCandidateEmpCode').value = candidate.suggested_code || `TGC-${String(candidate.id).padStart(4, '0')}`;
+            document.getElementById('approveCandidateSalary').value = (parseFloat(candidate.base_salary) > 0) ? candidate.base_salary : 35000;
+            document.getElementById('approveCandidateNotes').value = 'Approved by Administration';
+
+            const btn = document.getElementById('btnConfirmApproveCandidate');
+            btn.disabled = false;
+            btn.innerHTML = '<i data-lucide="user-check" style="width: 16px;"></i> Approve & Set Credentials';
+
+            openModal('approveCandidateModal');
+            lucide.createIcons();
+        }
+
+        async function handleConfirmApproveCandidate(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnConfirmApproveCandidate');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-sm"></span> Processing...';
+
+            const id = document.getElementById('approveCandidateId').value;
+            const empCode = document.getElementById('approveCandidateEmpCode').value.trim();
+            const baseSalary = parseFloat(document.getElementById('approveCandidateSalary').value);
+            const notes = document.getElementById('approveCandidateNotes').value.trim();
+
+            if (!empCode) {
+                showToast('Please enter an Employee Code for the candidate.', 'error');
+                playSound('error');
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="user-check" style="width: 16px;"></i> Approve & Set Credentials';
+                return;
+            }
+
+            if (isNaN(baseSalary) || baseSalary <= 0) {
+                showToast('Please enter a valid base salary amount greater than ₹0.', 'error');
+                playSound('error');
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="user-check" style="width: 16px;"></i> Approve & Set Credentials';
+                return;
+            }
+
+            const payload = {
+                id: id,
+                decision: 'approve',
+                base_salary: baseSalary,
+                employee_code: empCode,
+                notes: notes
+            };
+
+            const res = await apiRequest('admin.php?action=review_registration', 'POST', payload);
+            btn.disabled = false;
+            btn.innerHTML = '<i data-lucide="user-check" style="width: 16px;"></i> Approve & Set Credentials';
+
+            if (res.ok && res.data.success) {
+                playSound('success');
+                fireConfetti(2500);
+                showToast(res.data.message || 'Candidate approved successfully!', 'success');
+                closeModal('approveCandidateModal');
+                loadPendingApprovals();
+                loadEmployees();
+                loadStats();
+            } else {
+                playSound('error');
+                showToast(res.data.message || 'Error processing candidate approval', 'error');
+            }
+        }
+
         async function reviewRegistration(id, decision) {
             playSound('click');
 
-            let baseSalary = null;
-
             if (decision === 'approve') {
-                // Prompt admin to enter a valid salary before approving
-                const salaryInput = prompt(
-                    '⚠️ Set Valid Monthly Salary for this Candidate\n\n' +
-                    'Self-registered candidates do not have a salary assigned.\n' +
-                    'Please enter the monthly base salary (₹) to proceed with approval:',
-                    ''
-                );
+                openApproveCandidateModal(id);
+                return;
+            }
 
-                if (salaryInput === null) {
-                    // Admin cancelled
-                    return;
-                }
-
-                baseSalary = parseFloat(salaryInput);
-                if (isNaN(baseSalary) || baseSalary <= 0) {
-                    showToast('Please enter a valid salary amount greater than ₹0 to approve.', 'error');
-                    playSound('error');
-                    return;
-                }
+            if (!confirm('Are you sure you want to reject this registration?')) {
+                return;
             }
 
             const payload = { id, decision };
-            if (baseSalary !== null) {
-                payload.base_salary = baseSalary;
-            }
-
             const res = await apiRequest('admin.php?action=review_registration', 'POST', payload);
             if (res.ok && res.data.success) {
-                if (decision === 'approve') {
-                    playSound('success');
-                    fireConfetti(2500);
-                }
-                showToast(res.data.message, 'success');
+                showToast(res.data.message || 'Registration rejected', 'success');
                 loadPendingApprovals();
                 loadEmployees();
                 loadStats();
@@ -2518,6 +2681,7 @@
             const payload = {
                 name: document.getElementById('adminOnboardName').value.trim(),
                 email: document.getElementById('adminOnboardEmail').value.trim(),
+                employee_code: document.getElementById('adminOnboardEmpCode') ? document.getElementById('adminOnboardEmpCode').value.trim() : '',
                 phone: document.getElementById('adminOnboardPhone').value.trim(),
                 dob: document.getElementById('adminOnboardDob').value,
                 company: document.getElementById('adminOnboardCompany') ? document.getElementById('adminOnboardCompany').value : 'Getting Roots Coaching & Training Pvt. Ltd.',
@@ -2537,6 +2701,9 @@
                 fireConfetti(3000);
                 document.getElementById('adminOnboardForm').style.display = 'none';
                 document.getElementById('resCredEmail').textContent = res.data.credentials.email;
+                if (document.getElementById('resCredCode')) {
+                    document.getElementById('resCredCode').textContent = res.data.credentials.employee_code || '-';
+                }
                 document.getElementById('resCredPass').textContent = res.data.credentials.temp_password;
                 document.getElementById('adminOnboardResultBox').style.display = 'block';
                 loadStats();
@@ -2558,6 +2725,23 @@
             if (document.getElementById('empFilterPresenceDate')) document.getElementById('empFilterPresenceDate').value = '';
             if (document.getElementById('empFilterPresenceStatus')) document.getElementById('empFilterPresenceStatus').value = 'all';
             loadEmployees();
+        }
+
+        function populateAttendanceEmployeeFilter() {
+            const filter = document.getElementById('attendanceEmployeeFilter');
+            if (!filter) return;
+            const currentVal = filter.value;
+            filter.innerHTML = '<option value="">All Employees</option>';
+            if (allEmployeesCache && allEmployeesCache.length > 0) {
+                allEmployeesCache.forEach(emp => {
+                    const opt = document.createElement('option');
+                    opt.value = emp.id;
+                    const codeStr = emp.employee_code ? `[${emp.employee_code}] ` : '';
+                    opt.textContent = `${codeStr}${emp.name} (${emp.department || 'Operations'})`;
+                    if (emp.id == currentVal) opt.selected = true;
+                    filter.appendChild(opt);
+                });
+            }
         }
 
         async function loadEmployees() {
@@ -2583,6 +2767,7 @@
                 const emps = res.data.employees;
                 allEmployeesCache = emps;
                 populateCustomPayrollUsers();
+                populateAttendanceEmployeeFilter();
                 if (emps.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2.5rem;">No matching candidates found for the selected filters.</td></tr>';
                     return;
@@ -2621,7 +2806,10 @@
                                     ${emp.photo_url ? `<img src="${emp.photo_url}">` : escapeHtml((emp.name || 'U').charAt(0).toUpperCase())}
                                 </div>
                                 <div class="emp-meta-truncate">
-                                    <div class="emp-name" title="${escapeHtml(emp.name || '')}">${escapeHtml(emp.name || '-')}</div>
+                                    <div class="emp-name" title="${escapeHtml(emp.name || '')}">
+                                        ${escapeHtml(emp.name || '-')}
+                                        ${emp.employee_code ? `<span class="badge" style="background: rgba(14,165,233,0.12); color: #0284c7; font-size: 0.68rem; font-weight: 700; margin-left: 0.35rem; font-family: var(--font-mono);">${escapeHtml(emp.employee_code)}</span>` : ''}
+                                    </div>
                                     <div class="emp-subtext" title="${escapeHtml(emp.email || '')}">${escapeHtml(emp.email || '-')}</div>
                                 </div>
                             </div>
@@ -2856,35 +3044,41 @@
             showToast('Candidate attendance logs downloaded successfully!', 'success');
         }
 
-        // Admin Direct Attendance Punch Handlers (Full Access Anytime)
+        // Admin Direct Attendance Punch & Edit Handlers (Full Access Anytime for Any Date)
         function openAdminMarkAttendanceModal(preselectEmpId = null) {
+            document.getElementById('adminPunchAttId').value = '';
+            document.getElementById('adminPunchExistingNotice').style.display = 'none';
+            document.getElementById('adminPunchDeleteBtn').style.display = 'none';
+            document.getElementById('adminPunchModalBadge').textContent = 'Executive Privilege';
+            document.getElementById('adminPunchModalTitle').textContent = 'Mark / Edit Employee Attendance';
+            
+            const submitText = document.getElementById('adminPunchSubmitBtnText');
+            if (submitText) submitText.textContent = 'Record & Notify';
+
             const select = document.getElementById('adminPunchEmployeeSelect');
             select.innerHTML = '<option value="">-- Choose Employee --</option>';
 
-            if (allEmployeesCache && allEmployeesCache.length > 0) {
-                allEmployeesCache.forEach(emp => {
+            function renderOptions(emps) {
+                emps.forEach(emp => {
                     const opt = document.createElement('option');
                     opt.value = emp.id;
-                    opt.textContent = `${emp.name} (${emp.department || 'Operations'} - ${emp.email})`;
+                    const codeStr = emp.employee_code ? `[${emp.employee_code}] ` : '';
+                    opt.textContent = `${codeStr}${emp.name} (${emp.department || 'Operations'} - ${emp.email})`;
                     if (preselectEmpId && emp.id == preselectEmpId) {
                         opt.selected = true;
                     }
                     select.appendChild(opt);
                 });
+            }
+
+            if (allEmployeesCache && allEmployeesCache.length > 0) {
+                renderOptions(allEmployeesCache);
             } else {
-                // Fetch fresh if cache is empty
                 apiRequest('admin.php?action=employees').then(res => {
                     if (res.ok && res.data.success) {
                         allEmployeesCache = res.data.employees;
-                        res.data.employees.forEach(emp => {
-                            const opt = document.createElement('option');
-                            opt.value = emp.id;
-                            opt.textContent = `${emp.name} (${emp.department || 'Operations'} - ${emp.email})`;
-                            if (preselectEmpId && emp.id == preselectEmpId) {
-                                opt.selected = true;
-                            }
-                            select.appendChild(opt);
-                        });
+                        renderOptions(res.data.employees);
+                        populateAttendanceEmployeeFilter();
                     }
                 });
             }
@@ -2896,15 +3090,187 @@
             const mm = String(now.getMinutes()).padStart(2, '0');
             document.getElementById('adminPunchInTime').value = `${hh}:${mm}`;
             document.getElementById('adminPunchOutTime').value = `${hh}:${mm}`;
-            document.getElementById('adminPunchActionType').value = 'check_in';
+            document.getElementById('adminPunchActionType').value = 'both';
+            document.getElementById('adminPunchStatus').value = 'present';
+            document.getElementById('adminPunchLocation').value = 'Office Hub (Admin Authorized)';
+            document.getElementById('adminPunchNotes').value = 'Executive Authorized Punch';
             toggleAdminPunchTimeInputs();
+            handleAdminPunchStatusChange();
 
             document.getElementById('adminPunchResultBox').style.display = 'none';
             const submitBtn = document.getElementById('adminPunchSubmitBtn');
             submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i data-lucide="check" style="width: 16px;"></i> Record & Notify';
+
+            if (preselectEmpId) {
+                setTimeout(() => checkExistingAttendanceForPunch(), 100);
+            }
 
             openModal('adminMarkAttendanceModal');
+            lucide.createIcons();
+        }
+
+        async function openEditAttendanceModal(attId) {
+            playSound('click');
+            try {
+                const res = await apiRequest(`attendance.php?action=get_attendance_record&id=${attId}`);
+                if (!res.ok || !res.data.success || !res.data.record) {
+                    showToast(res.data?.message || 'Could not load attendance record', 'error');
+                    return;
+                }
+
+                const rec = res.data.record;
+
+                const select = document.getElementById('adminPunchEmployeeSelect');
+                select.innerHTML = '<option value="">-- Choose Employee --</option>';
+
+                function populateSelect(emps) {
+                    emps.forEach(emp => {
+                        const opt = document.createElement('option');
+                        opt.value = emp.id;
+                        const codeStr = emp.employee_code ? `[${emp.employee_code}] ` : '';
+                        opt.textContent = `${codeStr}${emp.name} (${emp.department || 'Operations'} - ${emp.email})`;
+                        if (emp.id == rec.user_id) {
+                            opt.selected = true;
+                        }
+                        select.appendChild(opt);
+                    });
+                }
+
+                if (allEmployeesCache && allEmployeesCache.length > 0) {
+                    populateSelect(allEmployeesCache);
+                } else {
+                    const empRes = await apiRequest('admin.php?action=employees');
+                    if (empRes.ok && empRes.data.success) {
+                        allEmployeesCache = empRes.data.employees;
+                        populateSelect(allEmployeesCache);
+                        populateAttendanceEmployeeFilter();
+                    }
+                }
+
+                document.getElementById('adminPunchAttId').value = rec.id;
+                document.getElementById('adminPunchEmployeeSelect').value = rec.user_id;
+                document.getElementById('adminPunchDate').value = rec.date;
+                document.getElementById('adminPunchActionType').value = 'both';
+                document.getElementById('adminPunchInTime').value = rec.check_in_time ? rec.check_in_time.substring(0, 5) : '';
+                document.getElementById('adminPunchOutTime').value = rec.check_out_time ? rec.check_out_time.substring(0, 5) : '';
+                document.getElementById('adminPunchStatus').value = rec.status || 'present';
+                document.getElementById('adminPunchLocation').value = rec.location_name || 'Office Hub (Admin Authorized)';
+                document.getElementById('adminPunchNotes').value = rec.notes || '';
+
+                // Notice
+                const notice = document.getElementById('adminPunchExistingNotice');
+                notice.style.display = 'block';
+                notice.innerHTML = `<i data-lucide="info" style="width: 15px; vertical-align: middle;"></i> <strong>Editing Record #${rec.id}:</strong> Attendance for <strong>${escapeHtml(rec.user_name)}</strong> on <strong>${rec.date}</strong> (Method: ${escapeHtml(rec.method || 'admin')}).`;
+
+                document.getElementById('adminPunchModalBadge').textContent = 'Admin Modification';
+                document.getElementById('adminPunchModalTitle').textContent = `Edit Attendance: ${rec.user_name}`;
+                
+                const submitText = document.getElementById('adminPunchSubmitBtnText');
+                if (submitText) submitText.textContent = 'Save Changes';
+
+                document.getElementById('adminPunchDeleteBtn').style.display = 'inline-flex';
+                document.getElementById('adminPunchResultBox').style.display = 'none';
+
+                toggleAdminPunchTimeInputs();
+                handleAdminPunchStatusChange();
+
+                openModal('adminMarkAttendanceModal');
+                lucide.createIcons();
+            } catch (err) {
+                console.error('Error opening edit attendance modal:', err);
+                showToast('Network error loading attendance record', 'error');
+            }
+        }
+
+        async function checkExistingAttendanceForPunch() {
+            const userId = document.getElementById('adminPunchEmployeeSelect').value;
+            const date = document.getElementById('adminPunchDate').value;
+            const currentAttId = document.getElementById('adminPunchAttId').value;
+            if (!userId || !date) return;
+
+            try {
+                const res = await apiRequest(`attendance.php?action=get_attendance_record&user_id=${userId}&date=${date}`);
+                if (res.ok && res.data.success && res.data.record) {
+                    const rec = res.data.record;
+                    document.getElementById('adminPunchAttId').value = rec.id;
+
+                    const notice = document.getElementById('adminPunchExistingNotice');
+                    notice.style.display = 'block';
+                    notice.innerHTML = `<i data-lucide="alert-circle" style="width: 15px; vertical-align: middle; color: #2563eb;"></i> <strong>Existing Record Found (#${rec.id}):</strong> Already marked as <strong>${(rec.status || 'present').toUpperCase()}</strong> (In: ${rec.check_in_time ? rec.check_in_time.substring(0,5) : '--'}, Out: ${rec.check_out_time ? rec.check_out_time.substring(0,5) : '--'}). You are editing this entry.`;
+
+                    document.getElementById('adminPunchModalTitle').textContent = `Edit Attendance: ${rec.user_name}`;
+                    document.getElementById('adminPunchModalBadge').textContent = 'Editing Existing Entry';
+                    const submitText = document.getElementById('adminPunchSubmitBtnText');
+                    if (submitText) submitText.textContent = 'Update Attendance';
+                    document.getElementById('adminPunchDeleteBtn').style.display = 'inline-flex';
+
+                    if (rec.check_in_time) document.getElementById('adminPunchInTime').value = rec.check_in_time.substring(0, 5);
+                    if (rec.check_out_time) document.getElementById('adminPunchOutTime').value = rec.check_out_time.substring(0, 5);
+                    if (rec.status) document.getElementById('adminPunchStatus').value = rec.status;
+                    if (rec.location_name) document.getElementById('adminPunchLocation').value = rec.location_name;
+                    if (rec.notes) document.getElementById('adminPunchNotes').value = rec.notes;
+
+                    handleAdminPunchStatusChange();
+                    lucide.createIcons();
+                } else if (!currentAttId) {
+                    document.getElementById('adminPunchExistingNotice').style.display = 'none';
+                    document.getElementById('adminPunchDeleteBtn').style.display = 'none';
+                    document.getElementById('adminPunchModalTitle').textContent = 'Mark / Edit Employee Attendance';
+                    document.getElementById('adminPunchModalBadge').textContent = 'Executive Privilege';
+                    const submitText = document.getElementById('adminPunchSubmitBtnText');
+                    if (submitText) submitText.textContent = 'Record & Notify';
+                }
+            } catch (err) {
+                console.error('Check existing error:', err);
+            }
+        }
+
+        function handleAdminPunchStatusChange() {
+            const status = document.getElementById('adminPunchStatus').value;
+            const inInp = document.getElementById('adminPunchInTime');
+            const outInp = document.getElementById('adminPunchOutTime');
+
+            if (status === 'absent') {
+                if (inInp) {
+                    inInp.style.opacity = '0.4';
+                    inInp.required = false;
+                }
+                if (outInp) {
+                    outInp.style.opacity = '0.4';
+                    outInp.required = false;
+                }
+            } else {
+                if (inInp) inInp.style.opacity = '1';
+                if (outInp) outInp.style.opacity = '1';
+            }
+        }
+
+        async function handleAdminDeleteAttendance() {
+            const attId = document.getElementById('adminPunchAttId').value;
+            if (!attId) return;
+
+            if (!confirm(`Are you sure you want to permanently delete attendance record #${attId}? This cannot be undone.`)) {
+                return;
+            }
+
+            const btn = document.getElementById('adminPunchDeleteBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-sm"></span> Deleting...';
+
+            const res = await apiRequest('attendance.php?action=admin_delete_attendance', 'POST', { id: attId });
+            btn.disabled = false;
+            btn.innerHTML = '<i data-lucide="trash-2" style="width: 14px;"></i> Delete Record';
+
+            if (res.ok && res.data.success) {
+                playSound('success');
+                showToast(res.data.message || 'Attendance record deleted successfully.', 'success');
+                closeModal('adminMarkAttendanceModal');
+                loadAttendanceLogs();
+                loadAttendanceStats();
+            } else {
+                playSound('error');
+                showToast(res.data.message || 'Failed to delete attendance record.', 'error');
+            }
             lucide.createIcons();
         }
 
@@ -2939,6 +3305,7 @@
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner-sm"></span> Processing...';
 
+            const attId = document.getElementById('adminPunchAttId').value;
             const userId = document.getElementById('adminPunchEmployeeSelect').value;
             const date = document.getElementById('adminPunchDate').value;
             const actionType = document.getElementById('adminPunchActionType').value;
@@ -2949,7 +3316,22 @@
             const notes = document.getElementById('adminPunchNotes').value.trim();
             const sendNotif = document.getElementById('adminPunchSendNotif').checked;
 
-            const payload = {
+            if (!userId) {
+                showToast('Please select an employee.', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="check" style="width: 16px;"></i> Save Attendance';
+                return;
+            }
+
+            if (!date) {
+                showToast('Please select a date.', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="check" style="width: 16px;"></i> Save Attendance';
+                return;
+            }
+
+            let endpoint = 'attendance.php?action=admin_mark_attendance';
+            let payload = {
                 user_id: userId,
                 date: date,
                 action_type: actionType,
@@ -2961,11 +3343,17 @@
                 send_notification: sendNotif
             };
 
-            const res = await apiRequest('attendance.php?action=admin_mark_attendance', 'POST', payload);
+            // If we have an existing record ID, or are editing directly, route through admin_edit_attendance
+            if (attId) {
+                endpoint = 'attendance.php?action=admin_edit_attendance';
+                payload.id = attId;
+            }
+
+            const res = await apiRequest(endpoint, 'POST', payload);
 
             if (res.ok && res.data.success) {
                 playSound('success');
-                showToast(res.data.message || 'Attendance recorded successfully!', 'success');
+                showToast(res.data.message || 'Attendance saved successfully!', 'success');
 
                 const resultBox = document.getElementById('adminPunchResultBox');
                 const resultMsg = document.getElementById('adminPunchResultMsg');
@@ -2979,22 +3367,22 @@
                         adminWaBtn.style.display = 'inline-flex';
                     }
                 } else {
-                    resultMsg.textContent = 'Attendance recorded successfully.';
+                    resultMsg.textContent = 'Attendance saved and synchronized successfully.';
                     if (adminWaBtn) adminWaBtn.style.display = 'none';
                 }
 
                 resultBox.style.display = 'block';
                 btn.disabled = false;
-                btn.innerHTML = '<i data-lucide="check" style="width: 16px;"></i> Punch Again';
+                btn.innerHTML = '<i data-lucide="check" style="width: 16px;"></i> Done / Punch Again';
 
                 // Refresh attendance table & metrics
-                loadAttendanceHistory();
+                loadAttendanceLogs();
                 loadAttendanceStats();
                 lucide.createIcons();
             } else {
                 playSound('error');
                 btn.disabled = false;
-                btn.innerHTML = '<i data-lucide="check" style="width: 16px;"></i> Record & Notify';
+                btn.innerHTML = '<i data-lucide="check" style="width: 16px;"></i> Save Attendance';
                 showToast(res.data.message || 'Failed to record attendance.', 'error');
                 lucide.createIcons();
             }
@@ -3034,6 +3422,9 @@
             document.getElementById('editEmpId').value = emp.id;
             document.getElementById('editEmpName').value = emp.name;
             document.getElementById('editEmpEmail').value = emp.email;
+            if (document.getElementById('editEmpCode')) {
+                document.getElementById('editEmpCode').value = emp.employee_code || '';
+            }
             document.getElementById('editEmpPhone').value = emp.phone || '';
             document.getElementById('editEmpDob').value = emp.dob || '';
             document.getElementById('editEmpDoj').value = emp.date_of_joining || '';
@@ -3077,6 +3468,7 @@
                     id: document.getElementById('editEmpId').value,
                     name: document.getElementById('editEmpName').value.trim(),
                     email: document.getElementById('editEmpEmail').value.trim(),
+                    employee_code: document.getElementById('editEmpCode') ? document.getElementById('editEmpCode').value.trim() : '',
                     phone: document.getElementById('editEmpPhone').value.trim(),
                     dob: document.getElementById('editEmpDob').value || null,
                     date_of_joining: document.getElementById('editEmpDoj').value || null,
@@ -3146,6 +3538,7 @@
         async function loadAttendanceLogs() {
             const startDate = document.getElementById('attendanceStartDate') ? document.getElementById('attendanceStartDate').value : '';
             const endDate = document.getElementById('attendanceEndDate') ? document.getElementById('attendanceEndDate').value : '';
+            const userFilter = document.getElementById('attendanceEmployeeFilter') ? document.getElementById('attendanceEmployeeFilter').value : '';
 
             let query = 'attendance.php?action=history';
             if (startDate && endDate) {
@@ -3155,10 +3548,20 @@
             } else if (endDate) {
                 query += `&end_date=${endDate}`;
             }
+            if (userFilter) {
+                query += `&user_id=${userFilter}`;
+            }
 
             const tbody = document.getElementById('adminAttendanceTableBody');
             const countBadge = document.getElementById('attendanceRecordCountBadge');
-            if (tbody) renderTableSkeleton(tbody, 6, 8);
+            if (tbody) renderTableSkeleton(tbody, 6, 9);
+
+            if (allEmployeesCache && allEmployeesCache.length > 0) {
+                const empFilter = document.getElementById('attendanceEmployeeFilter');
+                if (empFilter && empFilter.options.length <= 1) {
+                    populateAttendanceEmployeeFilter();
+                }
+            }
 
             const res = await apiRequest(query);
 
@@ -3169,7 +3572,7 @@
                 }
 
                 if (history.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">No attendance records found for this period.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2rem;">No attendance records found for this period.</td></tr>';
                     return;
                 }
 
@@ -3192,7 +3595,10 @@
                     return `
                     <tr>
                         <td>
-                            <strong>${escapeHtml(h.user_name)}</strong>
+                            <div style="font-weight: 700; color: var(--text-main);">
+                                ${escapeHtml(h.user_name)}
+                                ${h.employee_code ? `<span class="badge" style="background: rgba(14,165,233,0.12); color: #0284c7; font-size: 0.68rem; font-weight: 700; margin-left: 0.35rem; font-family: var(--font-mono);">${escapeHtml(h.employee_code)}</span>` : ''}
+                            </div>
                             <div style="font-size: 0.76rem; color: var(--text-muted);">${escapeHtml(h.user_dept || 'General')}</div>
                         </td>
                         <td><strong>${h.date}</strong></td>
@@ -3218,9 +3624,15 @@
                                 </div>
                             ` : (!h.notes ? '-' : '')}
                         </td>
+                        <td style="text-align: center; white-space: nowrap;">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="openEditAttendanceModal(${h.id})" style="padding: 0.25rem 0.55rem; font-size: 0.75rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 0.25rem;" title="Edit this attendance record">
+                                <i data-lucide="edit-3" style="width: 12px; height: 12px;"></i> Edit
+                            </button>
+                        </td>
                     </tr>
                     `;
                 }).join('');
+                lucide.createIcons();
             }
         }
 
