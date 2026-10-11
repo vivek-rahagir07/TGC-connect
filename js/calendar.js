@@ -42,9 +42,12 @@
 
   // Self-inject guaranteed CSS styles to prevent any caching issue
   function injectCalendarStyles() {
-    if (document.getElementById('academic-calendar-injected-styles')) return;
-    const styleEl = document.createElement('style');
-    styleEl.id = 'academic-calendar-injected-styles';
+    let styleEl = document.getElementById('academic-calendar-injected-styles');
+    if (!styleEl) {
+      styleEl = document.createElement('style');
+      styleEl.id = 'academic-calendar-injected-styles';
+      document.head.appendChild(styleEl);
+    }
     styleEl.textContent = `
       .cal-map-wrapper {
         background: #ffffff;
@@ -56,6 +59,9 @@
         flex-direction: column;
         gap: 1.25rem;
         font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 100%;
       }
 
       .cal-top-bar {
@@ -633,13 +639,91 @@
         color: #be123c;
       }
 
+      /* Mobile indicator dots */
+      .cal-mob-holiday-dot-wrap {
+        display: none;
+      }
+
+      .cal-mob-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+      .cal-mob-dot.type-national {
+        background: #ef4444;
+        box-shadow: 0 0 0 1px #fee2e2;
+      }
+      .cal-mob-dot.type-festival {
+        background: #f59e0b;
+        box-shadow: 0 0 0 1px #fef3c7;
+      }
+      .cal-mob-dot.type-company {
+        background: #3b82f6;
+        box-shadow: 0 0 0 1px #dbeafe;
+      }
+
+      .cal-agenda-item-info {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+      }
+
+      .cal-agenda-title-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        justify-content: space-between;
+      }
+
+      .cal-agenda-title-text {
+        font-weight: 800;
+        color: #0f172a;
+        font-size: 0.88rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex: 1;
+        min-width: 0;
+      }
+
+      .cal-agenda-sub-row {
+        font-size: 0.74rem;
+        color: #64748b;
+        margin-top: 0.2rem;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .cal-agenda-date-code {
+        font-family: 'JetBrains Mono', monospace;
+        font-weight: 600;
+        color: #334155;
+        flex-shrink: 0;
+      }
+
+      .cal-agenda-sep {
+        flex-shrink: 0;
+      }
+
+      .cal-agenda-desc-text {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
       .cal-badge-type {
         font-size: 0.68rem;
         font-weight: 700;
-        padding: 1px 6px;
+        padding: 2px 7px;
         border-radius: 4px;
         display: inline-block;
         white-space: nowrap;
+        flex-shrink: 0 !important;
       }
 
       .cal-badge-type.cal-badge-national {
@@ -833,25 +917,266 @@
       }
 
       @media (max-width: 768px) {
+        .cal-map-wrapper {
+          padding: 0.85rem 0.65rem !important;
+          border-radius: 12px !important;
+          gap: 0.85rem !important;
+        }
+
+        .cal-top-bar {
+          flex-direction: column !important;
+          align-items: stretch !important;
+          gap: 0.65rem !important;
+          padding-bottom: 0.65rem !important;
+        }
+
+        .cal-title-section {
+          width: 100% !important;
+          justify-content: flex-start !important;
+          gap: 0.65rem !important;
+        }
+
+        .cal-title-icon-box {
+          width: 38px !important;
+          height: 38px !important;
+          font-size: 1.15rem !important;
+        }
+
+        .cal-month-title {
+          font-size: 1.35rem !important;
+        }
+
+        .cal-subtitle {
+          font-size: 0.74rem !important;
+        }
+
+        .cal-controls-wrap {
+          width: 100% !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          gap: 0.35rem !important;
+          flex-wrap: nowrap !important;
+        }
+
+        .cal-arrow-btn {
+          width: 34px !important;
+          height: 34px !important;
+          font-size: 0.95rem !important;
+          flex-shrink: 0 !important;
+        }
+
+        .cal-dropdown-select {
+          padding: 0.45rem 0.5rem !important;
+          font-size: 0.82rem !important;
+          flex: 1 1 auto !important;
+          min-width: 0 !important;
+        }
+
+        .cal-today-btn {
+          padding: 0.45rem 0.75rem !important;
+          font-size: 0.8rem !important;
+          flex-shrink: 0 !important;
+        }
+
+        .cal-add-holiday-quick-btn {
+          padding: 0.45rem 0.75rem !important;
+          font-size: 0.8rem !important;
+          flex-shrink: 0 !important;
+        }
+
         .cal-kpi-grid {
-          grid-template-columns: repeat(2, 1fr);
+          grid-template-columns: repeat(2, 1fr) !important;
+          gap: 0.5rem !important;
         }
+
+        .cal-kpi-card {
+          padding: 0.6rem 0.75rem !important;
+        }
+
+        .cal-kpi-label {
+          font-size: 0.66rem !important;
+        }
+
+        .cal-kpi-num {
+          font-size: 1.35rem !important;
+        }
+
+        /* FULL RESPONSIVE 7-DAY FIT ON MOBILE - NO HORIZONTAL OVERFLOW */
+        .cal-table-responsive {
+          width: 100% !important;
+          overflow-x: hidden !important;
+          border-radius: 8px !important;
+        }
+
+        .cal-table-map {
+          min-width: 0 !important;
+          width: 100% !important;
+          table-layout: fixed !important;
+        }
+
+        .cal-table-map thead th {
+          padding: 0.45rem 0.15rem !important;
+          font-size: 0.68rem !important;
+          letter-spacing: 0 !important;
+        }
+
         .cal-table-map tbody td {
-          height: 80px;
-          min-height: 80px;
-          padding: 0.35rem;
+          height: 52px !important;
+          min-height: 52px !important;
+          max-height: 52px !important;
+          padding: 2px 1px !important;
+          text-align: center !important;
+          vertical-align: top !important;
         }
+
+        .cal-cell-header {
+          display: flex !important;
+          justify-content: center !important;
+          align-items: center !important;
+          margin-bottom: 0 !important;
+        }
+
         .cal-date-number {
-          width: 28px;
-          height: 28px;
-          font-size: 0.82rem;
+          width: 28px !important;
+          height: 28px !important;
+          font-size: 0.8rem !important;
+          font-weight: 700 !important;
         }
+
+        /* In mobile cell, hide verbose text badges that break columns */
+        .cal-badge-today-chip,
+        .cal-badge-sunday-chip,
+        .cal-cell-add-btn,
+        .cal-holiday-stack {
+          display: none !important;
+        }
+
+        /* Show clean, elegant dot indicators below date number */
+        .cal-mob-holiday-dot-wrap {
+          display: flex !important;
+          justify-content: center !important;
+          align-items: center !important;
+          margin-top: 2px !important;
+        }
+
+        /* Today active badge on mobile */
+        .cal-table-map tbody td.td-today .cal-date-number {
+          background: #4f46e5 !important;
+          color: #ffffff !important;
+          border-radius: 50% !important;
+          box-shadow: 0 2px 6px rgba(79, 70, 229, 0.4) !important;
+        }
+
+        /* Legend */
+        .cal-legend-row {
+          gap: 0.75rem !important;
+          padding: 0.65rem 0.75rem !important;
+          font-size: 0.74rem !important;
+        }
+
+        .cal-legend-badge {
+          gap: 0.35rem !important;
+          font-size: 0.74rem !important;
+        }
+
+        /* Agenda Section */
+        .cal-agenda-heading {
+          flex-direction: column !important;
+          align-items: flex-start !important;
+          gap: 0.5rem !important;
+        }
+
+        .cal-agenda-heading-left {
+          font-size: 0.95rem !important;
+        }
+
+        .cal-agenda-toggle-pills {
+          width: 100% !important;
+          display: flex !important;
+        }
+
+        .cal-toggle-pill {
+          flex: 1 !important;
+          text-align: center !important;
+          padding: 5px 8px !important;
+          font-size: 0.74rem !important;
+        }
+
+        .cal-agenda-cards-grid {
+          grid-template-columns: 1fr !important;
+          gap: 0.65rem !important;
+          width: 100% !important;
+        }
+
+        .cal-agenda-item {
+          padding: 0.55rem 0.75rem !important;
+          gap: 0.65rem !important;
+          width: 100% !important;
+          box-sizing: border-box !important;
+          max-width: 100% !important;
+          overflow: hidden !important;
+        }
+
+        .cal-agenda-daybox {
+          width: 38px !important;
+          min-width: 38px !important;
+          height: 38px !important;
+        }
+
+        .cal-agenda-daynum {
+          font-size: 0.95rem !important;
+        }
+
+        .cal-agenda-wkday {
+          font-size: 0.55rem !important;
+        }
+
+        .cal-badge-type {
+          font-size: 0.64rem !important;
+          padding: 1px 5px !important;
+        }
+
+        .cal-agenda-title-text {
+          font-size: 0.82rem !important;
+        }
+
+        .cal-agenda-sub-row {
+          font-size: 0.7rem !important;
+        }
+
         .cal-form-row {
-          grid-template-columns: 1fr;
+          grid-template-columns: 1fr !important;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .cal-map-wrapper {
+          padding: 0.65rem 0.35rem !important;
+          border: none !important;
+          background: transparent !important;
+          box-shadow: none !important;
+        }
+
+        .cal-month-title {
+          font-size: 1.2rem !important;
+        }
+
+        .cal-table-map thead th {
+          padding: 0.35rem 0.1rem !important;
+          font-size: 0.62rem !important;
+        }
+
+        .cal-date-number {
+          width: 26px !important;
+          height: 26px !important;
+          font-size: 0.76rem !important;
         }
       }
     `;
-    document.head.appendChild(styleEl);
+    if (!styleEl.parentNode) {
+      document.head.appendChild(styleEl);
+    }
   }
 
   class AcademicCalendar {
@@ -1197,6 +1522,7 @@
             if (isToday) tdClasses.push('td-today');
 
             let holidayPillHtml = '';
+            let holidayMobDotHtml = '';
             if (hasHoliday) {
               const typeClass = `type-${holiday.type || 'company'}`;
               holidayPillHtml = `
@@ -1206,6 +1532,11 @@
                     <span>${this.escapeHtml(holiday.title)}</span>
                   </div>
                   ${this.options.editable ? `<span class="cal-pill-edit-icon" title="Edit Holiday">✏️</span>` : ''}
+                </div>
+              `;
+              holidayMobDotHtml = `
+                <div class="cal-mob-holiday-dot-wrap" title="${this.escapeHtml(holiday.title)}">
+                  <span class="cal-mob-dot ${typeClass}"></span>
                 </div>
               `;
             }
@@ -1223,6 +1554,7 @@
                 <div class="cal-holiday-stack">
                   ${holidayPillHtml}
                 </div>
+                ${holidayMobDotHtml}
               </td>
             `;
             currentDay++;
@@ -1343,16 +1675,16 @@
                   <span class="cal-agenda-daynum">${dayNum}</span>
                   <span class="cal-agenda-wkday">${isAllView ? monthShort : dayName}</span>
                 </div>
-                <div style="flex: 1; min-width: 0;">
-                  <div style="display: flex; align-items: center; gap: 0.35rem; justify-content: space-between;">
-                    <span style="font-weight: 800; color: #0f172a; font-size: 0.88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${this.escapeHtml(h.title)}">
+                <div class="cal-agenda-item-info">
+                  <div class="cal-agenda-title-row">
+                    <span class="cal-agenda-title-text" title="${this.escapeHtml(h.title)}">
                       ${this.escapeHtml(h.title)}
                     </span>
                     <span class="cal-badge-type cal-badge-${h.type || 'company'}">${typeLabel}</span>
                   </div>
-                  <div style="font-size: 0.74rem; color: #64748b; margin-top: 0.2rem; display: flex; align-items: center; gap: 0.35rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                    <span style="font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #334155;">${h.holiday_date} (${dayName})</span>
-                    ${h.description ? `<span>&bull;</span> <span title="${this.escapeHtml(h.description)}">${this.escapeHtml(h.description)}</span>` : ''}
+                  <div class="cal-agenda-sub-row">
+                    <span class="cal-agenda-date-code">${h.holiday_date} (${dayName})</span>
+                    ${h.description ? `<span class="cal-agenda-sep">&bull;</span> <span class="cal-agenda-desc-text" title="${this.escapeHtml(h.description)}">${this.escapeHtml(h.description)}</span>` : ''}
                   </div>
                 </div>
                 ${this.options.editable ? `

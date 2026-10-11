@@ -7,12 +7,247 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
-    <link rel="stylesheet" href="css/style.css?v=4.1">
+    <link rel="stylesheet" href="css/style.css?v=5.0">
+    <!-- PWA Progressive Web App Metadata & Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="TGC Connect">
+    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
     <style>
         /* Fail-safe Critical Display Rules for mobile bottom nav */
         .mobile-bottom-nav { display: none !important; }
         @media (max-width: 768px) {
             .mobile-bottom-nav { display: flex !important; }
+        }
+
+        /* Hero Banner Resilient In-Page Styling */
+        .portal-hero-banner {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 45%, #312e81 100%) !important;
+            color: #ffffff !important;
+            border: 1px solid rgba(255, 255, 255, 0.14) !important;
+            padding: 1.6rem 2rem !important;
+            border-radius: 20px !important;
+            box-shadow: 0 16px 36px -8px rgba(15, 23, 42, 0.35), 0 4px 14px rgba(49, 46, 129, 0.25) !important;
+            position: relative;
+            overflow: hidden;
+        }
+        .portal-hero-banner::before {
+            content: '';
+            position: absolute;
+            top: -40%;
+            right: -10%;
+            width: 480px;
+            height: 480px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.28) 0%, rgba(99, 102, 241, 0) 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .portal-hero-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            position: relative;
+            z-index: 2;
+        }
+        .portal-hero-profile {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            min-width: 0;
+            flex: 1;
+        }
+        .portal-hero-avatar {
+            width: 64px;
+            height: 64px;
+            min-width: 64px;
+            min-height: 64px;
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, 0.45);
+            overflow: hidden;
+            background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #ffffff;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+            flex-shrink: 0;
+        }
+        .portal-hero-dept {
+            font-size: 0.78rem;
+            color: #c7d2fe;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+        .portal-hero-name {
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin: 0.15rem 0;
+            letter-spacing: -0.5px;
+            line-height: 1.25;
+            color: #ffffff !important;
+        }
+        .portal-hero-sub {
+            font-size: 0.88rem;
+            color: #e0e7ff;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+            margin-top: 0.2rem;
+            font-weight: 500;
+        }
+        .portal-hero-btn {
+            background: rgba(255, 255, 255, 0.14) !important;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: #ffffff !important;
+            border: 1px solid rgba(255, 255, 255, 0.25) !important;
+            border-radius: 10px !important;
+            font-weight: 700 !important;
+            padding: 0.55rem 1rem !important;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .portal-hero-clock {
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            padding: 0.65rem 1.25rem;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: right;
+        }
+        .portal-hero-clock-label {
+            font-size: 0.68rem;
+            color: #a5b4fc;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            font-weight: 700;
+        }
+        .portal-hero-clock-display {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #ffffff;
+            font-family: var(--font-mono, monospace);
+            margin-top: 0.15rem;
+        }
+
+        /* 2-Column Dashboard on Laptop & Desktop */
+        .portal-dashboard-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+            gap: 1.5rem;
+            align-items: stretch;
+        }
+        @media (max-width: 991px) {
+            .portal-dashboard-grid {
+                grid-template-columns: 1fr !important;
+                gap: 1.25rem !important;
+            }
+        }
+
+        /* Leave Quota Cards Fail-Safe Styling */
+        .portal-leave-quad-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.85rem;
+            margin-bottom: 1rem;
+        }
+        .portal-quota-card {
+            border-radius: 14px;
+            padding: 1.1rem 1rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all 0.22s ease;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+            position: relative;
+        }
+        .portal-quota-card.cl-card {
+            background: linear-gradient(145deg, #eff6ff 0%, #dbeafe 100%) !important;
+            border: 1.5px solid #bfdbfe !important;
+        }
+        .portal-quota-card.el-card {
+            background: linear-gradient(145deg, #fffbeb 0%, #fef3c7 100%) !important;
+            border: 1.5px solid #fde68a !important;
+        }
+        .portal-quota-card.co-card {
+            background: linear-gradient(145deg, #faf5ff 0%, #f3e8ff 100%) !important;
+            border: 1.5px solid #e9d5ff !important;
+        }
+        .portal-quota-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .portal-quota-title {
+            font-size: 0.74rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .cl-card .portal-quota-title { color: #1e40af; }
+        .el-card .portal-quota-title { color: #92400e; }
+        .co-card .portal-quota-title { color: #7e22ce; }
+        .portal-quota-badge {
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 6px;
+            white-space: nowrap;
+        }
+        .cl-card .portal-quota-badge { color: #1d4ed8; background: rgba(255, 255, 255, 0.7); border: 1px solid #bfdbfe; }
+        .el-card .portal-quota-badge { color: #b45309; background: rgba(255, 255, 255, 0.7); border: 1px solid #fde68a; }
+        .co-card .portal-quota-badge { color: #9333ea; background: rgba(255, 255, 255, 0.7); border: 1px solid #e9d5ff; }
+        .portal-quota-nums {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-top: 0.75rem;
+        }
+        .portal-quota-big-num {
+            font-size: 1.95rem;
+            font-weight: 800;
+            font-family: var(--font-mono, monospace);
+            line-height: 1;
+        }
+        .cl-card .portal-quota-big-num { color: #1e3a8a; }
+        .el-card .portal-quota-big-num { color: #78350f; }
+        .co-card .portal-quota-big-num { color: #6b21a8; }
+        .portal-quota-avail-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            margin-left: 2px;
+            text-transform: uppercase;
+        }
+        .cl-card .portal-quota-avail-label { color: #2563eb; }
+        .el-card .portal-quota-avail-label { color: #d97706; }
+        .co-card .portal-quota-avail-label { color: #a855f7; }
+        .portal-quota-assigned-label {
+            font-size: 0.76rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .cl-card .portal-quota-assigned-label { color: #3b82f6; }
+        .el-card .portal-quota-assigned-label { color: #b45309; }
+        .co-card .portal-quota-assigned-label { color: #9333ea; }
+        @media (max-width: 680px) {
+            .portal-leave-quad-grid { grid-template-columns: 1fr !important; }
+            .portal-quota-card { flex-direction: row !important; align-items: center !important; }
         }
     </style>
 </head>
@@ -67,7 +302,9 @@
                         </button>
 
                         <div class="portal-hero-clock">
-                            <div class="portal-hero-clock-label">Workplace Clock</div>
+                            <div class="portal-hero-clock-label">
+                                <span class="portal-hero-clock-dot"></span> Live Workplace Clock
+                            </div>
                             <div id="liveClock" class="portal-hero-clock-display">--:--:--</div>
                         </div>
                     </div>
@@ -86,15 +323,15 @@
                         <span id="todayDateBadge" class="badge badge-primary">Today</span>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; margin-bottom: 0.85rem;">
-                        <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.95rem 1rem; text-align: center;">
-                            <div style="font-size: 0.74rem; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 0.25rem;">CHECK-IN TIME</div>
-                            <div id="checkInTimeDisplay" style="font-size: 1.35rem; font-weight: 700; color: var(--text-main); font-family: var(--font-mono);">--:--</div>
+                    <div class="portal-punch-kpi-grid">
+                        <div class="portal-punch-kpi-card">
+                            <div class="portal-punch-kpi-label"><i data-lucide="log-in" style="width: 13px; color: var(--primary); display: inline-block; vertical-align: middle;"></i> CHECK-IN TIME</div>
+                            <div id="checkInTimeDisplay" class="portal-punch-kpi-val">--:--</div>
                         </div>
 
-                        <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.95rem 1rem; text-align: center;">
-                            <div style="font-size: 0.74rem; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 0.25rem;">CHECK-OUT TIME</div>
-                            <div id="checkOutTimeDisplay" style="font-size: 1.35rem; font-weight: 700; color: var(--text-main); font-family: var(--font-mono);">--:--</div>
+                        <div class="portal-punch-kpi-card">
+                            <div class="portal-punch-kpi-label"><i data-lucide="log-out" style="width: 13px; color: var(--secondary); display: inline-block; vertical-align: middle;"></i> CHECK-OUT TIME</div>
+                            <div id="checkOutTimeDisplay" class="portal-punch-kpi-val">--:--</div>
                         </div>
                     </div>
 
@@ -174,10 +411,15 @@
                         </div>
                     </div>
 
-                    <div style="font-size: 0.88rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.65rem;">
-                        Recent Leave Applications
+                    <div class="portal-leave-policy-banner">
+                        <i data-lucide="info" style="width: 18px; color: var(--primary); flex-shrink: 0;"></i>
+                        <div><strong>Accrual Policy:</strong> 1 CL & 1 EL credited on the 1st of every month (Annual Cap: 12 days each). Unused balance carries over.</div>
                     </div>
-                    <div id="recentLeavesList" style="max-height: 175px; overflow-y: auto;">
+
+                    <div style="font-size: 0.88rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.65rem; display: flex; align-items: center; justify-content: space-between;">
+                        <span>Recent Leave Applications</span>
+                    </div>
+                    <div id="recentLeavesList" class="portal-recent-leaves-box">
                         <div style="color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 1rem;">Loading leaves...</div>
                     </div>
                 </div>
@@ -185,11 +427,11 @@
 
             <!-- Attendance History & Salary Slips Tabs -->
             <div class="card" id="portalTabsSection">
-                <div class="card-header">
+                <div class="card-header" style="flex-wrap: wrap; gap: 0.85rem;">
                     <div class="card-title">
                         <i data-lucide="history" style="color: var(--primary);"></i> Attendance Log & Monthly Salary Slips
                     </div>
-                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <div class="portal-tab-pill-bar">
                         <button type="button" id="tabAttendanceBtn" onclick="switchTab('attendance')" class="btn btn-primary btn-sm">Attendance Log</button>
                         <button type="button" id="tabCalendarBtn" onclick="switchTab('calendar')" class="btn btn-secondary btn-sm"><i data-lucide="calendar" style="width: 15px;"></i> Academic & Holiday Calendar</button>
                         <button type="button" id="tabSalaryBtn" onclick="switchTab('salary')" class="btn btn-secondary btn-sm">Salary Slips</button>
@@ -517,7 +759,7 @@
     <div id="toast-container"></div>
 
     <script src="js/app.js?v=2.5"></script>
-    <script src="js/calendar.js?v=3.5"></script>
+    <script src="js/calendar.js?v=5.0"></script>
     <script>
         let currentUserData = null;
 
@@ -569,7 +811,8 @@
             const u = res.data.user;
             currentUserData = u;
 
-            document.getElementById('userNameHeading').textContent = `Welcome, ${u.name}`;
+            const cleanName = (u.name || 'Employee').trim();
+            document.getElementById('userNameHeading').textContent = `Welcome, ${cleanName}`;
             const companyDisplay = u.company ? u.company.toUpperCase() : 'GETTING ROOTS COACHING & TRAINING PVT. LTD.';
             document.getElementById('userDeptProfile').textContent = `${companyDisplay} • ${u.department || 'General'} • ${u.job_profile || 'Staff'}`;
             const empCodeDisplay = u.employee_code || `TGC-${String(u.id).padStart(4, '0')}`;
@@ -579,7 +822,7 @@
             if (u.photo_url) {
                 avatarBox.innerHTML = `<img src="${u.photo_url}" style="width:100%;height:100%;object-fit:cover;">`;
             } else {
-                avatarBox.textContent = u.name.charAt(0);
+                avatarBox.textContent = cleanName.charAt(0).toUpperCase() || 'E';
             }
 
             if (u.pending_profile_change) {
@@ -897,19 +1140,29 @@
             const container = document.getElementById('recentLeavesList');
             if (res.ok && res.data.success) {
                 if (res.data.leaves.length === 0) {
-                    container.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 1.25rem;">No leave applications yet.</div>';
+                    container.innerHTML = `
+                        <div style="color: var(--text-muted); font-size: 0.84rem; text-align: center; padding: 1.25rem 0.5rem;">
+                            <div style="font-weight: 600; color: var(--text-main); margin-bottom: 2px;">No leave applications yet</div>
+                            <div style="font-size: 0.76rem;">Click <strong>Apply for Leave</strong> above to submit a request.</div>
+                        </div>
+                    `;
                     return;
                 }
 
-                container.innerHTML = res.data.leaves.map(l => `
-                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.88rem;">
-                        <div>
-                            <strong>${l.leave_type.toUpperCase()} Leave</strong> • ${l.start_date} to ${l.end_date} (${l.total_days} days)
-                            <div style="color: var(--text-muted); font-size: 0.78rem;">${l.reason}</div>
+                container.innerHTML = res.data.leaves.map(l => {
+                    const statusClass = l.status === 'approved' ? 'badge-success' : (l.status === 'rejected' ? 'badge-danger' : 'badge-warning');
+                    return `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.55rem 0.4rem; border-bottom: 1px solid var(--border-color); font-size: 0.85rem;">
+                            <div style="min-width: 0; flex: 1; margin-right: 0.5rem;">
+                                <div style="font-weight: 700; color: var(--text-main); font-size: 0.84rem;">
+                                    ${l.leave_type.toUpperCase()} Leave &bull; <span style="font-weight: 600; color: var(--text-muted); font-size: 0.8rem;">${l.start_date} to ${l.end_date} (${l.total_days}d)</span>
+                                </div>
+                                <div style="color: var(--text-muted); font-size: 0.76rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${l.reason || 'No reason provided'}</div>
+                            </div>
+                            <span class="badge ${statusClass}" style="text-transform: capitalize; font-weight: 700; font-size: 0.72rem;">${l.status}</span>
                         </div>
-                        <span class="badge badge-${l.status}">${l.status}</span>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
             }
         }
 

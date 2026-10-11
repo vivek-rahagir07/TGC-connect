@@ -1122,11 +1122,159 @@ function toggleCommandPalette() {
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     initCommandPalette();
+    initPwaEngine();
     const backdrop = document.getElementById('cmdPaletteBackdrop');
     if (backdrop) backdrop.style.setProperty('display', 'none', 'important');
   });
 } else {
   initCommandPalette();
+  initPwaEngine();
   const backdrop = document.getElementById('cmdPaletteBackdrop');
   if (backdrop) backdrop.style.setProperty('display', 'none', 'important');
 }
+
+// ==========================================================================
+// 12. Progressive Web App (PWA) Manager & Service Worker Registration
+// ==========================================================================
+let deferredPwaPrompt = null;
+let pwaInstallBannerShown = false;
+
+function initPwaEngine() {
+  // 1. Register Service Worker
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then((reg) => {
+          console.log('[TGC PWA] Service Worker registered successfully:', reg.scope);
+          reg.addEventListener('updatefound', () => {
+            const installingWorker = reg.installing;
+            if (installingWorker) {
+              installingWorker.addEventListener('statechange', () => {
+                if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  showToast('App update available! Refresh to get latest features.', 'info');
+                }
+              });
+            }
+          });
+        })
+        .catch((err) => {
+          console.warn('[TGC PWA] Service Worker registration failed:', err);
+        });
+    });
+  }
+
+  // 2. Intercept beforeinstallprompt for native install banner
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPwaPrompt = e;
+    console.log('[TGC PWA] beforeinstallprompt event captured');
+
+    const dismissedAt = localStorage.getItem('tgc_pwa_install_dismissed_at');
+    if (dismissedAt && (Date.now() - parseInt(dismissedAt, 10)) < 3 * 24 * 60 * 60 * 1000) {
+      return;
+    }
+
+    setTimeout(() => {
+      showPwaInstallBanner();
+    }, 2000);
+  });
+
+  // 3. Listen to appinstalled event
+  window.addEventListener('appinstalled', () => {
+    deferredPwaPrompt = null;
+    hidePwaInstallBanner();
+    showToast('TGC Connect installed successfully!', 'success');
+    playSound('success');
+  });
+
+  // 4. iOS Safari Add to Home Screen Hint
+  const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+  const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator.standalone);
+
+  if (isIos() && !isInStandaloneMode()) {
+    const iosDismissed = localStorage.getItem('tgc_pwa_ios_dismissed_at');
+    if (!iosDismissed || (Date.now() - parseInt(iosDismissed, 10)) > 7 * 24 * 60 * 60 * 1000) {
+      setTimeout(() => {
+        showIosPwaInstallHint();
+      }, 5000);
+    }
+  }
+}
+
+function showPwaInstallBanner() {
+  if (pwaInstallBannerShown || document.getElementById('tgcPwaInstallBanner')) return;
+  if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) return;
+
+  pwaInstallBannerShown = true;
+  const banner = document.createElement('div');
+  banner.id = 'tgcPwaInstallBanner';
+  banner.className = 'pwa-install-banner';
+  banner.innerHTML = `
+    <div class="pwa-install-icon">
+      <img src="assets/icons/icon-96x96.png" alt="App Icon" onerror="this.src='assets/logo_icon.png'">
+    </div>
+    <div class="pwa-install-info">
+      <div class="pwa-install-title">Install TGC Connect</div>
+      <div class="pwa-install-desc">Fast attendance punch, calendar & payroll on your home screen.</div>
+    </div>
+    <button type="button" class="pwa-install-btn" id="btnPwaInstallAction">Install</button>
+    <button type="button" class="pwa-install-close" id="btnPwaInstallDismiss" title="Dismiss">&times;</button>
+  `;
+  document.body.appendChild(banner);
+
+  document.getElementById('btnPwaInstallAction').addEventListener('click', async () => {
+    playSound('click');
+    if (deferredPwaPrompt) {
+      deferredPwaPrompt.prompt();
+      const choice = await deferredPwaPrompt.userChoice;
+      if (choice && choice.outcome === 'accepted') {
+        playSound('success');
+      }
+      deferredPwaPrompt = null;
+    }
+    hidePwaInstallBanner();
+  });
+
+  document.getElementById('btnPwaInstallDismiss').addEventListener('click', () => {
+    localStorage.setItem('tgc_pwa_install_dismissed_at', Date.now().toString());
+    hidePwaInstallBanner();
+  });
+}
+
+function hidePwaInstallBanner() {
+  const banner = document.getElementById('tgcPwaInstallBanner');
+  if (banner) {
+    banner.style.transition = 'all 0.25s ease';
+    banner.style.opacity = '0';
+    banner.style.transform = 'translateY(20px)';
+    setTimeout(() => banner.remove(), 260);
+  }
+}
+
+function showIosPwaInstallHint() {
+  if (document.getElementById('tgcIosPwaHint')) return;
+  const hint = document.createElement('div');
+  hint.id = 'tgcIosPwaHint';
+  hint.className = 'pwa-install-banner';
+  hint.innerHTML = `
+    <div class="pwa-install-icon">
+      <img src="assets/icons/icon-96x96.png" alt="App Icon">
+    </div>
+    <div class="pwa-install-info">
+      <div class="pwa-install-title">Install on iPhone</div>
+      <div class="pwa-install-desc">Tap <strong>Share <i style="font-style: normal;">⎋</i></strong> then <strong>'Add to Home Screen' <i style="font-style: normal;">➕</i></strong></div>
+    </div>
+    <button type="button" class="pwa-install-close" onclick="localStorage.setItem('tgc_pwa_ios_dismissed_at', Date.now()); document.getElementById('tgcIosPwaHint').remove();">&times;</button>
+  `;
+  document.body.appendChild(hint);
+}
+
+// Global trigger function to prompt install anywhere in app
+window.triggerPwaInstall = function() {
+  if (deferredPwaPrompt) {
+    deferredPwaPrompt.prompt();
+  } else {
+    showToast('To install: use your browser menu and choose "Add to Home Screen" or "Install App"', 'info');
+  }
+};
+
