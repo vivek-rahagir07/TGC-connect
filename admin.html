@@ -42,19 +42,18 @@
     </nav>
 
     <main class="main-container">
-        <div style="display: flex; flex-direction: column; gap: 2rem;">
+        <div class="admin-main-stack" style="display: flex; flex-direction: column; gap: 1.5rem;">
             
             <!-- Executive Action Bar -->
-            <!-- Executive Action Bar -->
-            <div class="animate-fade-in" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; background: #ffffff; padding: 1.25rem 1.6rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); box-shadow: var(--shadow-xs);">
-                <div>
-                    <div style="display: inline-flex; align-items: center; gap: 0.45rem; font-size: 0.74rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 0.2rem;">
+            <div class="animate-fade-in admin-executive-bar" style="background: #ffffff; padding: 1.25rem 1.6rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); box-shadow: var(--shadow-xs);">
+                <div class="admin-executive-header">
+                    <div class="admin-executive-pill" style="display: inline-flex; align-items: center; gap: 0.45rem; font-size: 0.74rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 0.2rem;">
                         <span class="radar-dot"></span> Executive Command Center
                     </div>
-                    <h1 style="font-size: 1.55rem; font-weight: 700; letter-spacing: -0.4px; margin: 0; color: var(--text-main);">Workforce & Operations Center</h1>
+                    <h1 class="admin-executive-title" style="font-size: 1.55rem; font-weight: 700; letter-spacing: -0.4px; margin: 0; color: var(--text-main);">Workforce & Operations Center</h1>
                 </div>
 
-                <div style="display: flex; gap: 0.55rem; flex-wrap: wrap; align-items: center;">
+                <div class="admin-executive-actions" style="display: flex; gap: 0.55rem; flex-wrap: wrap; align-items: center;">
                     <button type="button" class="cmd-trigger-btn" onclick="openCommandPalette()" title="Open Command Palette (Ctrl+K)">
                         <i data-lucide="search" style="width: 14px; color: var(--primary);"></i>
                         <span style="font-weight: 600;">Search & Actions</span>
@@ -178,10 +177,10 @@
             </div>
 
             <!-- Interactive Leaflet Map & Analytics Charts Row -->
-            <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 1.4rem;">
+            <div class="admin-analytics-grid">
                 
                 <!-- Interactive Leaflet GPS Attendance Map -->
-                <div class="card">
+                <div class="card admin-map-card">
                     <div class="card-header">
                         <div class="card-title">
                             <i data-lucide="map" style="color: var(--primary);"></i> Live GPS Check-Ins Map
@@ -197,20 +196,20 @@
                 </div>
 
                 <!-- 7-Day Attendance Trend Analytics -->
-                <div class="card">
+                <div class="card admin-chart-card">
                     <div class="card-header">
                         <div class="card-title">
                             <i data-lucide="trending-up" style="color: var(--primary);"></i> 7-Day Attendance Trend
                         </div>
                     </div>
-                    <div style="height: 290px; position: relative;">
+                    <div class="admin-chart-wrapper" style="height: 290px; position: relative;">
                         <canvas id="attendanceTrendChart"></canvas>
                     </div>
                 </div>
             </div>
 
             <!-- Navigation Tabs -->
-            <div style="display: flex; gap: 0.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.45rem; flex-wrap: wrap;">
+            <div class="admin-tabs-nav" id="adminTabsNavSection">
                 <button type="button" id="tabApprovalsBtn" onclick="showAdminTab('approvals')" class="btn btn-primary btn-sm">
                     <i data-lucide="check-circle" style="width: 15px;"></i> Approvals Hub <span id="navApprovalsCountBadge" class="badge badge-warning" style="margin-left: 0.35rem; display: none;">0</span>
                 </button>
@@ -1987,24 +1986,28 @@
 
     <!-- Mobile Bottom Navigation (< 768px) -->
     <nav class="mobile-bottom-nav">
+        <button type="button" class="mobile-nav-item" id="mobNavDashboard" onclick="showAdminTab('dashboard')">
+            <div class="mobile-nav-icon"><i data-lucide="layout-dashboard" style="width: 19px;"></i></div>
+            <span class="mobile-nav-label">Overview</span>
+        </button>
         <button type="button" class="mobile-nav-item active" id="mobNavApprovals" onclick="showAdminTab('approvals')">
-            <div class="mobile-nav-icon"><i data-lucide="check-circle" style="width: 20px;"></i></div>
+            <div class="mobile-nav-icon"><i data-lucide="check-circle" style="width: 19px;"></i></div>
             <span class="mobile-nav-label">Approvals</span>
         </button>
         <button type="button" class="mobile-nav-item" id="mobNavEmployees" onclick="showAdminTab('employees')">
-            <div class="mobile-nav-icon"><i data-lucide="users" style="width: 20px;"></i></div>
+            <div class="mobile-nav-icon"><i data-lucide="users" style="width: 19px;"></i></div>
             <span class="mobile-nav-label">Staff</span>
         </button>
         <button type="button" class="mobile-nav-item" id="mobNavAttendance" onclick="showAdminTab('attendance')">
-            <div class="mobile-nav-icon"><i data-lucide="clock" style="width: 20px;"></i></div>
+            <div class="mobile-nav-icon"><i data-lucide="clock" style="width: 19px;"></i></div>
             <span class="mobile-nav-label">Attendance</span>
         </button>
         <button type="button" class="mobile-nav-item" id="mobNavPayroll" onclick="showAdminTab('payroll')">
-            <div class="mobile-nav-icon"><i data-lucide="calculator" style="width: 20px;"></i></div>
+            <div class="mobile-nav-icon"><i data-lucide="calculator" style="width: 19px;"></i></div>
             <span class="mobile-nav-label">Payroll</span>
         </button>
         <button type="button" class="mobile-nav-item" id="mobNavMenu" onclick="openMobileDrawer()">
-            <div class="mobile-nav-icon"><i data-lucide="menu" style="width: 20px;"></i></div>
+            <div class="mobile-nav-icon"><i data-lucide="menu" style="width: 19px;"></i></div>
             <span class="mobile-nav-label">Menu</span>
         </button>
     </nav>
@@ -2111,6 +2114,20 @@
 
         function showAdminTab(tab) {
             playSound('click');
+
+            if (tab === 'dashboard' || tab === 'overview') {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                // Reset bottom nav active classes
+                ['mobNavDashboard', 'mobNavApprovals', 'mobNavEmployees', 'mobNavAttendance', 'mobNavPayroll'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.classList.toggle('active', id === 'mobNavDashboard');
+                });
+                if (leafletMap) {
+                    setTimeout(() => leafletMap.invalidateSize(), 200);
+                }
+                return;
+            }
+
             const tabs = ['approvals', 'employees', 'attendance', 'leaves', 'payroll', 'inventory', 'holidays', 'logs', 'roster', 'departments'];
             tabs.forEach(t => {
                 const sec = document.getElementById(`section${t.charAt(0).toUpperCase() + t.slice(1)}`);
@@ -2124,6 +2141,8 @@
 
             // Sync Mobile Bottom Navigation
             const mobMap = { approvals: 'mobNavApprovals', employees: 'mobNavEmployees', attendance: 'mobNavAttendance', payroll: 'mobNavPayroll' };
+            const dashBtn = document.getElementById('mobNavDashboard');
+            if (dashBtn) dashBtn.classList.remove('active');
             Object.entries(mobMap).forEach(([tKey, elId]) => {
                 const el = document.getElementById(elId);
                 if (el) el.classList.toggle('active', tKey === tab);
@@ -2134,6 +2153,23 @@
                 history.replaceState(null, null, `#${tab}`);
             } else {
                 window.location.hash = tab;
+            }
+
+            // Mobile: Smoothly scroll down to the active tab content area so user sees results immediately
+            if (window.innerWidth <= 768) {
+                const targetSec = document.getElementById(`section${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
+                const tabsBar = document.getElementById('adminTabsNavSection');
+                const focusEl = targetSec || tabsBar;
+                if (focusEl) {
+                    setTimeout(() => {
+                        const navOffset = 64;
+                        const elementPosition = focusEl.getBoundingClientRect().top + window.pageYOffset;
+                        window.scrollTo({
+                            top: Math.max(0, elementPosition - navOffset),
+                            behavior: 'smooth'
+                        });
+                    }, 60);
+                }
             }
 
             if (tab === 'inventory') loadInventoryData();
