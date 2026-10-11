@@ -343,41 +343,52 @@ async function checkAuthNav() {
     window.currentUser = u;
     if (navUserArea) {
       navUserArea.innerHTML = `
-        <div class="user-nav-dropdown" id="userNavDropdownWrap">
-          <div class="user-nav-trigger" id="userNavTriggerBtn" onclick="toggleUserDropdown(event)">
-            <div class="avatar-sm" style="width: 34px; height: 34px; min-width: 34px;">
-              ${u.photo_url ? `<img src="${u.photo_url}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">` : escapeHtml(u.name.charAt(0).toUpperCase())}
-            </div>
-            <div class="user-nav-text-wrap" style="line-height: 1.2; text-align: left;">
-              <div style="font-size: 0.82rem; font-weight: 800; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-main);">${escapeHtml(u.name)}</div>
-              <div style="font-size: 0.68rem; color: var(--text-muted); text-transform: capitalize; font-weight: 600;">${escapeHtml(u.role)}</div>
-            </div>
-            <i data-lucide="chevron-down" class="user-nav-chevron" style="width: 14px; height: 14px; color: var(--text-muted); margin-left: 2px;"></i>
-          </div>
+        <div style="display: flex; align-items: center; gap: 0.65rem;">
+          <button type="button" class="btn-pwa-nav-install" id="pwaNavInstallBtn" onclick="triggerPwaInstall()" title="Install TGC Connect on your phone or desktop">
+            <span class="install-icon">📲</span>
+            <span>Install App</span>
+          </button>
 
-          <div class="user-nav-menu" id="userNavDropdownMenu" style="display: none;">
-            <div class="user-nav-header">
-              <div style="font-weight: 800; font-size: 0.9rem; color: var(--text-main);">${escapeHtml(u.name)}</div>
-              <div style="font-size: 0.74rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px;">${escapeHtml(u.email)}</div>
-              <div style="display: flex; gap: 0.35rem; margin-top: 0.5rem; flex-wrap: wrap;">
-                <span class="badge badge-primary" style="font-size: 0.65rem; padding: 2px 7px; border-radius: 9999px;">${escapeHtml(u.role.toUpperCase())}</span>
-                <span class="badge badge-secondary" style="font-size: 0.65rem; padding: 2px 7px; border-radius: 9999px;">${escapeHtml(u.department || 'Operations')}</span>
+          <div class="user-nav-dropdown" id="userNavDropdownWrap">
+            <div class="user-nav-trigger" id="userNavTriggerBtn" onclick="toggleUserDropdown(event)">
+              <div class="avatar-sm" style="width: 34px; height: 34px; min-width: 34px;">
+                ${u.photo_url ? `<img src="${u.photo_url}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">` : escapeHtml(u.name.charAt(0).toUpperCase())}
               </div>
+              <div class="user-nav-text-wrap" style="line-height: 1.2; text-align: left;">
+                <div style="font-size: 0.82rem; font-weight: 800; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-main);">${escapeHtml(u.name)}</div>
+                <div style="font-size: 0.68rem; color: var(--text-muted); text-transform: capitalize; font-weight: 600;">${escapeHtml(u.role)}</div>
+              </div>
+              <i data-lucide="chevron-down" class="user-nav-chevron" style="width: 14px; height: 14px; color: var(--text-muted); margin-left: 2px;"></i>
             </div>
 
-            <button type="button" class="user-nav-item" onclick="openGlobalProfileModal()">
-              <i data-lucide="user" style="width: 15px; color: var(--primary);"></i> View Profile
-            </button>
+            <div class="user-nav-menu" id="userNavDropdownMenu" style="display: none;">
+              <div class="user-nav-header">
+                <div style="font-weight: 800; font-size: 0.9rem; color: var(--text-main);">${escapeHtml(u.name)}</div>
+                <div style="font-size: 0.74rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px;">${escapeHtml(u.email)}</div>
+                <div style="display: flex; gap: 0.35rem; margin-top: 0.5rem; flex-wrap: wrap;">
+                  <span class="badge badge-primary" style="font-size: 0.65rem; padding: 2px 7px; border-radius: 9999px;">${escapeHtml(u.role.toUpperCase())}</span>
+                  <span class="badge badge-secondary" style="font-size: 0.65rem; padding: 2px 7px; border-radius: 9999px;">${escapeHtml(u.department || 'Operations')}</span>
+                </div>
+              </div>
 
-            <button type="button" class="user-nav-item" onclick="openGlobalResetPassModal()">
-              <i data-lucide="key-round" style="width: 15px; color: #f59e0b;"></i> Reset Password
-            </button>
+              <button type="button" class="user-nav-item" onclick="triggerPwaInstall()">
+                <span style="font-size: 1rem; width: 15px; display: inline-flex; align-items: center; justify-content: center;">📲</span> Install App
+              </button>
 
-            <div class="user-nav-divider"></div>
+              <button type="button" class="user-nav-item" onclick="openGlobalProfileModal()">
+                <i data-lucide="user" style="width: 15px; color: var(--primary);"></i> View Profile
+              </button>
 
-            <button type="button" class="user-nav-item danger" onclick="handleLogout()">
-              <i data-lucide="log-out" style="width: 15px;"></i> Sign Out
-            </button>
+              <button type="button" class="user-nav-item" onclick="openGlobalResetPassModal()">
+                <i data-lucide="key-round" style="width: 15px; color: #f59e0b;"></i> Reset Password
+              </button>
+
+              <div class="user-nav-divider"></div>
+
+              <button type="button" class="user-nav-item danger" onclick="handleLogout()">
+                <i data-lucide="log-out" style="width: 15px;"></i> Sign Out
+              </button>
+            </div>
           </div>
         </div>
       `;
@@ -392,8 +403,14 @@ async function checkAuthNav() {
     }
     if (navUserArea) {
       navUserArea.innerHTML = `
-        <a href="login.html" class="btn btn-secondary btn-sm">Sign In</a>
-        <a href="register.html" class="btn btn-primary btn-sm">Onboard Employee</a>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <button type="button" class="btn-pwa-nav-install" id="pwaNavInstallBtn" onclick="triggerPwaInstall()" title="Install TGC Connect on your phone or desktop">
+            <span class="install-icon">📲</span>
+            <span>Install App</span>
+          </button>
+          <a href="login.html" class="btn btn-secondary btn-sm">Sign In</a>
+          <a href="register.html" class="btn btn-primary btn-sm">Onboard Employee</a>
+        </div>
       `;
     }
   }
@@ -517,6 +534,9 @@ function setupMobileDrawer(user) {
 
       <div class="drawer-section-title">Account & Security</div>
       <div class="drawer-nav-list">
+        <button type="button" class="drawer-nav-item" onclick="closeMobileDrawer();triggerPwaInstall();" style="color: #4f46e5; font-weight: 800;">
+          <i data-lucide="download" style="color: #4f46e5;"></i> Install TGC Connect App
+        </button>
         <button type="button" class="drawer-nav-item" onclick="closeMobileDrawer();openGlobalProfileModal();">
           <i data-lucide="user"></i> Admin Profile & Credentials
         </button>
@@ -562,6 +582,9 @@ function setupMobileDrawer(user) {
 
       <div class="drawer-section-title">Profile & Preferences</div>
       <div class="drawer-nav-list">
+        <button type="button" class="drawer-nav-item" onclick="closeMobileDrawer();triggerPwaInstall();" style="color: #4f46e5; font-weight: 800;">
+          <i data-lucide="download" style="color: #4f46e5;"></i> Install TGC Connect App
+        </button>
         <button type="button" class="drawer-nav-item" onclick="closeMobileDrawer();if(typeof openProfileEditModal === 'function')openProfileEditModal();else openGlobalProfileModal();">
           <i data-lucide="user"></i> Employee Profile & Edit
         </button>
@@ -585,6 +608,9 @@ function setupMobileDrawer(user) {
     navItemsHtml = `
       <div class="drawer-section-title">Get Started</div>
       <div class="drawer-nav-list">
+        <button type="button" class="drawer-nav-item" onclick="closeMobileDrawer();triggerPwaInstall();" style="color: #4f46e5; font-weight: 800;">
+          <i data-lucide="download" style="color: #4f46e5;"></i> Install App on Phone
+        </button>
         <a href="login.html" class="drawer-nav-item active">
           <i data-lucide="log-in"></i> Sign In to Account
         </a>

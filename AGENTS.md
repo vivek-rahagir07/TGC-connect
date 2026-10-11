@@ -33,6 +33,8 @@ Inside Hostinger `public_html/`:
 ```text
 public_html/
 ├── .htaccess
+├── manifest.json
+├── sw.js
 ├── api/
 │   ├── config.php
 │   ├── db.php
@@ -43,6 +45,7 @@ public_html/
 │   ├── payroll.php
 │   └── inventory.php
 ├── assets/
+│   └── icons/
 ├── css/
 ├── js/
 ├── uploads/
