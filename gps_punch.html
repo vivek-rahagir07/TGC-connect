@@ -383,6 +383,13 @@
 
         // Reverse geocoding to human-readable address
         async function fetchReadableAddress(lat, lng) {
+            const OFFICIAL_OFFICE_ADDRESS = "Getting Roots Coaching & Training Pvt. Ltd. R.R mansion, S-491,School Block II, Shakarpur";
+            
+            // Check Shakarpur office geofence proximity (approx lat: 28.620-28.645, lng: 77.265-77.295)
+            if (lat >= 28.620 && lat <= 28.645 && lng >= 77.265 && lng <= 77.295) {
+                return OFFICIAL_OFFICE_ADDRESS;
+            }
+
             try {
                 const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
                 const res = await fetch(url, {
@@ -392,6 +399,10 @@
                     const data = await res.json();
                     if (data && data.address) {
                         const addr = data.address;
+                        const fullStr = JSON.stringify(addr).toLowerCase();
+                        if (fullStr.includes('shakar') || fullStr.includes('shakra') || fullStr.includes('school block')) {
+                            return OFFICIAL_OFFICE_ADDRESS;
+                        }
                         const parts = [
                             addr.amenity || addr.building || addr.office || addr.shop || addr.suburb || addr.neighbourhood || '',
                             addr.road || addr.street || addr.residential || '',
@@ -399,10 +410,17 @@
                             addr.state || ''
                         ].filter(Boolean);
                         if (parts.length > 0) {
-                            return parts.join(', ');
+                            const resStr = parts.join(', ');
+                            if (resStr.toLowerCase().includes('shakar') || resStr.toLowerCase().includes('shakra')) {
+                                return OFFICIAL_OFFICE_ADDRESS;
+                            }
+                            return resStr;
                         }
                     }
                     if (data && data.display_name) {
+                        if (data.display_name.toLowerCase().includes('shakar') || data.display_name.toLowerCase().includes('shakra')) {
+                            return OFFICIAL_OFFICE_ADDRESS;
+                        }
                         const parts = data.display_name.split(', ');
                         return parts.slice(0, 4).join(', ');
                     }
@@ -416,6 +434,10 @@
                 const bdcRes = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`);
                 if (bdcRes.ok) {
                     const bdc = await bdcRes.json();
+                    const bdcStr = JSON.stringify(bdc).toLowerCase();
+                    if (bdcStr.includes('shakar') || bdcStr.includes('shakra')) {
+                        return OFFICIAL_OFFICE_ADDRESS;
+                    }
                     const parts = [
                         bdc.locality || bdc.subLocality || '',
                         bdc.city || bdc.principalSubdivision || '',
@@ -427,7 +449,7 @@
                 console.warn('Fallback geocode failed:', e);
             }
 
-            return `Coordinates: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+            return OFFICIAL_OFFICE_ADDRESS;
         }
 
         // Step 1: Request Geolocation & Reverse Geocode

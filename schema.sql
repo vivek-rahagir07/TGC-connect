@@ -103,8 +103,8 @@ CREATE TABLE IF NOT EXISTS `gps_links` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `token` VARCHAR(100) NOT NULL UNIQUE,
     `title` VARCHAR(150) DEFAULT 'Remote Shift Attendance GPS Link',
-    `target_lat` DECIMAL(10,8) DEFAULT 28.6139,
-    `target_lng` DECIMAL(11,8) DEFAULT 77.2090,
+    `target_lat` DECIMAL(10,8) DEFAULT 28.633000,
+    `target_lng` DECIMAL(11,8) DEFAULT 77.277000,
     `radius_meters` INT DEFAULT 500,
     `expires_at` DATETIME NOT NULL,
     `is_active` TINYINT(1) DEFAULT 1,
@@ -121,8 +121,10 @@ CREATE TABLE IF NOT EXISTS `leave_quotas` (
     `user_id` INT NOT NULL,
     `year` INT NOT NULL,
     `casual_leave_total` DECIMAL(5,1) DEFAULT 12.0,
-    `sick_leave_total` DECIMAL(5,1) DEFAULT 12.0,
+    `casual_leave_assigned` DECIMAL(5,1) DEFAULT 1.0,
     `earned_leave_total` DECIMAL(5,1) DEFAULT 12.0,
+    `earned_leave_assigned` DECIMAL(5,1) DEFAULT 1.0,
+    `sick_leave_total` DECIMAL(5,1) DEFAULT 0.0,
     `comp_off_total` DECIMAL(5,1) DEFAULT 0.0,
     `casual_leave_used` DECIMAL(5,1) DEFAULT 0.0,
     `sick_leave_used` DECIMAL(5,1) DEFAULT 0.0,
@@ -137,7 +139,7 @@ CREATE TABLE IF NOT EXISTS `leave_quotas` (
 CREATE TABLE IF NOT EXISTS `leaves` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `user_id` INT NOT NULL,
-    `leave_type` ENUM('casual', 'sick', 'earned', 'comp_off') NOT NULL,
+    `leave_type` ENUM('casual', 'sick', 'earned', 'comp_off', 'bulk') NOT NULL,
     `start_date` DATE NOT NULL,
     `end_date` DATE NOT NULL,
     `total_days` DECIMAL(5,1) DEFAULT 1.0,
@@ -177,12 +179,14 @@ CREATE TABLE IF NOT EXISTS `holidays` (
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 8. Payrolls Table
+-- 8. Payrolls Table (Supports Standard Monthly & Custom Date-Range Slips with Admin Publishing)
 CREATE TABLE IF NOT EXISTS `payrolls` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `user_id` INT NOT NULL,
     `month` INT NOT NULL,
     `year` INT NOT NULL,
+    `start_date` DATE DEFAULT NULL,
+    `end_date` DATE DEFAULT NULL,
     `base_salary` DECIMAL(10,2) NOT NULL,
     `total_working_days` INT DEFAULT 30,
     `present_days` DECIMAL(5,1) DEFAULT 0.0,
@@ -192,11 +196,15 @@ CREATE TABLE IF NOT EXISTS `payrolls` (
     `deduction_amount` DECIMAL(10,2) DEFAULT 0.00,
     `bonus_amount` DECIMAL(10,2) DEFAULT 0.00,
     `net_salary` DECIMAL(10,2) NOT NULL,
-    `status` ENUM('processed', 'paid') DEFAULT 'processed',
+    `status` VARCHAR(30) DEFAULT 'processed',
+    `is_published` TINYINT(1) DEFAULT 0,
+    `published_at` DATETIME DEFAULT NULL,
+    `published_by` INT DEFAULT NULL,
     `payment_date` DATE DEFAULT NULL,
     `remarks` TEXT DEFAULT NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY `uk_user_month_year` (`user_id`, `month`, `year`),
+    INDEX `idx_payroll_user` (`user_id`),
+    INDEX `idx_payroll_user_dates` (`user_id`, `start_date`, `end_date`, `is_published`),
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

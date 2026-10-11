@@ -348,7 +348,7 @@ async function checkAuthNav() {
             <div class="avatar-sm" style="width: 34px; height: 34px; min-width: 34px;">
               ${u.photo_url ? `<img src="${u.photo_url}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">` : escapeHtml(u.name.charAt(0).toUpperCase())}
             </div>
-            <div style="line-height: 1.2; text-align: left;">
+            <div class="user-nav-text-wrap" style="line-height: 1.2; text-align: left;">
               <div style="font-size: 0.82rem; font-weight: 800; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-main);">${escapeHtml(u.name)}</div>
               <div style="font-size: 0.68rem; color: var(--text-muted); text-transform: capitalize; font-weight: 600;">${escapeHtml(u.role)}</div>
             </div>
@@ -398,10 +398,267 @@ async function checkAuthNav() {
     }
   }
 
+  // Initialize Freud-inspired mobile navigation drawer
+  setupMobileDrawer(window.currentUser);
+
   if (window.lucide) {
     lucide.createIcons();
   }
 }
+
+// ==========================================================================
+// Freud-Inspired Mobile Navigation Drawer & Sheet System
+// ==========================================================================
+
+function openMobileDrawer() {
+  const backdrop = document.getElementById('tgcMobileDrawerBackdrop');
+  if (backdrop) {
+    backdrop.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    if (window.lucide) lucide.createIcons();
+  }
+}
+
+function closeMobileDrawer() {
+  const backdrop = document.getElementById('tgcMobileDrawerBackdrop');
+  if (backdrop) {
+    backdrop.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+}
+
+function handleMobileNav(page, tab) {
+  closeMobileDrawer();
+  const currentPath = window.location.pathname.split('/').pop() || 'index.html';
+  if (currentPath === page) {
+    if (page === 'portal.html' && typeof switchTab === 'function' && tab) {
+      switchTab(tab);
+      return;
+    }
+    if (page === 'admin.html' && typeof showAdminTab === 'function' && tab) {
+      showAdminTab(tab);
+      return;
+    }
+  }
+  if (tab) {
+    window.location.href = `${page}?tab=${tab}`;
+  } else {
+    window.location.href = page;
+  }
+}
+
+function setupMobileDrawer(user) {
+  let toggleBtn = document.getElementById('mobileDrawerToggleBtn');
+  if (!toggleBtn) {
+    const navContainer = document.querySelector('.nav-container');
+    if (navContainer) {
+      toggleBtn = document.createElement('button');
+      toggleBtn.type = 'button';
+      toggleBtn.id = 'mobileDrawerToggleBtn';
+      toggleBtn.className = 'mobile-drawer-toggle';
+      toggleBtn.setAttribute('aria-label', 'Open Mobile Navigation');
+      toggleBtn.onclick = openMobileDrawer;
+      toggleBtn.innerHTML = '<i data-lucide="menu" style="width: 22px; height: 22px;"></i>';
+      navContainer.appendChild(toggleBtn);
+    }
+  }
+
+  let backdrop = document.getElementById('tgcMobileDrawerBackdrop');
+  if (!backdrop) {
+    backdrop = document.createElement('div');
+    backdrop.id = 'tgcMobileDrawerBackdrop';
+    backdrop.className = 'mobile-drawer-backdrop';
+    backdrop.onclick = (e) => {
+      if (e.target === backdrop) closeMobileDrawer();
+    };
+    document.body.appendChild(backdrop);
+  }
+
+  const u = user || window.currentUser;
+  const isAuth = !!u;
+  const isAdmin = isAuth && u.role === 'admin';
+  const userName = isAuth ? escapeHtml(u.name) : 'Guest User';
+  const userSubtitle = isAuth 
+    ? (escapeHtml(u.department || 'Getting Roots Coaching & Training') + ' &bull; ' + (isAdmin ? 'Admin Console' : 'Active Employee')) 
+    : 'Welcome &bull; Shakarpur Campus';
+  const avatarHtml = isAuth && u.photo_url
+    ? `<img src="${u.photo_url}" alt="${userName}">`
+    : (isAuth ? userName.charAt(0).toUpperCase() : '<i data-lucide="user" style="width: 28px; height: 28px;"></i>');
+
+  let navItemsHtml = '';
+  let footerPillsHtml = '';
+
+  if (isAdmin) {
+    navItemsHtml = `
+      <div class="drawer-section-title">Administration</div>
+      <div class="drawer-nav-list">
+        <button type="button" class="drawer-nav-item active" onclick="handleMobileNav('admin.html', 'approvals')">
+          <i data-lucide="shield-check"></i> Approvals & Leave Requests
+        </button>
+        <button type="button" class="drawer-nav-item" onclick="handleMobileNav('admin.html', 'employees')">
+          <i data-lucide="users"></i> Staff & Employee Directory
+        </button>
+        <button type="button" class="drawer-nav-item" onclick="handleMobileNav('admin.html', 'attendance')">
+          <i data-lucide="clock"></i> Real-Time Attendance Tracking
+        </button>
+        <button type="button" class="drawer-nav-item" onclick="handleMobileNav('admin.html', 'payroll')">
+          <i data-lucide="calculator"></i> Automated Payroll Engine
+        </button>
+        <button type="button" class="drawer-nav-item" onclick="handleMobileNav('admin.html', 'qr')">
+          <i data-lucide="qr-code"></i> Dynamic QR & GPS Links
+        </button>
+        <button type="button" class="drawer-nav-item" onclick="handleMobileNav('admin.html', 'rosters')">
+          <i data-lucide="calendar-days"></i> Shift Schedules & Rosters
+        </button>
+        <button type="button" class="drawer-nav-item" onclick="handleMobileNav('admin.html', 'inventory')">
+          <i data-lucide="package"></i> Office Asset Inventory
+        </button>
+      </div>
+
+      <div class="drawer-section-title">Account & Security</div>
+      <div class="drawer-nav-list">
+        <button type="button" class="drawer-nav-item" onclick="closeMobileDrawer();openGlobalProfileModal();">
+          <i data-lucide="user"></i> Admin Profile & Credentials
+        </button>
+        <button type="button" class="drawer-nav-item" onclick="closeMobileDrawer();openGlobalResetPassModal();">
+          <i data-lucide="key-round"></i> Reset Password
+        </button>
+        <button type="button" class="drawer-nav-item danger" onclick="closeMobileDrawer();handleLogout();">
+          <i data-lucide="log-out"></i> Sign Out
+        </button>
+      </div>
+    `;
+    footerPillsHtml = `
+      <button type="button" class="drawer-pill-primary" onclick="handleMobileNav('admin.html', 'payroll')">
+        <i data-lucide="calculator" style="width: 15px;"></i> Run Payroll
+      </button>
+      <button type="button" class="drawer-pill-secondary" onclick="handleMobileNav('mark_attendance.html')">
+        <i data-lucide="map-pin" style="width: 15px;"></i> Punch Live
+      </button>
+    `;
+  } else if (isAuth) {
+    navItemsHtml = `
+      <div class="drawer-section-title">General</div>
+      <div class="drawer-nav-list">
+        <button type="button" class="drawer-nav-item active" onclick="handleMobileNav('portal.html', 'today')">
+          <i data-lucide="clock"></i> Today's Attendance Punch
+        </button>
+        <button type="button" class="drawer-nav-item" onclick="handleMobileNav('portal.html', 'attendance')">
+          <i data-lucide="history"></i> Attendance Log & History
+        </button>
+        <button type="button" class="drawer-nav-item" onclick="handleMobileNav('portal.html', 'leaves')">
+          <i data-lucide="calendar-off"></i> Leave Quotas & Apply
+        </button>
+        <button type="button" class="drawer-nav-item" onclick="handleMobileNav('portal.html', 'salary')">
+          <i data-lucide="receipt"></i> Official Salary Slips
+        </button>
+        <button type="button" class="drawer-nav-item" onclick="handleMobileNav('portal.html', 'calendar')">
+          <i data-lucide="calendar"></i> Academic Calendar & Holidays
+        </button>
+        <button type="button" class="drawer-nav-item" onclick="handleMobileNav('mark_attendance.html')">
+          <i data-lucide="map-pin"></i> GPS & Remote Punch
+        </button>
+      </div>
+
+      <div class="drawer-section-title">Profile & Preferences</div>
+      <div class="drawer-nav-list">
+        <button type="button" class="drawer-nav-item" onclick="closeMobileDrawer();if(typeof openProfileEditModal === 'function')openProfileEditModal();else openGlobalProfileModal();">
+          <i data-lucide="user"></i> Employee Profile & Edit
+        </button>
+        <button type="button" class="drawer-nav-item" onclick="closeMobileDrawer();openGlobalResetPassModal();">
+          <i data-lucide="key-round"></i> Reset Password
+        </button>
+        <button type="button" class="drawer-nav-item danger" onclick="closeMobileDrawer();handleLogout();">
+          <i data-lucide="log-out"></i> Sign Out
+        </button>
+      </div>
+    `;
+    footerPillsHtml = `
+      <button type="button" class="drawer-pill-primary" onclick="handleMobileNav('mark_attendance.html')">
+        <i data-lucide="zap" style="width: 15px;"></i> Quick Punch
+      </button>
+      <button type="button" class="drawer-pill-secondary" onclick="handleMobileNav('portal.html', 'calendar')">
+        <i data-lucide="calendar" style="width: 15px;"></i> Calendar
+      </button>
+    `;
+  } else {
+    navItemsHtml = `
+      <div class="drawer-section-title">Get Started</div>
+      <div class="drawer-nav-list">
+        <a href="login.html" class="drawer-nav-item active">
+          <i data-lucide="log-in"></i> Sign In to Account
+        </a>
+        <a href="register.html" class="drawer-nav-item">
+          <i data-lucide="user-plus"></i> Employee Self-Onboard
+        </a>
+        <a href="mark_attendance.html" class="drawer-nav-item">
+          <i data-lucide="map-pin"></i> Mark Attendance Punch
+        </a>
+      </div>
+    `;
+    footerPillsHtml = `
+      <a href="login.html" class="drawer-pill-primary">
+        <i data-lucide="log-in" style="width: 15px;"></i> Sign In
+      </a>
+      <a href="register.html" class="drawer-pill-secondary">
+        <i data-lucide="user-plus" style="width: 15px;"></i> Join Team
+      </a>
+    `;
+  }
+
+  backdrop.innerHTML = `
+    <div class="mobile-drawer" onclick="event.stopPropagation()">
+      <div class="mobile-drawer-header">
+        <div class="drawer-header-bar">
+          <div class="drawer-brand">
+            <div class="drawer-brand-icon"><i data-lucide="sparkles" style="width: 13px; height: 13px;"></i></div>
+            <span>TGC Connect</span>
+          </div>
+          <button type="button" class="drawer-close-btn" onclick="closeMobileDrawer()" aria-label="Close menu">
+            <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+          </button>
+        </div>
+
+        <div class="drawer-avatar-wrap">
+          ${avatarHtml}
+        </div>
+        <div class="drawer-user-name">${userName}</div>
+        <div class="drawer-user-motto">${userSubtitle}</div>
+      </div>
+
+      <div class="mobile-drawer-body">
+        ${navItemsHtml}
+      </div>
+
+      <div class="mobile-drawer-footer">
+        ${footerPillsHtml}
+      </div>
+    </div>
+  `;
+
+  if (window.lucide) lucide.createIcons();
+}
+
+// Global gestures & keyboard controls for mobile drawer
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeMobileDrawer();
+});
+
+let _drawerTouchStartX = 0;
+document.addEventListener('touchstart', (e) => {
+  if (e.touches && e.touches[0]) {
+    _drawerTouchStartX = e.touches[0].clientX;
+  }
+}, { passive: true });
+
+document.addEventListener('touchend', (e) => {
+  if (e.changedTouches && e.changedTouches[0]) {
+    const diffX = e.changedTouches[0].clientX - _drawerTouchStartX;
+    if (diffX > 80) { // swiped right to close
+      closeMobileDrawer();
+    }
+  }
+}, { passive: true });
 
 // 10. Webcam Live Streaming & Snapshot Capture
 let mediaStream = null;

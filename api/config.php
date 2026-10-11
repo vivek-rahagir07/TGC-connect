@@ -5,22 +5,22 @@
  * Configured for Hostinger Deployment (Domain: tgcconnect.in)
  */
 
-// 1. Base Configuration Defaults
+// 1. Base Configuration Defaults (Pre-configured for Hostinger Production)
 $defaultConfig = [
-    // Database Host (Hostinger uses 'localhost' or '127.0.0.1')
-    'host'        => getenv('DB_HOST') ?: '127.0.0.1',
+    // Database Host (Hostinger uses 'localhost')
+    'host'        => getenv('DB_HOST') ?: 'localhost',
     
     // Database Port (Standard MySQL port is 3306)
     'port'        => (int) (getenv('DB_PORT') ?: 3306),
     
     // Database Name
-    'database'    => getenv('DB_NAME') ?: 'tgc_connect',
+    'database'    => getenv('DB_NAME') ?: 'u286523491_Globle_connect',
     
     // Database Username
-    'username'    => getenv('DB_USER') ?: 'root',
+    'username'    => getenv('DB_USER') ?: 'u286523491_Globle_connect',
     
-    // Database Password (set via config.local.php or DB_PASS environment variable)
-    'password'    => getenv('DB_PASS') !== false ? getenv('DB_PASS') : (getenv('DB_PASSWORD') !== false ? getenv('DB_PASSWORD') : ''),
+    // Database Password
+    'password'    => getenv('DB_PASS') !== false ? getenv('DB_PASS') : (getenv('DB_PASSWORD') !== false ? getenv('DB_PASSWORD') : 'Beenu@123456#'),
     
     // Character Set
     'charset'     => 'utf8mb4',
@@ -30,14 +30,14 @@ $defaultConfig = [
         'admin_whatsapp'         => '+91 87430 88888',
         'admin_email'            => 'tgcconnectglobal@gmail.com',
         'admin_sms_phone'        => '8743088888',    // Admin phone for SMS alerts (10-digit Indian)
-        'company_name'           => 'TGC Connect',
+        'company_name'           => 'Getting Roots Coaching & Training Pvt. Ltd.',
         'send_whatsapp'          => true,
         'send_email'             => true,
-        // Gmail SMTP Settings (required for email delivery)
+        // Gmail SMTP Settings
         'smtp_host'              => 'smtp.gmail.com',
         'smtp_port'              => 587,
         'smtp_user'              => 'tgcconnectglobal@gmail.com',
-        'smtp_password'          => getenv('SMTP_PASSWORD') ?: '',  // Google App Password — generate at https://myaccount.google.com/apppasswords
+        'smtp_password'          => getenv('SMTP_PASSWORD') ?: 'gcozpsiozbtqqkoh',
         // SMS Gateway Settings (Fast2SMS / TextLocal)
         'sms_provider'           => getenv('SMS_PROVIDER') ?: 'fast2sms',    // 'fast2sms' or 'textlocal'
         'sms_api_key'            => getenv('SMS_API_KEY') ?: '',              // API key from Fast2SMS or TextLocal dashboard

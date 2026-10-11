@@ -64,6 +64,35 @@ try {
         $pdo->exec("ALTER TABLE `attendances` MODIFY COLUMN `method` VARCHAR(30) DEFAULT 'qr'");
     } catch (Exception $e) {}
 
+    // Ensure payrolls table supports custom date ranges and admin publishing
+    try {
+        $cols = $pdo->query("SHOW COLUMNS FROM `payrolls` LIKE 'start_date'")->fetchAll();
+        if (empty($cols)) {
+            $pdo->exec("ALTER TABLE `payrolls` ADD COLUMN `start_date` DATE DEFAULT NULL AFTER `year`");
+            $pdo->exec("ALTER TABLE `payrolls` ADD COLUMN `end_date` DATE DEFAULT NULL AFTER `start_date`");
+        }
+        $cols = $pdo->query("SHOW COLUMNS FROM `payrolls` LIKE 'is_published'")->fetchAll();
+        if (empty($cols)) {
+            $pdo->exec("ALTER TABLE `payrolls` ADD COLUMN `is_published` TINYINT(1) DEFAULT 0 AFTER `status`");
+            $pdo->exec("ALTER TABLE `payrolls` ADD COLUMN `published_at` DATETIME DEFAULT NULL AFTER `is_published`");
+            $pdo->exec("ALTER TABLE `payrolls` ADD COLUMN `published_by` INT DEFAULT NULL AFTER `published_at`");
+        }
+        $pdo->exec("ALTER TABLE `payrolls` MODIFY COLUMN `status` VARCHAR(30) DEFAULT 'processed'");
+
+        $indices = $pdo->query("SHOW INDEX FROM `payrolls` WHERE Key_name = 'idx_payroll_user'")->fetchAll();
+        if (empty($indices)) {
+            $pdo->exec("ALTER TABLE `payrolls` ADD INDEX `idx_payroll_user` (`user_id`)");
+        }
+        $indices = $pdo->query("SHOW INDEX FROM `payrolls` WHERE Key_name = 'uk_user_month_year'")->fetchAll();
+        if (!empty($indices)) {
+            $pdo->exec("ALTER TABLE `payrolls` DROP INDEX `uk_user_month_year`");
+        }
+        $indices = $pdo->query("SHOW INDEX FROM `payrolls` WHERE Key_name = 'idx_payroll_user_dates'")->fetchAll();
+        if (empty($indices)) {
+            $pdo->exec("ALTER TABLE `payrolls` ADD INDEX `idx_payroll_user_dates` (`user_id`, `start_date`, `end_date`, `is_published`)");
+        }
+    } catch (Exception $e) {}
+
     // Idempotent Migration: Departments table
     try {
         $pdo->exec("
@@ -152,9 +181,50 @@ try {
         ");
     } catch (Exception $e) {}
 
+    // Idempotent Migration: Add assigned columns to leave_quotas and remove SL defaults
+    try {
+        $assignedCols = $pdo->query("SHOW COLUMNS FROM `leave_quotas` LIKE 'casual_leave_assigned'")->fetchAll();
+        if (empty($assignedCols)) {
+            $pdo->exec("ALTER TABLE `leave_quotas` ADD COLUMN `casual_leave_assigned` DECIMAL(5,1) DEFAULT 1.0 AFTER `casual_leave_total`");
+            $pdo->exec("ALTER TABLE `leave_quotas` ADD COLUMN `earned_leave_assigned` DECIMAL(5,1) DEFAULT 1.0 AFTER `earned_leave_total`");
+        }
+    } catch (Exception $e) {}
+
+    // Idempotent Migration: Normalize geotagging address in attendances
+    try {
+        $officialAddr = 'Getting Roots Coaching & Training Pvt. Ltd. R.R mansion, S-491,School Block II, Shakarpur';
+        $pdo->exec("
+            UPDATE `attendances`
+            SET `location_name` = '{$officialAddr}'
+            WHERE `location_name` LIKE '%Shakar%' 
+               OR `location_name` LIKE '%Shakra%' 
+               OR `location_name` LIKE '%School Block%'
+               OR `location_name` LIKE '%Office Hub%'
+               OR `location_name` IS NULL
+               OR `location_name` = ''
+        ");
+    } catch (Exception $e) {}
+
 } catch (PDOException $e) {
-    // If connection to localhost or 127.0.0.1 failed with socket/refusal error 2002, try fallback
-    if (($host === 'localhost' || $host === '127.0.0.1') && $e->getCode() == 2002) {
+    $connected = false;
+    
+    // 1. Check if failure is due to database casing (e.g., u286523491_globle_connect vs u286523491_Globle_connect)
+    if ($e->getCode() == 1049 || stripos($e->getMessage(), 'Unknown database') !== false) {
+        $altDb = (strtolower($dbName) === $dbName) ? ucfirst($dbName) : strtolower($dbName);
+        try {
+            $dsnAlt = "mysql:host={$host};port={$port};dbname={$altDb};charset={$charset}";
+            $pdo = new PDO($dsnAlt, $user, $pass, [
+                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES   => false,
+                PDO::ATTR_TIMEOUT            => 5,
+            ]);
+            $connected = true;
+        } catch (Exception $eAlt) {}
+    }
+
+    // 2. Try alternative host between localhost (Unix socket) and 127.0.0.1 (TCP loopback)
+    if (!$connected && ($host === 'localhost' || $host === '127.0.0.1')) {
         $fallbackHost = ($host === 'localhost') ? '127.0.0.1' : 'localhost';
         try {
             $dsnFallback = "mysql:host={$fallbackHost};port={$port};dbname={$dbName};charset={$charset}";
@@ -164,15 +234,23 @@ try {
                 PDO::ATTR_EMULATE_PREPARES   => false,
                 PDO::ATTR_TIMEOUT            => 5,
             ]);
-        } catch (PDOException $e2) {
-            http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Database connection failed: ' . $e2->getMessage()
-            ]);
-            exit;
+            $connected = true;
+        } catch (Exception $e2) {
+            $altDb = strtolower($dbName);
+            try {
+                $dsnFallback2 = "mysql:host={$fallbackHost};port={$port};dbname={$altDb};charset={$charset}";
+                $pdo = new PDO($dsnFallback2, $user, $pass, [
+                    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    PDO::ATTR_EMULATE_PREPARES   => false,
+                    PDO::ATTR_TIMEOUT            => 5,
+                ]);
+                $connected = true;
+            } catch (Exception $e3) {}
         }
-    } else {
+    }
+
+    if (!$connected) {
         http_response_code(500);
         echo json_encode([
             'success' => false,
@@ -238,3 +316,84 @@ function getCurrentUser($pdo) {
     $stmt->execute([$_SESSION['user_id']]);
     return $stmt->fetch() ?: null;
 }
+
+/**
+ * Standardize Geotagging Address for Getting Roots Office
+ */
+function normalizeLocationName($name, $lat = null, $lng = null) {
+    $official = 'Getting Roots Coaching & Training Pvt. Ltd. R.R mansion, S-491,School Block II, Shakarpur';
+    if ($lat !== null && $lng !== null && is_numeric($lat) && is_numeric($lng)) {
+        $lat = floatval($lat);
+        $lng = floatval($lng);
+        if ($lat >= 28.620 && $lat <= 28.645 && $lng >= 77.265 && $lng <= 77.295) {
+            return $official;
+        }
+    }
+    if (empty($name) || trim($name) === '' || stripos($name, 'shakar') !== false || stripos($name, 'shakra') !== false || stripos($name, 'school block') !== false || stripos($name, 'office hub') !== false) {
+        return $official;
+    }
+    return trim($name);
+}
+
+/**
+ * Automatic Monthly Leave Allocation on the 1st of each month
+ * Removes SL (sets to 0.0), credits 1 CL and 1 EL on the 1st of every month automatically.
+ */
+function syncMonthlyLeaveAccrual($pdo, $targetUserId = null) {
+    $currentYear = (int) date('Y');
+    $currentMonth = (int) date('n');
+
+    $sql = "SELECT id, date_of_joining, status FROM users WHERE status != 'rejected'";
+    $params = [];
+    if ($targetUserId !== null) {
+        $sql .= " AND id = ?";
+        $params[] = (int) $targetUserId;
+    }
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $users = $stmt->fetchAll();
+
+    foreach ($users as $u) {
+        $uid = (int) $u['id'];
+        $joinTs = !empty($u['date_of_joining']) ? strtotime($u['date_of_joining']) : 0;
+        $joinYear = $joinTs ? (int) date('Y', $joinTs) : 0;
+        $joinMonth = $joinTs ? (int) date('n', $joinTs) : 1;
+
+        if ($joinYear === $currentYear) {
+            $monthsAccrued = max(1, min(12, $currentMonth - $joinMonth + 1));
+        } else {
+            $monthsAccrued = max(1, min(12, $currentMonth));
+        }
+
+        // Fetch or create quota row for current year
+        $stmtQ = $pdo->prepare("SELECT * FROM leave_quotas WHERE user_id = ? AND year = ?");
+        $stmtQ->execute([$uid, $currentYear]);
+        $q = $stmtQ->fetch();
+
+        if (!$q) {
+            $pdo->prepare("
+                INSERT INTO leave_quotas (user_id, year, casual_leave_total, casual_leave_assigned, earned_leave_total, earned_leave_assigned, sick_leave_total, sick_leave_used, comp_off_total, casual_leave_used, earned_leave_used, comp_off_used)
+                VALUES (?, ?, 12.0, ?, 12.0, ?, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+            ")->execute([$uid, $currentYear, (float)$monthsAccrued, (float)$monthsAccrued]);
+        } else {
+            // Update assigned on 1st of every month (monotonically non-decreasing up to yearly cap)
+            $newClAssigned = max((float)($q['casual_leave_assigned'] ?? 1.0), (float)$monthsAccrued);
+            $newElAssigned = max((float)($q['earned_leave_assigned'] ?? 1.0), (float)$monthsAccrued);
+            $clCap = (float)($q['casual_leave_total'] ?? 12.0);
+            $elCap = (float)($q['earned_leave_total'] ?? 12.0);
+            $newClAssigned = min($clCap, $newClAssigned);
+            $newElAssigned = min($elCap, $newElAssigned);
+
+            $pdo->prepare("
+                UPDATE leave_quotas
+                SET casual_leave_assigned = ?,
+                    earned_leave_assigned = ?,
+                    sick_leave_total = 0.0,
+                    sick_leave_used = 0.0
+                WHERE id = ?
+            ")->execute([$newClAssigned, $newElAssigned, $q['id']]);
+        }
+    }
+}
+

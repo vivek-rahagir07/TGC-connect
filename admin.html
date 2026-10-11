@@ -587,9 +587,12 @@
                                     <option value="0">All Active Employees</option>
                                 </select>
                             </div>
-                            <div style="display: flex; gap: 0.5rem; align-items: center; margin-top: auto;">
+                            <div style="display: flex; gap: 0.5rem; align-items: center; margin-top: auto; flex-wrap: wrap;">
                                 <button type="button" onclick="loadCustomRangePayroll()" id="btnCustomPayrollFilter" class="btn btn-primary btn-sm" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.5rem 0.9rem;">
-                                    <i data-lucide="calculator" style="width: 15px;"></i> Calculate & View Slips
+                                    <i data-lucide="calculator" style="width: 15px;"></i> Calculate & Preview Slips
+                                </button>
+                                <button type="button" onclick="generateAllCustomSlips()" id="btnGenerateAllSlips" class="btn btn-success btn-sm" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.5rem 0.9rem; background: #059669; border-color: #059669; color: #fff;" title="Generate and release slips for all displayed candidates to their employee profiles">
+                                    <i data-lucide="send" style="width: 15px;"></i> Generate & Release All Slips
                                 </button>
                                 <button type="button" onclick="exportCustomPayrollCsv()" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.5rem 0.85rem;">
                                     <i data-lucide="download" style="width: 15px;"></i> Export CSV
@@ -634,11 +637,11 @@
                                     <th>Present / Paid</th>
                                     <th>Absent Deductions</th>
                                     <th>Net Payable</th>
-                                    <th>Complete Payslip</th>
+                                    <th>Release Status & Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="customPayrollTableBody">
-                                <tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">Select a date range above and click "Calculate & View Slips".</td></tr>
+                                <tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">Select custom dates above and click "Calculate & Preview Slips" to generate payslips for employees.</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -1513,7 +1516,7 @@
                     <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: var(--radius-sm); padding: 0.75rem 0.95rem; font-size: 0.8rem; color: #166534; display: flex; align-items: flex-start; gap: 0.5rem; margin-top: 0.5rem;">
                         <i data-lucide="shield-check" style="width: 18px; color: #16a34a; flex-shrink: 0; margin-top: 2px;"></i>
                         <div>
-                            Approving will immediately activate the candidate's account, grant portal access, and initialize their leave quotas (12 CL, 12 SL, 12 EL).
+                            Approving will immediately activate the candidate's account, grant portal access, and initialize their leave quotas (12 CL, 12 EL allotted with 1st-of-month accrual).
                         </div>
                     </div>
                 </div>
@@ -1539,15 +1542,11 @@
                 <div class="modal-body">
                     <div style="font-weight: 700; margin-bottom: 1rem;" id="quotaEmpLabel"></div>
                     <div class="form-group">
-                        <label class="form-label">Casual Leave (CL) Allotted Days *</label>
+                        <label class="form-label">Casual Leave (CL) Allotted Yearly Quota *</label>
                         <input type="number" step="0.5" id="quotaClInput" class="form-control" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Sick Leave (SL) Allotted Days *</label>
-                        <input type="number" step="0.5" id="quotaSlInput" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Earned Leave (EL) Allotted Days *</label>
+                        <label class="form-label">Earned Leave (EL) Allotted Yearly Quota *</label>
                         <input type="number" step="0.5" id="quotaElInput" class="form-control" required>
                     </div>
                     <div class="form-group">
@@ -1555,7 +1554,7 @@
                         <input type="number" step="0.5" id="quotaCoInput" class="form-control" value="0" required>
                     </div>
                     <div style="font-size: 0.8rem; color: var(--text-muted); background: var(--bg-main); padding: 0.6rem 0.8rem; border-radius: var(--radius-sm);">
-                        ℹ️ <strong>Monthly Accrual & Comp Off:</strong> CL, SL, EL accrue 1.0 day/mo across the cycle. Comp Off credits are added when employees work extra shifts or weekly offs.
+                        ℹ️ <strong>Monthly Accrual on 1st:</strong> CL and EL automatically credit 1.0 day on the 1st of each month to the employee's available balance, up to the yearly quota.
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -1646,7 +1645,8 @@
             </div>
             <div class="modal-body" id="slipModalBody" style="padding: 1.5rem;"></div>
             <div class="modal-footer" style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.6rem;">
-                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                    <div id="slipModalCustomActions" style="display: inline-flex; gap: 0.5rem;"></div>
                     <button type="button" class="btn btn-secondary" onclick="printPayslip()">
                         <i data-lucide="printer" style="width: 15px;"></i> Print / Save as PDF
                     </button>
@@ -2003,9 +2003,9 @@
             <div class="mobile-nav-icon"><i data-lucide="calculator" style="width: 20px;"></i></div>
             <span class="mobile-nav-label">Payroll</span>
         </button>
-        <button type="button" class="mobile-nav-item" id="mobNavCmd" onclick="openCommandPalette()">
-            <div class="mobile-nav-icon"><i data-lucide="search" style="width: 20px;"></i></div>
-            <span class="mobile-nav-label">Actions</span>
+        <button type="button" class="mobile-nav-item" id="mobNavMenu" onclick="openMobileDrawer()">
+            <div class="mobile-nav-icon"><i data-lucide="menu" style="width: 20px;"></i></div>
+            <span class="mobile-nav-label">Menu</span>
         </button>
     </nav>
 
@@ -2344,8 +2344,8 @@
             const container = document.getElementById('adminAttendanceMap');
             if (!container || leafletMap) return;
 
-            // Default centered on New Delhi / global hub
-            leafletMap = L.map('adminAttendanceMap').setView([28.6139, 77.2090], 11);
+            // Default centered on Shakarpur office hub
+            leafletMap = L.map('adminAttendanceMap').setView([28.6330, 77.2770], 12);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; OpenStreetMap contributors',
                 maxZoom: 19,
@@ -2833,13 +2833,12 @@
                         </td>
                         <td>
                             <div class="quota-grid">
-                                <span class="quota-chip" title="Casual Leave">CL:<strong>${Math.round(emp.casual_leave_total || 12) - Math.round(emp.casual_leave_used || 0)}</strong>/${Math.round(emp.casual_leave_total || 12)}</span>
-                                <span class="quota-chip" title="Sick Leave">SL:<strong>${Math.round(emp.sick_leave_total || 12) - Math.round(emp.sick_leave_used || 0)}</strong>/${Math.round(emp.sick_leave_total || 12)}</span>
-                                <span class="quota-chip" title="Earned Leave">EL:<strong>${Math.round(emp.earned_leave_total || 12) - Math.round(emp.earned_leave_used || 0)}</strong>/${Math.round(emp.earned_leave_total || 12)}</span>
-                                <span class="quota-chip co" title="Compensatory Off">CO:<strong>${Math.round(emp.comp_off_total || 0) - Math.round(emp.comp_off_used || 0)}</strong>/${Math.round(emp.comp_off_total || 0)}</span>
+                                <span class="quota-chip" title="Casual Leave (Available / Assigned)">CL:<strong>${Math.max(0, Math.round((emp.casual_leave_assigned || 1) - (emp.casual_leave_used || 0)))}</strong>/${Math.round(emp.casual_leave_assigned || 1)}</span>
+                                <span class="quota-chip" title="Earned Leave (Available / Assigned)">EL:<strong>${Math.max(0, Math.round((emp.earned_leave_assigned || 1) - (emp.earned_leave_used || 0)))}</strong>/${Math.round(emp.earned_leave_assigned || 1)}</span>
+                                <span class="quota-chip co" title="Compensatory Off">CO:<strong>${Math.max(0, Math.round((emp.comp_off_total || 0) - (emp.comp_off_used || 0)))}</strong>/${Math.round(emp.comp_off_total || 0)}</span>
                             </div>
                             <div style="margin-top: 2px;">
-                                <a href="javascript:void(0)" onclick="openQuotaModal(${emp.id}, '${emp.name.replace(/'/g, "\\'")}', ${emp.casual_leave_total || 12}, ${emp.sick_leave_total || 12}, ${emp.earned_leave_total || 12}, ${emp.comp_off_total || 0})" style="font-size: 0.7rem; color: var(--primary); font-weight: 700; text-decoration: underline;">Edit Quotas</a>
+                                <a href="javascript:void(0)" onclick="openQuotaModal(${emp.id}, '${emp.name.replace(/'/g, "\\'")}', ${emp.casual_leave_total || 12}, ${emp.earned_leave_total || 12}, ${emp.comp_off_total || 0})" style="font-size: 0.7rem; color: var(--primary); font-weight: 700; text-decoration: underline;">Edit Quotas</a>
                             </div>
                         </td>
                         <td style="text-align: center; white-space: nowrap;">
@@ -3388,11 +3387,10 @@
             }
         }
 
-        function openQuotaModal(userId, name, cl, sl, el, co) {
+        function openQuotaModal(userId, name, cl, el, co) {
             document.getElementById('quotaUserId').value = userId;
             document.getElementById('quotaEmpLabel').textContent = `Staff: ${name}`;
             document.getElementById('quotaClInput').value = cl !== undefined ? cl : 12;
-            document.getElementById('quotaSlInput').value = sl !== undefined ? sl : 12;
             document.getElementById('quotaElInput').value = el !== undefined ? el : 12;
             const coInput = document.getElementById('quotaCoInput');
             if (coInput) coInput.value = co !== undefined ? co : 0;
@@ -3404,7 +3402,6 @@
             const payload = {
                 user_id: document.getElementById('quotaUserId').value,
                 casual_leave_total: parseFloat(document.getElementById('quotaClInput').value),
-                sick_leave_total: parseFloat(document.getElementById('quotaSlInput').value),
                 earned_leave_total: parseFloat(document.getElementById('quotaElInput').value),
                 comp_off_total: parseFloat(document.getElementById('quotaCoInput') ? document.getElementById('quotaCoInput').value : 0)
             };
@@ -3957,11 +3954,65 @@
                     return;
                 }
 
-                tbody.innerHTML = employees.map(emp => `
+                tbody.innerHTML = employees.map(emp => {
+                    const isGenerated = !!emp.is_generated;
+                    const isPublished = Number(emp.is_published) === 1;
+
+                    let statusBadge = '';
+                    let actionButtons = '';
+
+                    if (isPublished) {
+                        statusBadge = `
+                            <span class="badge badge-success" style="font-size: 0.72rem; display: inline-flex; align-items: center; gap: 0.25rem;">
+                                <i data-lucide="check-circle-2" style="width: 12px;"></i> Released to Profile
+                            </span>
+                        `;
+                        actionButtons = `
+                            <button type="button" onclick="viewCustomRangePayslip(${emp.user_id}, '${data.start_date}', '${data.end_date}')" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.32rem 0.65rem; font-weight: 700;" title="View Complete Payslip">
+                                <i data-lucide="file-text" style="width: 14px;"></i> View Slip
+                            </button>
+                            <button type="button" onclick="shareDirectCustomWhatsApp(${emp.user_id}, '${data.start_date}', '${data.end_date}')" class="btn btn-secondary btn-sm" style="color: #059669; border-color: #a7f3d0; padding: 0.32rem 0.55rem;" title="Send via WhatsApp">
+                                <i data-lucide="share-2" style="width: 14px;"></i>
+                            </button>
+                            <button type="button" onclick="toggleSlipPublish(${emp.slip_id}, 0)" class="btn btn-secondary btn-sm" style="color: #dc2626; border-color: #fecaca; padding: 0.32rem 0.55rem;" title="Hide slip from employee portal">
+                                <i data-lucide="eye-off" style="width: 14px;"></i> Hide
+                            </button>
+                        `;
+                    } else if (isGenerated) {
+                        statusBadge = `
+                            <span class="badge badge-warning" style="font-size: 0.72rem; display: inline-flex; align-items: center; gap: 0.25rem;">
+                                <i data-lucide="eye-off" style="width: 12px;"></i> Hidden from Employee
+                            </span>
+                        `;
+                        actionButtons = `
+                            <button type="button" onclick="toggleSlipPublish(${emp.slip_id}, 1)" class="btn btn-success btn-sm" style="display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.32rem 0.65rem; font-weight: 700; background: #059669; border-color: #059669; color: #fff;" title="Release slip to employee portal">
+                                <i data-lucide="send" style="width: 14px;"></i> Release Slip
+                            </button>
+                            <button type="button" onclick="viewCustomRangePayslip(${emp.user_id}, '${data.start_date}', '${data.end_date}')" class="btn btn-secondary btn-sm" style="padding: 0.32rem 0.55rem;" title="View Complete Payslip">
+                                <i data-lucide="file-text" style="width: 14px;"></i> Slip
+                            </button>
+                        `;
+                    } else {
+                        statusBadge = `
+                            <span class="badge" style="background: rgba(148, 163, 184, 0.15); color: var(--text-muted); font-size: 0.72rem; border: 1px solid rgba(148, 163, 184, 0.3); display: inline-flex; align-items: center; gap: 0.25rem;">
+                                <i data-lucide="clock" style="width: 12px;"></i> Not Released
+                            </span>
+                        `;
+                        actionButtons = `
+                            <button type="button" onclick="generateSingleCustomSlip(${emp.user_id}, '${data.start_date}', '${data.end_date}', this)" class="btn btn-primary btn-sm" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.75rem; font-weight: 700;" title="Generate and release this slip to candidate profile">
+                                <i data-lucide="zap" style="width: 14px;"></i> Generate This Slip
+                            </button>
+                            <button type="button" onclick="viewCustomRangePayslip(${emp.user_id}, '${data.start_date}', '${data.end_date}')" class="btn btn-secondary btn-sm" style="padding: 0.35rem 0.55rem;" title="Preview Calculation">
+                                <i data-lucide="eye" style="width: 14px;"></i>
+                            </button>
+                        `;
+                    }
+
+                    return `
                     <tr>
                         <td>
                             <div style="font-weight: 700; color: var(--text-primary); font-size: 0.92rem;">${escapeHtml(emp.user_name)}</div>
-                            <div style="font-size: 0.78rem; color: var(--text-muted);">${escapeHtml(emp.user_dept || 'Staff')} &bull; <span style="font-family: var(--font-mono); color: var(--primary);">#TGC-${String(emp.user_id).padStart(4, '0')}</span></div>
+                            <div style="font-size: 0.78rem; color: var(--text-muted);">${escapeHtml(emp.user_dept || 'Staff')} &bull; <span style="font-family: var(--font-mono); color: var(--primary);">${emp.employee_code ? escapeHtml(emp.employee_code) : '#TGC-' + String(emp.user_id).padStart(4, '0')}</span></div>
                         </td>
                         <td>
                             <div style="font-weight: 600;">₹${parseFloat(emp.base_salary).toLocaleString('en-IN')}</div>
@@ -3990,17 +4041,13 @@
                             </strong>
                         </td>
                         <td style="white-space: nowrap;">
-                            <div style="display: flex; gap: 0.4rem; align-items: center;">
-                                <button type="button" onclick="viewCustomRangePayslip(${emp.user_id}, '${data.start_date}', '${data.end_date}')" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.35rem 0.65rem; font-weight: 700;" title="View Complete Payslip">
-                                    <i data-lucide="file-text" style="width: 14px;"></i> Slip
-                                </button>
-                                <button type="button" onclick="shareDirectCustomWhatsApp(${emp.user_id}, '${data.start_date}', '${data.end_date}')" class="btn btn-secondary btn-sm" style="color: #059669; border-color: #a7f3d0; padding: 0.35rem 0.55rem;" title="Send via WhatsApp">
-                                    <i data-lucide="share-2" style="width: 14px;"></i>
-                                </button>
+                            <div style="margin-bottom: 0.35rem;">${statusBadge}</div>
+                            <div style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap;">
+                                ${actionButtons}
                             </div>
                         </td>
                     </tr>
-                `).join('');
+                `}).join('');
 
                 lucide.createIcons();
             } else {
@@ -4045,11 +4092,130 @@
                 const p = res.data.payroll;
                 p.is_custom_range = true;
                 currentViewedPayslip = p;
+
+                const customAct = document.getElementById('slipModalCustomActions');
+                if (customAct) {
+                    if (Number(p.is_published) === 1 && p.slip_id) {
+                        customAct.innerHTML = `
+                            <button type="button" class="btn btn-secondary" style="color: #dc2626; border-color: #fecaca; font-weight: 600;" onclick="toggleSlipPublish(${p.slip_id}, 0).then(() => viewCustomRangePayslip(${userId}, '${startDate}', '${endDate}'))">
+                                <i data-lucide="eye-off" style="width: 14px;"></i> Hide from Employee
+                            </button>
+                        `;
+                    } else {
+                        customAct.innerHTML = `
+                            <button type="button" class="btn btn-success" style="background: #059669; border-color: #059669; font-weight: 700; color: #fff;" onclick="generateSingleCustomSlip(${userId}, '${startDate}', '${endDate}').then(() => viewCustomRangePayslip(${userId}, '${startDate}', '${endDate}'))">
+                                <i data-lucide="zap" style="width: 14px;"></i> Generate & Release This Slip
+                            </button>
+                        `;
+                    }
+                }
+
                 document.getElementById('slipModalBody').innerHTML = renderPayslipHtml(p, true);
                 openModal('viewSlipModal');
                 lucide.createIcons();
             } else {
                 showToast(res.data?.message || 'Could not load custom payslip', 'error');
+            }
+        }
+
+        async function generateSingleCustomSlip(userId, startDate, endDate, btn) {
+            if (!startDate || !endDate) {
+                startDate = document.getElementById('customPayrollStartDate').value;
+                endDate = document.getElementById('customPayrollEndDate').value;
+            }
+            if (!startDate || !endDate) {
+                showToast('Please select From Date and To Date first.', 'warning');
+                return;
+            }
+
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner" style="width:12px;height:12px;border-width:2px;display:inline-block;margin-right:4px;"></span> Releasing...';
+            }
+
+            const res = await apiRequest('payroll.php?action=generate_custom_slip', 'POST', {
+                user_id: userId,
+                start_date: startDate,
+                end_date: endDate,
+                publish: 1
+            });
+
+            if (res.ok && res.data.success) {
+                playSound('success');
+                fireConfetti(1500);
+                showToast(res.data.message || 'Custom slip generated and released to candidate profile!', 'success');
+                await loadCustomRangePayroll();
+            } else {
+                playSound('error');
+                showToast(res.data?.message || 'Failed to generate custom slip', 'error');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i data-lucide="zap" style="width: 14px;"></i> Generate This Slip';
+                    lucide.createIcons();
+                }
+            }
+        }
+
+        async function generateAllCustomSlips() {
+            const sDate = document.getElementById('customPayrollStartDate').value;
+            const eDate = document.getElementById('customPayrollEndDate').value;
+            const uId = document.getElementById('customPayrollUserSelect') ? document.getElementById('customPayrollUserSelect').value : 0;
+
+            if (!sDate || !eDate) {
+                showToast('Please select From Date and To Date first.', 'warning');
+                return;
+            }
+
+            if (!confirm(`Generate and release salary slips for the date range ${sDate} to ${eDate}?\n\nOnce released, these slips will immediately be visible to candidates on their employee portal profile.`)) {
+                return;
+            }
+
+            const btn = document.getElementById('btnGenerateAllSlips');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner" style="width:12px;height:12px;border-width:2px;display:inline-block;margin-right:4px;"></span> Releasing All...';
+            }
+
+            const res = await apiRequest('payroll.php?action=generate_custom_slip', 'POST', {
+                user_id: uId,
+                start_date: sDate,
+                end_date: eDate,
+                publish: 1
+            });
+
+            if (res.ok && res.data.success) {
+                playSound('success');
+                fireConfetti(2500);
+                showToast(res.data.message || 'All custom slips generated and released successfully!', 'success');
+                await loadCustomRangePayroll();
+            } else {
+                playSound('error');
+                showToast(res.data?.message || 'Failed to generate all slips', 'error');
+            }
+
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="send" style="width: 15px;"></i> Generate & Release All Slips';
+                lucide.createIcons();
+            }
+        }
+
+        async function toggleSlipPublish(slipId, publish) {
+            const actionText = publish ? 'release to employee portal' : 'hide from employee portal';
+            if (!confirm(`Are you sure you want to ${actionText}?`)) {
+                return;
+            }
+
+            const res = await apiRequest('payroll.php?action=toggle_publish', 'POST', {
+                slip_id: slipId,
+                publish: publish
+            });
+
+            if (res.ok && res.data.success) {
+                showToast(res.data.message, 'success');
+                await loadCustomRangePayroll();
+            } else {
+                showToast(res.data?.message || 'Failed to update slip status', 'error');
             }
         }
 
@@ -4270,64 +4436,39 @@ _Log in to the TGC Connect portal to view or print your full itemized breakdown.
 
             const periodHeader = isCustomRange 
                 ? `Pay Period: <strong>${formatDateDisp(p.start_date)} — ${formatDateDisp(p.end_date)}</strong> (${numDays} Calendar Days &bull; ${workingDays} Working Days)`
-                : `Pay Period: <strong>Month ${p.month}/${p.year}</strong> &bull; Working Days: <strong>${workingDays} Days</strong>`;
-
-            const calcBanner = isCustomRange ? `
-                <div style="background: rgba(79, 70, 229, 0.05); border: 1px solid rgba(79, 70, 229, 0.2); border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.82rem; color: #3730a3; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; position: relative; z-index: 2;">
-                    <div>
-                        <strong>Custom Period Pro-Rata Policy:</strong> Range Days = <strong>${numDays} d</strong> &bull; Working Days = <strong>${workingDays} d</strong> &bull; Pro-Rata Rate = <strong>₹${dailyRate}/day</strong>
-                    </div>
-                    <div>
-                        Present + Paid Leaves: <strong>${(p.present_days || 0) + (p.paid_leaves || 0)} Days</strong> &bull; 
-                        Absent Days: <strong style="color: #e11d48;">${p.unpaid_days || 0} Day(s)</strong>
-                    </div>
-                </div>
-            ` : `
-                <div style="background: rgba(79, 70, 229, 0.05); border: 1px solid rgba(79, 70, 229, 0.2); border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.82rem; color: #3730a3; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; position: relative; z-index: 2;">
-                    <div>
-                        <strong>Calendar Day Rate Policy:</strong> Total Month Days = <strong>${numDays} Days</strong> &bull; 
-                        Daily Rate = ₹${baseSal.toLocaleString('en-IN')} &divide; ${numDays} = <strong>₹${dailyRate}/day</strong>
-                    </div>
-                    <div>
-                        Present + Paid Leaves: <strong>${(p.present_days || 0) + (p.paid_leave_days || p.paid_leaves || 0)} Days</strong> &bull; 
-                        Absent Days: <strong style="color: #e11d48;">${p.unpaid_days || 0} Day(s)</strong>
-                    </div>
-                </div>
-            `;
+                : `Pay Period: <strong>Month ${p.month}/${p.year}</strong> &bull; Total Days: <strong>${numDays} Days</strong>`;
 
             const dayBreakdownHtml = (isCustomRange && Array.isArray(p.day_breakdown) && p.day_breakdown.length > 0) ? `
-                <div style="margin-bottom: 1.5rem; position: relative; z-index: 2;">
-                    <div style="font-size: 0.86rem; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
-                        <span style="display: flex; align-items: center; gap: 0.35rem;">
-                            <i data-lucide="calendar-check" style="width: 15px; color: var(--primary);"></i> Itemized Attendance & Credit Audit Log:
-                        </span>
-                        <span style="font-size: 0.76rem; color: #64748b; font-weight: normal;">${p.day_breakdown.length} day(s) verified</span>
+                <div style="margin-bottom: 1.25rem;">
+                    <div style="font-size: 0.84rem; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
+                        <span>Itemized Day-by-Day Attendance Audit Log:</span>
+                        <span style="font-size: 0.74rem; color: #64748b; font-weight: normal;">${p.day_breakdown.length} day(s) verified</span>
                     </div>
-                    <div style="max-height: 230px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
-                        <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem; background: #fff;">
+                    <div style="max-height: 220px; overflow-y: auto; border: 1px solid #cbd5e1; border-radius: 6px;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.78rem; background: #fff;">
                             <thead>
-                                <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; color: #475569; position: sticky; top: 0;">
-                                    <th style="padding: 0.45rem 0.75rem; text-align: left;">Date</th>
-                                    <th style="padding: 0.45rem 0.75rem; text-align: left;">Day</th>
-                                    <th style="padding: 0.45rem 0.75rem; text-align: left;">Status</th>
-                                    <th style="padding: 0.45rem 0.75rem; text-align: left;">Check-In / Out</th>
-                                    <th style="padding: 0.45rem 0.75rem; text-align: right;">Pay Credit</th>
+                                <tr style="background: #f8fafc; border-bottom: 1px solid #cbd5e1; color: #475569; position: sticky; top: 0;">
+                                    <th style="padding: 0.4rem 0.65rem; text-align: left;">Date</th>
+                                    <th style="padding: 0.4rem 0.65rem; text-align: left;">Day</th>
+                                    <th style="padding: 0.4rem 0.65rem; text-align: left;">Status</th>
+                                    <th style="padding: 0.4rem 0.65rem; text-align: left;">Check-In / Out</th>
+                                    <th style="padding: 0.4rem 0.65rem; text-align: right;">Pay Credit</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 ${p.day_breakdown.map(d => `
                                     <tr style="border-bottom: 1px solid #f1f5f9; ${d.is_sunday ? 'background: #f8fafc;' : ''}">
-                                        <td style="padding: 0.45rem 0.75rem; font-family: var(--font-mono); font-weight: 600;">${d.date}</td>
-                                        <td style="padding: 0.45rem 0.75rem; font-weight: 600; color: #475569;">${d.day_name}</td>
-                                        <td style="padding: 0.45rem 0.75rem;">
-                                            <span class="badge badge-${d.badge_class}" style="font-size: 0.72rem; padding: 0.15rem 0.45rem;">
+                                        <td style="padding: 0.4rem 0.65rem; font-family: var(--font-mono); font-weight: 600;">${d.date}</td>
+                                        <td style="padding: 0.4rem 0.65rem; font-weight: 600; color: #475569;">${d.day_name}</td>
+                                        <td style="padding: 0.4rem 0.65rem;">
+                                            <span class="badge badge-${d.badge_class}" style="font-size: 0.7rem; padding: 0.12rem 0.4rem;">
                                                 ${escapeHtml(d.status_label)}
                                             </span>
                                         </td>
-                                        <td style="padding: 0.45rem 0.75rem; color: #64748b; font-size: 0.76rem;">
+                                        <td style="padding: 0.4rem 0.65rem; color: #64748b; font-size: 0.74rem;">
                                             ${d.check_in ? (d.check_in.substring(0,5) + (d.check_out ? ' – ' + d.check_out.substring(0,5) : '')) : (d.is_sunday ? '<span style="color:#0284c7;">Weekly Off (Sunday)</span>' : (d.is_holiday ? '<span style="color:#7c3aed;">' + escapeHtml(d.holiday_title || 'Holiday') + '</span>' : '<span style="color:#94a3b8;">No Punch</span>'))}
                                         </td>
-                                        <td style="padding: 0.45rem 0.75rem; text-align: right; font-weight: 700; color: ${d.paid_credit > 0 ? '#059669' : '#e11d48'};">
+                                        <td style="padding: 0.4rem 0.65rem; text-align: right; font-weight: 700; color: ${d.paid_credit > 0 ? '#059669' : '#e11d48'};">
                                             ${d.paid_credit > 0 ? (d.paid_credit === 1 ? '1.0 d' : '0.5 d') : '0.0 d'}
                                         </td>
                                     </tr>
@@ -4339,99 +4480,91 @@ _Log in to the TGC Connect portal to view or print your full itemized breakdown.
             ` : '';
 
             return `
-                <div class="payslip-container" style="position: relative; padding: 2rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b;">
-                    <div class="payslip-watermark" style="position: absolute; top: 48%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 4.8rem; font-weight: 900; color: rgba(15, 23, 42, 0.03); pointer-events: none; letter-spacing: 10px; z-index: 1;">${isCustomRange ? 'AUDIT SLIP' : 'CONFIDENTIAL'}</div>
-                    
+                <div class="payslip-container">
                     <!-- Corporate Header -->
-                    <div class="payslip-header" style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #4f46e5; padding-bottom: 1.25rem; margin-bottom: 1.5rem; position: relative; z-index: 2;">
+                    <div class="payslip-corporate-header">
                         <div>
-                            <div style="display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(79, 70, 229, 0.1); color: #4f46e5; font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; padding: 0.25rem 0.65rem; border-radius: 6px; margin-bottom: 0.5rem;">
-                                <span>${escapeHtml(companyName)}</span>
-                            </div>
-                            <h2 style="font-size: 1.45rem; font-weight: 900; margin: 0; color: #0f172a; letter-spacing: -0.02em;">
-                                ${isCustomRange ? 'CUSTOM PERIOD SALARY STATEMENT' : 'SALARY STATEMENT & PAY VOUCHER'}
-                            </h2>
-                            <p style="font-size: 0.84rem; color: #64748b; margin: 0.25rem 0 0 0;">
-                                ${periodHeader} &bull; Voucher Ref: <code style="font-family: var(--font-mono); font-weight: 700; color: #4f46e5;">#${escapeHtml(voucherCode)}</code>
-                            </p>
+                            <div class="payslip-company-title">${escapeHtml(companyName)}</div>
+                            <div class="payslip-company-addr">R.R Mansion, S-491, School Block II, Shakarpur, Delhi - 110092</div>
+                            <div class="payslip-doc-badge">${isCustomRange ? 'CUSTOM PRO-RATA STATEMENT' : `PAYSLIP FOR MONTH: ${p.month}/${p.year}`}</div>
                         </div>
                         <div style="text-align: right;">
-                            <span class="badge ${badgeClass}" style="font-size: 0.92rem; padding: 0.4rem 0.85rem; font-weight: 800; letter-spacing: 0.04em;">
-                                ${statusLabel}
-                            </span>
-                            <div style="font-size: 0.76rem; color: #94a3b8; margin-top: 0.35rem;">Generated: ${new Date(p.created_at || Date.now()).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                            <div style="font-size: 0.85rem; font-weight: 700; color: #0f172a;">Payslip Ref: #${escapeHtml(voucherCode)}</div>
+                            <div style="font-size: 0.78rem; color: #64748b; margin-top: 3px;">Date: ${new Date(p.created_at || Date.now()).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                            <div style="margin-top: 6px;"><span class="badge ${badgeClass}" style="text-transform: uppercase; font-weight: 700;">${statusLabel}</span></div>
                         </div>
                     </div>
 
-                    <!-- Candidate & Entity Details Grid -->
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; background: #f8fafc; padding: 1.2rem; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 1.25rem; font-size: 0.88rem; position: relative; z-index: 2;">
-                        <div style="display: flex; flex-direction: column; gap: 0.35rem;">
-                            <div><span style="color: #64748b;">Candidate Name:</span> <strong style="color: #0f172a; font-size: 0.96rem;">${escapeHtml(p.user_name)}</strong></div>
-                            <div><span style="color: #64748b;">Candidate Code:</span> <strong style="font-family: var(--font-mono); color: #4f46e5;">#TGC-${String(p.user_id).padStart(4, '0')}</strong></div>
-                            <div><span style="color: #64748b;">Official Email:</span> <span>${escapeHtml(p.user_email || 'N/A')}</span></div>
-                            <div><span style="color: #64748b;">Profession / Designation:</span> <strong>${escapeHtml(p.user_job || 'Staff')}</strong></div>
-                        </div>
-                        <div style="display: flex; flex-direction: column; gap: 0.35rem;">
-                            <div><span style="color: #64748b;">Company / Entity:</span> <strong style="color: #4f46e5;">${escapeHtml(companyName)}</strong></div>
-                            <div><span style="color: #64748b;">Department:</span> <strong>${escapeHtml(p.user_dept || 'General')}</strong></div>
-                            <div><span style="color: #64748b;">Payment Method:</span> <span>${escapeHtml(p.payment_mode || 'Bank Transfer')}</span></div>
-                            <div><span style="color: #64748b;">Disbursal Date:</span> <span>${p.paid_at ? formatDateDisp(p.paid_at) : 'Pending Final Authorization'}</span></div>
-                        </div>
-                    </div>
-
-                    <!-- Calculation Basis Banner -->
-                    ${calcBanner}
+                    <!-- Employee Details Grid Table -->
+                    <table class="payslip-meta-grid">
+                        <tr>
+                            <td class="lbl">Employee Name:</td>
+                            <td class="val">${escapeHtml(p.user_name)}</td>
+                            <td class="lbl">Employee Code:</td>
+                            <td class="val" style="font-family: var(--font-mono);">#TGC-${String(p.user_id).padStart(4, '0')}</td>
+                        </tr>
+                        <tr>
+                            <td class="lbl">Designation:</td>
+                            <td class="val">${escapeHtml(p.user_job || 'Staff')}</td>
+                            <td class="lbl">Department:</td>
+                            <td class="val">${escapeHtml(p.user_dept || 'General')}</td>
+                        </tr>
+                        <tr>
+                            <td class="lbl">Payment Method:</td>
+                            <td class="val">${escapeHtml(p.payment_mode || 'Bank Transfer')}</td>
+                            <td class="lbl">Official Email:</td>
+                            <td class="val">${escapeHtml(p.user_email || 'N/A')}</td>
+                        </tr>
+                        <tr>
+                            <td class="lbl">${isCustomRange ? 'Period Days:' : 'Total Month Days:'}</td>
+                            <td class="val">${numDays} Days</td>
+                            <td class="lbl">Payable Days:</td>
+                            <td class="val">${(p.present_days || 0) + (p.paid_leave_days || p.paid_leaves || 0)} Days</td>
+                        </tr>
+                        <tr>
+                            <td class="lbl">Absent / LWP Days:</td>
+                            <td class="val" style="color: #b91c1c; font-weight: 700;">${p.unpaid_days || 0} Day(s)</td>
+                            <td class="lbl">Daily Divisor Rate:</td>
+                            <td class="val" style="font-family: var(--font-mono);">₹${dailyRate}/day</td>
+                        </tr>
+                    </table>
 
                     <!-- Itemized Earnings & Deductions Table -->
-                    <table class="payslip-table" style="width: 100%; border-collapse: collapse; margin-bottom: 1.25rem; font-size: 0.88rem; position: relative; z-index: 2;">
+                    <table class="payslip-table">
                         <thead>
-                            <tr style="background: #0f172a; color: #ffffff;">
-                                <th style="padding: 0.75rem 1rem; text-align: left; width: 32%;">Earnings Component</th>
-                                <th style="padding: 0.75rem 1rem; text-align: right; width: 18%;">Amount (INR)</th>
-                                <th style="padding: 0.75rem 1rem; text-align: left; width: 32%;">Deductions Component</th>
-                                <th style="padding: 0.75rem 1rem; text-align: right; width: 18%;">Amount (INR)</th>
+                            <tr>
+                                <th style="width: 32%; text-align: left;">Earnings</th>
+                                <th style="width: 18%; text-align: right;">Amount (₹)</th>
+                                <th style="width: 32%; text-align: left;">Deductions</th>
+                                <th style="width: 18%; text-align: right;">Amount (₹)</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr style="border-bottom: 1px solid #e2e8f0;">
-                                <td style="padding: 0.75rem 1rem;">
-                                    <strong>${isCustomRange ? 'Period Pro-Rata Base Target' : 'Base Monthly Salary'}</strong><br>
-                                    <small style="color: #64748b;">${isCustomRange ? 'Target base for ' + numDays + ' calendar days' : 'Contracted monthly package'}</small>
-                                </td>
-                                <td style="padding: 0.75rem 1rem; text-align: right; font-weight: 700; font-family: var(--font-mono);">
-                                    ₹${periodGross.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </td>
-                                <td style="padding: 0.75rem 1rem;">
-                                    <strong>Absent / Unpaid Days</strong><br>
-                                    <small style="color: #e11d48;">${p.unpaid_days || 0} day(s) &times; ₹${dailyRate}/d</small>
-                                </td>
-                                <td style="padding: 0.75rem 1rem; text-align: right; font-weight: 700; color: #e11d48; font-family: var(--font-mono);">
+                            <tr>
+                                <td><strong>${isCustomRange ? 'Period Base Package' : 'Basic Monthly Salary'}</strong></td>
+                                <td style="text-align: right; font-family: var(--font-mono); font-weight: 600;">₹${periodGross.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td><strong>Unpaid Absence / LWP Deduction</strong></td>
+                                <td style="text-align: right; font-family: var(--font-mono); font-weight: 600; color: ${dedAmt > 0 ? '#b91c1c' : '#0f172a'};">
                                     ${dedAmt > 0 ? '-₹' + dedAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '₹0.00'}
                                 </td>
                             </tr>
-                            <tr style="border-bottom: 1px solid #e2e8f0;">
-                                <td style="padding: 0.75rem 1rem;"><strong>Incentives & Performance Bonus</strong></td>
-                                <td style="padding: 0.75rem 1rem; text-align: right; font-weight: 700; font-family: var(--font-mono);">
-                                    ₹${bonusSal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </td>
-                                <td style="padding: 0.75rem 1rem;"><strong>Statutory & Other Deductions</strong></td>
-                                <td style="padding: 0.75rem 1rem; text-align: right; font-family: var(--font-mono);">₹0.00</td>
+                            <tr>
+                                <td>Incentives & Performance Bonus</td>
+                                <td style="text-align: right; font-family: var(--font-mono); font-weight: 600;">₹${bonusSal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td>Statutory & Other Deductions</td>
+                                <td style="text-align: right; font-family: var(--font-mono); font-weight: 600;">₹0.00</td>
                             </tr>
-                            <tr style="background: #f1f5f9; font-weight: 700;">
-                                <td style="padding: 0.75rem 1rem;">Gross Earnings</td>
-                                <td style="padding: 0.75rem 1rem; text-align: right; font-family: var(--font-mono);">
-                                    ₹${grossSal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </td>
-                                <td style="padding: 0.75rem 1rem;">Total Deductions</td>
-                                <td style="padding: 0.75rem 1rem; text-align: right; color: #e11d48; font-family: var(--font-mono);">
+                            <tr class="total-row">
+                                <td><strong>Gross Earnings</strong></td>
+                                <td style="text-align: right; font-family: var(--font-mono); font-weight: 700;">₹${grossSal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td><strong>Total Deductions</strong></td>
+                                <td style="text-align: right; font-family: var(--font-mono); font-weight: 700; color: ${dedAmt > 0 ? '#b91c1c' : '#0f172a'};">
                                     ${dedAmt > 0 ? '-₹' + dedAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '₹0.00'}
                                 </td>
                             </tr>
-                            <tr style="background: #ecfdf5; border-top: 2px solid #10b981; border-bottom: 2px solid #10b981;">
-                                <td colspan="2" style="padding: 1rem; font-size: 1.05rem; font-weight: 800; color: #065f46;">
-                                    NET TAKE-HOME PAYABLE
-                                </td>
-                                <td colspan="2" style="padding: 1rem; text-align: right; font-size: 1.45rem; font-weight: 900; color: #059669; font-family: var(--font-mono);">
+                            <tr class="net-pay-row">
+                                <td colspan="2" style="font-weight: 800; font-size: 0.95rem; text-transform: uppercase;">NET TAKE-HOME PAYABLE</td>
+                                <td colspan="2" style="text-align: right; font-size: 1.25rem; font-weight: 900; color: #0f172a; font-family: var(--font-mono);">
                                     ₹${netSal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </td>
                             </tr>
@@ -4439,32 +4572,30 @@ _Log in to the TGC Connect portal to view or print your full itemized breakdown.
                     </table>
 
                     <!-- Net in Words & Remarks -->
-                    <div style="margin-bottom: 1.25rem; padding: 0.85rem 1rem; background: #f8fafc; border-left: 4px solid #10b981; border-radius: 4px; font-size: 0.86rem; position: relative; z-index: 2;">
-                        <div><span style="color: #64748b; font-weight: 600;">Net Amount in Words:</span> <strong style="color: #0f172a; text-transform: uppercase;">${words}</strong></div>
-                        ${p.remarks ? `<div style="margin-top: 0.35rem; color: #64748b; font-size: 0.8rem;">Note: ${escapeHtml(p.remarks)}</div>` : ''}
+                    <div class="payslip-words-box">
+                        <div><strong>Amount in Words:</strong> Indian Rupees ${words} Only</div>
+                        ${p.remarks ? `<div style="margin-top: 4px; color: #64748b; font-size: 0.78rem;"><strong>Remarks:</strong> ${escapeHtml(p.remarks)}</div>` : ''}
                     </div>
 
-                    <!-- Day by Day Breakdown for Custom Range -->
+                    <!-- Custom Range Breakdown if present -->
                     ${dayBreakdownHtml}
 
-                    <!-- Signatures & Verification Stamp -->
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px dashed #cbd5e1; position: relative; z-index: 2;">
-                        <div style="text-align: center;">
-                            <div style="height: 48px; border-bottom: 1px solid #94a3b8; width: 75%; margin: 0 auto;"></div>
-                            <div style="font-size: 0.82rem; font-weight: 700; color: #475569; margin-top: 0.4rem;">Employee Signature</div>
-                            <div style="font-size: 0.74rem; color: #94a3b8;">${escapeHtml(p.user_name)}</div>
+                    <!-- Signatures & Verification Section -->
+                    <div class="payslip-sign-row">
+                        <div class="sign-box">
+                            <div class="sign-line"></div>
+                            <div class="sign-title">Employee Signature</div>
+                            <div class="sign-sub">${escapeHtml(p.user_name)}</div>
                         </div>
-                        <div style="text-align: center;">
-                            <div style="height: 48px; border-bottom: 1px solid #94a3b8; width: 75%; margin: 0 auto; display: flex; align-items: flex-end; justify-content: center;">
-                                <span style="font-family: 'Brush Script MT', cursive, sans-serif; font-size: 1.4rem; color: #4f46e5;">Authorized Payroll Dept</span>
-                            </div>
-                            <div style="font-size: 0.82rem; font-weight: 700; color: #475569; margin-top: 0.4rem;">Authorized Signatory & Seal</div>
-                            <div style="font-size: 0.74rem; color: #94a3b8;">For ${escapeHtml(companyName)}</div>
+                        <div class="sign-box">
+                            <div class="sign-line"></div>
+                            <div class="sign-title">Authorized Signatory</div>
+                            <div class="sign-sub">For Getting Roots Coaching & Training Pvt. Ltd.</div>
                         </div>
                     </div>
 
                     <div style="text-align: center; margin-top: 1.5rem; font-size: 0.72rem; color: #94a3b8;">
-                        This is an electronically generated salary voucher under TGC Connect HRMS. No physical signature is required. Confidential.
+                        This is an official computer-generated salary slip and does not require a physical seal if electronically verified.
                     </div>
                 </div>
             `;

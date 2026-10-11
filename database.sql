@@ -1,0 +1,342 @@
+-- ==========================================================
+-- TGC Connect - Enterprise Workforce, Attendance & Payroll HRMS
+-- Complete MySQL Schema & Initial Seed Data
+-- ==========================================================
+
+-- ==========================================================
+-- NOTE FOR HOSTINGER / PHPMYADMIN / SHARED HOSTING:
+-- Select your database in Hostinger phpMyAdmin, then import this file directly.
+-- (Database creation and selection statements are omitted for shared hosting compatibility)
+-- ==========================================================
+
+
+-- 1a. Departments Table
+CREATE TABLE IF NOT EXISTS `departments` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `name` VARCHAR(100) NOT NULL UNIQUE,
+    `description` VARCHAR(255) DEFAULT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 1b. Designations Table
+CREATE TABLE IF NOT EXISTS `designations` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `department_id` INT DEFAULT NULL,
+    `name` VARCHAR(100) NOT NULL,
+    `description` VARCHAR(255) DEFAULT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`department_id`) REFERENCES `departments`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 1. Users Table (Administrators & Employees)
+CREATE TABLE IF NOT EXISTS `users` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `name` VARCHAR(150) NOT NULL,
+    `email` VARCHAR(191) NOT NULL UNIQUE,
+    `password` VARCHAR(255) NOT NULL,
+    `phone` VARCHAR(50) DEFAULT NULL,
+    `dob` DATE DEFAULT NULL,
+    `address` TEXT DEFAULT NULL,
+    `department` VARCHAR(100) DEFAULT 'Operations',
+    `company` VARCHAR(255) DEFAULT 'Getting Roots Coaching & Training Pvt. Ltd.',
+    `job_profile` VARCHAR(100) DEFAULT 'Staff Member',
+    `employee_code` VARCHAR(50) DEFAULT NULL,
+    `date_of_joining` DATE DEFAULT NULL,
+    `photo_path` VARCHAR(255) DEFAULT NULL,
+    `role` ENUM('admin', 'employee') DEFAULT 'employee',
+    `status` ENUM('active', 'pending_approval', 'inactive', 'rejected') DEFAULT 'active',
+    `first_login_required` TINYINT(1) DEFAULT 0,
+    `base_salary` DECIMAL(10,2) DEFAULT 30000.00,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_users_status` (`status`),
+    INDEX `idx_users_role` (`role`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2. Attendances Table (Anti-Proxy Verified Records)
+CREATE TABLE IF NOT EXISTS `attendances` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT NOT NULL,
+    `date` DATE NOT NULL,
+    `check_in_time` TIME DEFAULT NULL,
+    `check_out_time` TIME DEFAULT NULL,
+    `method` ENUM('qr', 'gps') DEFAULT 'qr',
+    `latitude` DECIMAL(10,8) DEFAULT NULL,
+    `longitude` DECIMAL(11,8) DEFAULT NULL,
+    `accuracy_meters` DECIMAL(8,2) DEFAULT NULL,
+    `location_name` VARCHAR(255) DEFAULT NULL,
+    `ip_address` VARCHAR(45) DEFAULT NULL,
+    `user_agent` TEXT DEFAULT NULL,
+    `device_fingerprint` VARCHAR(100) DEFAULT NULL,
+    `status` ENUM('present', 'late', 'half_day', 'absent') DEFAULT 'present',
+    `notes` TEXT DEFAULT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY `uk_user_date` (`user_id`, `date`),
+    INDEX `idx_attendance_date` (`date`),
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 3. Dynamic QR Codes Table (Retained for backwards compatibility)
+CREATE TABLE IF NOT EXISTS `qr_codes` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `token` VARCHAR(100) NOT NULL UNIQUE,
+    `title` VARCHAR(150) DEFAULT 'TGC Office Main Reception QR',
+    `is_active` TINYINT(1) DEFAULT 1,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 3b. Admin-Controlled Attendance Windows (Time-Bound shift opening e.g. 10 mins)
+CREATE TABLE IF NOT EXISTS `attendance_windows` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `is_active` TINYINT(1) DEFAULT 1,
+    `opened_at` DATETIME NOT NULL,
+    `duration_minutes` INT NOT NULL DEFAULT 10,
+    `expires_at` DATETIME NOT NULL,
+    `opened_by` INT DEFAULT NULL,
+    `title` VARCHAR(150) DEFAULT 'Shift Attendance Window',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_window_active` (`is_active`, `expires_at`),
+    FOREIGN KEY (`opened_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 4. Time-Bound GPS Links Table
+CREATE TABLE IF NOT EXISTS `gps_links` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `token` VARCHAR(100) NOT NULL UNIQUE,
+    `title` VARCHAR(150) DEFAULT 'Remote Shift Attendance GPS Link',
+    `target_lat` DECIMAL(10,8) DEFAULT 28.633000,
+    `target_lng` DECIMAL(11,8) DEFAULT 77.277000,
+    `radius_meters` INT DEFAULT 500,
+    `expires_at` DATETIME NOT NULL,
+    `is_active` TINYINT(1) DEFAULT 1,
+    `created_by` INT DEFAULT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_gps_token` (`token`),
+    INDEX `idx_gps_expires` (`expires_at`),
+    FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 5. Leave Quotas Table
+CREATE TABLE IF NOT EXISTS `leave_quotas` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT NOT NULL,
+    `year` INT NOT NULL,
+    `casual_leave_total` DECIMAL(5,1) DEFAULT 12.0,
+    `casual_leave_assigned` DECIMAL(5,1) DEFAULT 1.0,
+    `earned_leave_total` DECIMAL(5,1) DEFAULT 12.0,
+    `earned_leave_assigned` DECIMAL(5,1) DEFAULT 1.0,
+    `sick_leave_total` DECIMAL(5,1) DEFAULT 0.0,
+    `comp_off_total` DECIMAL(5,1) DEFAULT 0.0,
+    `casual_leave_used` DECIMAL(5,1) DEFAULT 0.0,
+    `sick_leave_used` DECIMAL(5,1) DEFAULT 0.0,
+    `earned_leave_used` DECIMAL(5,1) DEFAULT 0.0,
+    `comp_off_used` DECIMAL(5,1) DEFAULT 0.0,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY `uk_user_year` (`user_id`, `year`),
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 6. Leave Applications Table
+CREATE TABLE IF NOT EXISTS `leaves` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT NOT NULL,
+    `leave_type` ENUM('casual', 'sick', 'earned', 'comp_off', 'bulk') NOT NULL,
+    `start_date` DATE NOT NULL,
+    `end_date` DATE NOT NULL,
+    `total_days` DECIMAL(5,1) DEFAULT 1.0,
+    `reason` TEXT NOT NULL,
+    `status` ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+    `rejection_reason` TEXT DEFAULT NULL,
+    `reviewed_by` INT DEFAULT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_leaves_status` (`status`),
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`reviewed_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 6b. Duty Rosters Table (Shift Schedules)
+CREATE TABLE IF NOT EXISTS `rosters` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT NOT NULL,
+    `roster_date` DATE NOT NULL,
+    `shift_name` VARCHAR(100) NOT NULL DEFAULT 'General',
+    `start_time` TIME DEFAULT '09:30:00',
+    `end_time` TIME DEFAULT '18:30:00',
+    `notes` VARCHAR(255) DEFAULT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY `uk_roster_user_date` (`user_id`, `roster_date`),
+    INDEX `idx_roster_date` (`roster_date`),
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 7. Holidays Table
+CREATE TABLE IF NOT EXISTS `holidays` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `title` VARCHAR(150) NOT NULL,
+    `holiday_date` DATE NOT NULL UNIQUE,
+    `type` ENUM('national', 'festival', 'company') DEFAULT 'company',
+    `description` TEXT DEFAULT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 8. Payrolls Table (Supports Standard Monthly & Custom Date-Range Slips with Admin Publishing)
+CREATE TABLE IF NOT EXISTS `payrolls` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT NOT NULL,
+    `month` INT NOT NULL,
+    `year` INT NOT NULL,
+    `start_date` DATE DEFAULT NULL,
+    `end_date` DATE DEFAULT NULL,
+    `base_salary` DECIMAL(10,2) NOT NULL,
+    `total_working_days` INT DEFAULT 30,
+    `present_days` DECIMAL(5,1) DEFAULT 0.0,
+    `paid_leaves` DECIMAL(5,1) DEFAULT 0.0,
+    `unpaid_days` DECIMAL(5,1) DEFAULT 0.0,
+    `daily_rate` DECIMAL(10,2) DEFAULT 0.00,
+    `deduction_amount` DECIMAL(10,2) DEFAULT 0.00,
+    `bonus_amount` DECIMAL(10,2) DEFAULT 0.00,
+    `net_salary` DECIMAL(10,2) NOT NULL,
+    `status` VARCHAR(30) DEFAULT 'processed',
+    `is_published` TINYINT(1) DEFAULT 0,
+    `published_at` DATETIME DEFAULT NULL,
+    `published_by` INT DEFAULT NULL,
+    `payment_date` DATE DEFAULT NULL,
+    `remarks` TEXT DEFAULT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_payroll_user` (`user_id`),
+    INDEX `idx_payroll_user_dates` (`user_id`, `start_date`, `end_date`, `is_published`),
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 9. Profile Change Requests (Admin Oversight)
+CREATE TABLE IF NOT EXISTS `profile_change_requests` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT NOT NULL,
+    `changes_json` LONGTEXT NOT NULL,
+    `reason` TEXT DEFAULT NULL,
+    `status` ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+    `reviewed_by` INT DEFAULT NULL,
+    `reviewed_at` DATETIME DEFAULT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_profile_req_status` (`status`),
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`reviewed_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 10. Admin Audit Logs
+CREATE TABLE IF NOT EXISTS `admin_logs` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `admin_id` INT DEFAULT NULL,
+    `action` VARCHAR(100) NOT NULL,
+    `target_user_id` INT DEFAULT NULL,
+    `details` TEXT DEFAULT NULL,
+    `ip_address` VARCHAR(45) DEFAULT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_admin_logs_action` (`action`),
+    FOREIGN KEY (`admin_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 11. Inventories & Asset Catalog Table
+CREATE TABLE IF NOT EXISTS `inventories` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `name` VARCHAR(191) NOT NULL,
+    `category` VARCHAR(100) DEFAULT 'Stationery & Supplies',
+    `unit` VARCHAR(50) DEFAULT 'Pieces',
+    `total_quantity` INT NOT NULL DEFAULT 0,
+    `available_quantity` INT NOT NULL DEFAULT 0,
+    `min_stock_alert` INT DEFAULT 5,
+    `location` VARCHAR(150) DEFAULT 'Stationery Cabinet',
+    `description` TEXT DEFAULT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX `idx_inventory_category` (`category`),
+    INDEX `idx_inventory_stock` (`available_quantity`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 12. Inventory Issuances & Allocation History Table
+CREATE TABLE IF NOT EXISTS `inventory_issuances` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `inventory_id` INT NOT NULL,
+    `user_id` INT DEFAULT NULL,
+    `recipient_name` VARCHAR(191) NOT NULL,
+    `recipient_type` ENUM('employee', 'department', 'external') DEFAULT 'employee',
+    `quantity` INT NOT NULL DEFAULT 1,
+    `issue_date` DATE NOT NULL,
+    `expected_return_date` DATE DEFAULT NULL,
+    `is_returnable` TINYINT(1) DEFAULT 1,
+    `status` ENUM('issued', 'returned', 'consumed', 'lost') DEFAULT 'issued',
+    `returned_quantity` INT DEFAULT 0,
+    `returned_date` DATETIME DEFAULT NULL,
+    `issued_by` INT DEFAULT NULL,
+    `purpose` TEXT DEFAULT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_issuance_status` (`status`),
+    INDEX `idx_issuance_date` (`issue_date`),
+    FOREIGN KEY (`inventory_id`) REFERENCES `inventories`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL,
+    FOREIGN KEY (`issued_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 13. Automated Notifications Log Table (WhatsApp & Email)
+CREATE TABLE IF NOT EXISTS `notification_logs` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT DEFAULT NULL,
+    `recipient_phone` VARCHAR(50) DEFAULT NULL,
+    `recipient_email` VARCHAR(191) DEFAULT NULL,
+    `type` VARCHAR(50) DEFAULT 'attendance_marked',
+    `channel` VARCHAR(50) DEFAULT 'whatsapp_and_email',
+    `message` TEXT NOT NULL,
+    `location_name` VARCHAR(255) DEFAULT NULL,
+    `status` VARCHAR(50) DEFAULT 'sent',
+    `error_details` TEXT DEFAULT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_notif_user` (`user_id`),
+    INDEX `idx_notif_created` (`created_at`),
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ==========================================================
+-- SEED INITIAL SYSTEM DATA
+-- ==========================================================
+
+-- 1. Default Administrator Account (Email: gettingroots@gmail.com)
+INSERT INTO `users` (`id`, `name`, `email`, `password`, `phone`, `department`, `job_profile`, `date_of_joining`, `role`, `status`, `base_salary`, `first_login_required`)
+VALUES (1, 'Administrator', 'gettingroots@gmail.com', '$2y$12$lIMxxbjDStUjEBHYyGV5X.knBCAYHFizV04Xzd.FY6q8olNQJy/au', '+91 98765 43210', 'Executive Management', 'Lead Systems Administrator', '2025-01-01', 'admin', 'active', 95000.00, 0)
+ON DUPLICATE KEY UPDATE `password` = VALUES(`password`);
+
+-- Default Reception QR Code
+INSERT INTO `qr_codes` (`token`, `title`, `is_active`) 
+VALUES ('TGC-OFFICE-MAIN-HQ', 'TGC Corporate HQ Reception QR', 1)
+ON DUPLICATE KEY UPDATE `token` = `token`;
+
+-- Official Company & Academic Calendar Holidays (2026)
+INSERT INTO `holidays` (`title`, `holiday_date`, `type`, `description`) VALUES
+('New Year', '2026-01-01', 'national', 'Official Holiday (Thursday)'),
+('Republic Day', '2026-01-26', 'national', 'National Holiday (Monday)'),
+('Holi / Dhulivandan', '2026-03-03', 'festival', 'Festival Holiday (Tuesday)'),
+('Id-ul-Fitr (Ramzan Id)', '2026-03-21', 'festival', 'Festival Holiday (Saturday)'),
+('Good Friday', '2026-04-03', 'national', 'Official Holiday (Friday)'),
+('Id-ul-Zuha (Bakri-id)', '2026-05-27', 'festival', 'Festival Holiday (Wednesday)'),
+('Muharram', '2026-06-26', 'festival', 'Festival Holiday (Friday)'),
+('Independence Day', '2026-08-15', 'national', 'National Holiday (Saturday)'),
+('Raksha Bandhan (RH)', '2026-08-28', 'festival', 'Restricted Holiday (Friday)'),
+('Mahatma Gandhi\'s Birthday', '2026-10-02', 'national', 'National Holiday (Friday)'),
+('Dussehra (Vijayadashami)', '2026-10-20', 'festival', 'Festival Holiday (Tuesday)'),
+('Dhantrayodashi (RH)', '2026-11-06', 'festival', 'Restricted Holiday (Friday)'),
+('Diwali (Deepavali)', '2026-11-08', 'festival', 'Festival Holiday (Sunday)'),
+('Govardhan Puja(RH)', '2026-11-10', 'festival', 'Restricted Holiday (Tuesday)'),
+('Bhaidooj/ Balipratipada(RH)', '2026-11-11', 'festival', 'Restricted Holiday (Wednesday)'),
+('Guru Nanak\'s Birthday', '2026-11-24', 'festival', 'Festival Holiday (Tuesday)'),
+('Christmas Day', '2026-12-25', 'festival', 'Official Holiday (Friday)')
+ON DUPLICATE KEY UPDATE `title` = VALUES(`title`), `type` = VALUES(`type`), `description` = VALUES(`description`);
+
+-- Office Inventory Items (Requested: staplers, tapes, charts, white sheets, scales, etc.)
+INSERT INTO `inventories` (`id`, `name`, `category`, `unit`, `total_quantity`, `available_quantity`, `min_stock_alert`, `location`, `description`) VALUES
+(1, 'Heavy Duty Desktop Stapler (No. 10)', 'Stationery & Supplies', 'Pieces', 25, 23, 5, 'Stationery Cabinet Shelf A', 'Kangaro heavy-duty stapler with 50-sheet binding capacity.'),
+(2, 'Transparent Packing & Desk Tape (2-inch)', 'Stationery & Supplies', 'Rolls', 45, 41, 10, 'Stationery Cabinet Shelf B', 'Cello high-adhesion transparent tape rolls.'),
+(3, 'Assorted Color Chart Papers', 'Paper & Sheets', 'Sheets', 120, 110, 20, 'Drafting Drawer 2', 'Full-size Bristol chart paper for design diagrams & sprint planning.'),
+(4, 'Premium A4 Copier Paper (75 GSM)', 'Paper & Sheets', 'Reams', 35, 33, 8, 'Supply Room Rack 1', 'JK Copier 500-sheet reams for official documentation and printouts.'),
+(5, 'Stainless Steel Precision Ruler / Scale (30cm)', 'Measuring Tools', 'Pieces', 30, 28, 6, 'Stationery Cabinet Shelf A', 'Camlin dual-edge metric & imperial non-slip steel scale.'),
+(6, 'Chisel & Bullet Tip Permanent Markers (Black/Blue)', 'Stationery & Supplies', 'Pieces', 60, 56, 12, 'Stationery Cabinet Shelf C', 'Camlin water-resistant waterproof permanent markers.'),
+(7, 'Self-Adhesive Sticky Notes Pad (3x3 Yellow)', 'Stationery & Supplies', 'Pads', 50, 48, 10, 'Stationery Cabinet Shelf B', 'Post-it 100 sheets per pad for quick ideation and task board.')
+ON DUPLICATE KEY UPDATE `name` = VALUES(`name`);

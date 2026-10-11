@@ -38,44 +38,44 @@
         <div style="display: flex; flex-direction: column; gap: 2rem;">
             
             <!-- Employee Profile Banner -->
-            <div class="card animate-fade-in" style="background: linear-gradient(135deg, #1e1b4b, #312e81, #1e1b4b); color: #fff; border: none; padding: 1.5rem 1.85rem; border-radius: var(--radius-md); box-shadow: 0 8px 24px -4px rgba(49, 46, 129, 0.35); position: relative; overflow: hidden;">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.25rem; position: relative; z-index: 2;">
-                    <div style="display: flex; align-items: center; gap: 1.2rem;">
-                        <div id="userAvatarBox" style="width: 62px; height: 62px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,0.3); overflow: hidden; background: #4338ca; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 700; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+            <div class="card animate-fade-in portal-hero-banner">
+                <div class="portal-hero-container">
+                    <div class="portal-hero-profile">
+                        <div id="userAvatarBox" class="portal-hero-avatar">
                             --
                         </div>
-                        <div>
-                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.15rem;">
-                                <div id="userDeptProfile" style="font-size: 0.82rem; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600;">
+                        <div class="portal-hero-details">
+                            <div class="portal-hero-dept-row">
+                                <div id="userDeptProfile" class="portal-hero-dept">
                                     Loading Profile...
                                 </div>
                                 <span id="pendingChangeNoticeBadge" style="display: none;" class="badge badge-warning">
                                     Profile Update Pending Approval
                                 </span>
                             </div>
-                            <h1 id="userNameHeading" style="font-size: 1.65rem; font-weight: 700; margin: 0.1rem 0; letter-spacing: -0.4px;">Welcome Employee</h1>
-                            <div id="userSubInfo" style="font-size: 0.88rem; color: #c7d2fe;"></div>
+                            <h1 id="userNameHeading" class="portal-hero-name">Welcome Employee</h1>
+                            <div id="userSubInfo" class="portal-hero-sub"></div>
                         </div>
                     </div>
 
-                    <div style="display: flex; gap: 0.65rem; align-items: center;">
-                        <button type="button" onclick="switchTab('calendar')" class="btn btn-secondary btn-sm" style="background: rgba(255,255,255,0.18); color: #fff; border-color: rgba(255,255,255,0.3); font-weight: 700;">
+                    <div class="portal-hero-toolbar">
+                        <button type="button" onclick="switchTab('calendar')" class="btn btn-secondary btn-sm portal-hero-btn">
                             <i data-lucide="calendar" style="width: 15px;"></i> Academic Calendar
                         </button>
-                        <button type="button" onclick="openProfileEditModal()" class="btn btn-secondary btn-sm" style="background: rgba(255,255,255,0.15); color: #fff; border-color: rgba(255,255,255,0.25);">
+                        <button type="button" onclick="openProfileEditModal()" class="btn btn-secondary btn-sm portal-hero-btn">
                             <i data-lucide="edit-3" style="width: 15px;"></i> Request Edit
                         </button>
 
-                        <div style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 0.65rem 1.15rem; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.18); text-align: right;">
-                            <div style="font-size: 0.72rem; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600;">Workplace Clock</div>
-                            <div id="liveClock" style="font-size: 1.15rem; font-weight: 700; color: #fff; font-family: var(--font-mono); margin-top: 0.1rem;">--:--:--</div>
+                        <div class="portal-hero-clock">
+                            <div class="portal-hero-clock-label">Workplace Clock</div>
+                            <div id="liveClock" class="portal-hero-clock-display">--:--:--</div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Today's Attendance & Leave Quota Grid (Balanced Heights) -->
-            <div class="equal-height-grid" style="display: grid; grid-template-columns: 1fr 1.35fr; gap: 1.25rem; align-items: stretch;">
+            <!-- Today's Attendance & Leave Quota Grid (Responsive Stack on Mobile) -->
+            <div class="portal-dashboard-grid" id="todayDashboardSection">
                 
                 <!-- Today Attendance Card -->
                 <div class="card card-stretch animate-fade-in delay-1">
@@ -130,60 +130,46 @@
                         </button>
                     </div>
 
-                    <div class="leave-quota-quad-grid" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem;">
-                        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-sm); padding: 1.1rem;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div style="font-size: 0.74rem; font-weight: 700; color: #1e40af; text-transform: uppercase; letter-spacing: 0.5px;">Casual Leave (CL)</div>
-                                <span style="font-size: 0.7rem; font-weight: 600; color: #3b82f6; background: #dbeafe; padding: 2px 6px; border-radius: 4px;">1/mo</span>
+                    <div class="portal-leave-quad-grid">
+                        <div class="portal-quota-card cl-card">
+                            <div class="portal-quota-header">
+                                <div class="portal-quota-title">Casual Leave (CL)</div>
+                                <span class="portal-quota-badge">1/mo on 1st</span>
                             </div>
-                            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 0.5rem;">
+                            <div class="portal-quota-nums">
                                 <div>
-                                    <span id="clRemaining" style="font-size: 1.75rem; font-weight: 700; color: #1e3a8a; font-family: var(--font-mono);">--</span>
-                                    <span style="font-size: 0.74rem; color: #1e40af; font-weight: 600; margin-left: 2px;">avail</span>
+                                    <span id="clRemaining" class="portal-quota-big-num">--</span>
+                                    <span class="portal-quota-avail-label">avail</span>
                                 </div>
-                                <span id="clTotal" style="font-size: 0.78rem; color: #3b82f6; font-weight: 600;">/ -- accrued</span>
+                                <span id="clTotal" class="portal-quota-assigned-label">/ -- assigned</span>
                             </div>
                         </div>
 
-                        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); padding: 1.1rem;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div style="font-size: 0.74rem; font-weight: 700; color: #166534; text-transform: uppercase; letter-spacing: 0.5px;">Sick Leave (SL)</div>
-                                <span style="font-size: 0.7rem; font-weight: 600; color: #16a34a; background: #dcfce7; padding: 2px 6px; border-radius: 4px;">1/mo</span>
+                        <div class="portal-quota-card el-card">
+                            <div class="portal-quota-header">
+                                <div class="portal-quota-title">Earned Leave (EL)</div>
+                                <span class="portal-quota-badge">1/mo on 1st</span>
                             </div>
-                            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 0.5rem;">
+                            <div class="portal-quota-nums">
                                 <div>
-                                    <span id="slRemaining" style="font-size: 1.75rem; font-weight: 700; color: #14532d; font-family: var(--font-mono);">--</span>
-                                    <span style="font-size: 0.74rem; color: #166534; font-weight: 600; margin-left: 2px;">avail</span>
+                                    <span id="elRemaining" class="portal-quota-big-num">--</span>
+                                    <span class="portal-quota-avail-label">avail</span>
                                 </div>
-                                <span id="slTotal" style="font-size: 0.78rem; color: #22c55e; font-weight: 600;">/ -- accrued</span>
+                                <span id="elTotal" class="portal-quota-assigned-label">/ -- assigned</span>
                             </div>
                         </div>
 
-                        <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-sm); padding: 1.1rem;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div style="font-size: 0.74rem; font-weight: 700; color: #92400e; text-transform: uppercase; letter-spacing: 0.5px;">Earned Leave (EL)</div>
-                                <span style="font-size: 0.7rem; font-weight: 600; color: #d97706; background: #fef3c7; padding: 2px 6px; border-radius: 4px;">1/mo</span>
+                        <div class="portal-quota-card co-card">
+                            <div class="portal-quota-header">
+                                <div class="portal-quota-title">Comp Off (CO)</div>
+                                <span class="portal-quota-badge">Earned</span>
                             </div>
-                            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 0.5rem;">
+                            <div class="portal-quota-nums">
                                 <div>
-                                    <span id="elRemaining" style="font-size: 1.75rem; font-weight: 700; color: #78350f; font-family: var(--font-mono);">--</span>
-                                    <span style="font-size: 0.74rem; color: #92400e; font-weight: 600; margin-left: 2px;">avail</span>
+                                    <span id="coRemaining" class="portal-quota-big-num">0</span>
+                                    <span class="portal-quota-avail-label">avail</span>
                                 </div>
-                                <span id="elTotal" style="font-size: 0.78rem; color: #d97706; font-weight: 600;">/ -- accrued</span>
-                            </div>
-                        </div>
-
-                        <div style="background: #fdf4ff; border: 1px solid #f0abfc; border-radius: var(--radius-sm); padding: 1.1rem;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div style="font-size: 0.74rem; font-weight: 700; color: #86198f; text-transform: uppercase; letter-spacing: 0.5px;">Comp Off (CO)</div>
-                                <span style="font-size: 0.7rem; font-weight: 600; color: #c026d3; background: #fae8ff; padding: 2px 6px; border-radius: 4px;">Earned</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 0.5rem;">
-                                <div>
-                                    <span id="coRemaining" style="font-size: 1.75rem; font-weight: 700; color: #701a75; font-family: var(--font-mono);">0</span>
-                                    <span style="font-size: 0.74rem; color: #86198f; font-weight: 600; margin-left: 2px;">avail</span>
-                                </div>
-                                <span id="coTotal" style="font-size: 0.78rem; color: #c026d3; font-weight: 600;">/ 0 credited</span>
+                                <span id="coTotal" class="portal-quota-assigned-label">/ 0 credited</span>
                             </div>
                         </div>
                     </div>
@@ -198,7 +184,7 @@
             </div>
 
             <!-- Attendance History & Salary Slips Tabs -->
-            <div class="card">
+            <div class="card" id="portalTabsSection">
                 <div class="card-header">
                     <div class="card-title">
                         <i data-lucide="history" style="color: var(--primary);"></i> Attendance Log & Monthly Salary Slips
@@ -327,10 +313,10 @@
                     <div class="form-group">
                         <label class="form-label">Leave Category *</label>
                         <select id="leaveTypeInput" class="form-control" required>
-                            <option value="casual">Casual Leave (CL) — 1 day/mo</option>
-                            <option value="sick">Sick Leave (SL) — 1 day/mo</option>
-                            <option value="earned">Earned Leave (EL) — 1 day/mo</option>
-                            <option value="comp_off">Compensatory Off (Comp Off) — Earned</option>
+                            <option value="casual">Casual Leave (CL) — Credited 1st of month</option>
+                            <option value="earned">Earned Leave (EL) — Credited 1st of month</option>
+                            <option value="bulk">Bulk / Multi-Day Continuous Leave (3+ Days)</option>
+                            <option value="comp_off">Compensatory Off (Comp Off)</option>
                         </select>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
@@ -348,7 +334,7 @@
                         <textarea id="leaveReasonInput" class="form-control" rows="3" placeholder="Please mention the purpose of leave..." required></textarea>
                     </div>
                     <div style="font-size: 0.82rem; color: var(--text-muted); background: var(--bg-main); padding: 0.75rem; border-radius: var(--radius-sm); line-height: 1.45;">
-                        ℹ️ <strong>1-Year Cycle Accrual:</strong> You earn 1 CL, 1 SL, and 1 EL each month. Unused leaves automatically shift and accumulate into future months. Sundays and official company holidays are excluded from leave deductions.
+                        ℹ️ <strong>Monthly Accrual & Bulk Leave Policy:</strong> You receive 1 CL and 1 EL automatically credited to your account on the 1st date of every month. Unused leaves accumulate and carry forward. You can apply for bulk leave (3-4 continuous days or more) across your annual balance. Sundays and official company holidays are excluded from leave deductions.
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -506,10 +492,10 @@
 
     <!-- Mobile Bottom Navigation (< 768px) -->
     <nav class="mobile-bottom-nav">
-        <a href="#today" class="mobile-nav-item active" id="portalMobNavHome" onclick="window.scrollTo({top:0, behavior:'smooth'})">
+        <button type="button" class="mobile-nav-item active" id="portalMobNavHome" onclick="switchTab('today')">
             <div class="mobile-nav-icon"><i data-lucide="clock" style="width: 20px;"></i></div>
             <span class="mobile-nav-label">Today</span>
-        </a>
+        </button>
         <button type="button" class="mobile-nav-item" id="portalMobNavAtt" onclick="switchTab('attendance')">
             <div class="mobile-nav-icon"><i data-lucide="history" style="width: 20px;"></i></div>
             <span class="mobile-nav-label">Log</span>
@@ -522,9 +508,9 @@
             <div class="mobile-nav-icon"><i data-lucide="receipt" style="width: 20px;"></i></div>
             <span class="mobile-nav-label">Salary</span>
         </button>
-        <button type="button" class="mobile-nav-item" id="portalMobNavProfile" onclick="openProfileEditModal()">
-            <div class="mobile-nav-icon"><i data-lucide="user" style="width: 20px;"></i></div>
-            <span class="mobile-nav-label">Profile</span>
+        <button type="button" class="mobile-nav-item" id="portalMobNavMenu" onclick="openMobileDrawer()">
+            <div class="mobile-nav-icon"><i data-lucide="menu" style="width: 20px;"></i></div>
+            <span class="mobile-nav-label">Menu</span>
         </button>
     </nav>
 
@@ -622,6 +608,25 @@
 
         function switchTab(tab) {
             playSound('click');
+            
+            // Sync Mobile Bottom Navigation Tabs
+            const mobMap = { 
+                today: 'portalMobNavHome', 
+                attendance: 'portalMobNavAtt', 
+                calendar: 'portalMobNavCal', 
+                salary: 'portalMobNavSal' 
+            };
+            Object.entries(mobMap).forEach(([tKey, elId]) => {
+                const el = document.getElementById(elId);
+                if (el) el.classList.toggle('active', tKey === tab);
+            });
+
+            if (tab === 'today') {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                return;
+            }
+
+            // Tab Panels
             document.getElementById('tabAttendanceContent').style.display = (tab === 'attendance') ? 'block' : 'none';
             document.getElementById('tabSalaryContent').style.display = (tab === 'salary') ? 'block' : 'none';
             document.getElementById('tabAssetsContent').style.display = (tab === 'assets') ? 'block' : 'none';
@@ -642,14 +647,11 @@
                 document.getElementById('tabRosterBtn').className = (tab === 'roster') ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
             }
 
-            // Sync Mobile Bottom Navigation
-            const mobMap = { attendance: 'portalMobNavAtt', calendar: 'portalMobNavCal', salary: 'portalMobNavSal' };
-            const homeBtn = document.getElementById('portalMobNavHome');
-            if (homeBtn) homeBtn.classList.remove('active');
-            Object.entries(mobMap).forEach(([tKey, elId]) => {
-                const el = document.getElementById(elId);
-                if (el) el.classList.toggle('active', tKey === tab);
-            });
+            // Scroll into tab view smoothly on mobile
+            const tabsSection = document.getElementById('portalTabsSection');
+            if (tabsSection) {
+                tabsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
 
             if (tab === 'calendar') {
                 initPortalCalendar();
@@ -875,17 +877,13 @@
             if (res.ok && res.data.success) {
                 const q = res.data.quota;
                 const clAvail = q.casual_leave_available !== undefined ? q.casual_leave_available : q.casual_leave_remaining;
-                const slAvail = q.sick_leave_available !== undefined ? q.sick_leave_available : q.sick_leave_remaining;
                 const elAvail = q.earned_leave_available !== undefined ? q.earned_leave_available : q.earned_leave_remaining;
 
                 document.getElementById('clRemaining').textContent = clAvail;
-                document.getElementById('clTotal').textContent = `/ ${q.casual_leave_accrued ?? q.casual_leave_total} accrued (${q.casual_leave_total} yr)`;
-
-                document.getElementById('slRemaining').textContent = slAvail;
-                document.getElementById('slTotal').textContent = `/ ${q.sick_leave_accrued ?? q.sick_leave_total} accrued (${q.sick_leave_total} yr)`;
+                document.getElementById('clTotal').textContent = `/ ${q.casual_leave_assigned ?? q.casual_leave_accrued ?? q.casual_leave_total} assigned (${q.casual_leave_total} yr cap)`;
 
                 document.getElementById('elRemaining').textContent = elAvail;
-                document.getElementById('elTotal').textContent = `/ ${q.earned_leave_accrued ?? q.earned_leave_total} accrued (${q.earned_leave_total} yr)`;
+                document.getElementById('elTotal').textContent = `/ ${q.earned_leave_assigned ?? q.earned_leave_accrued ?? q.earned_leave_total} assigned (${q.earned_leave_total} yr cap)`;
 
                 const coEl = document.getElementById('coRemaining');
                 if (coEl) coEl.textContent = q.comp_off_available !== undefined ? q.comp_off_available : 0;
@@ -1258,93 +1256,94 @@ Pay Period: *${mName} ${p.year}*
                 const words = numberToWordsINR(netSal);
                 const voucherCode = `PAY-${p.year}${String(p.month).padStart(2, '0')}-${String(p.id).padStart(4, '0')}`;
                 const empCodeFormatted = p.employee_code || `TGC-${String(p.user_id).padStart(4, '0')}`;
+                const statusBadge = p.status === 'paid' ? 'badge-success' : 'badge-warning';
 
                 document.getElementById('slipModalBody').innerHTML = `
-                    <div class="payslip-container" style="position: relative; padding: 2rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b;">
-                        <div class="payslip-watermark" style="position: absolute; top: 48%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 5rem; font-weight: 900; color: rgba(15, 23, 42, 0.03); pointer-events: none; letter-spacing: 12px; z-index: 1;">CONFIDENTIAL</div>
-                        
+                    <div class="payslip-container">
                         <!-- Corporate Header -->
-                        <div class="payslip-header" style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #4f46e5; padding-bottom: 1.25rem; margin-bottom: 1.5rem; position: relative; z-index: 2;">
+                        <div class="payslip-corporate-header">
                             <div>
-                                <div style="display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(79, 70, 229, 0.1); color: #4f46e5; font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; padding: 0.25rem 0.65rem; border-radius: 6px; margin-bottom: 0.5rem;">
-                                    <span>${companyName}</span>
-                                </div>
-                                <h2 style="font-size: 1.5rem; font-weight: 900; margin: 0; color: #0f172a; letter-spacing: -0.02em;">SALARY STATEMENT & PAY VOUCHER</h2>
-                                <p style="font-size: 0.84rem; color: #64748b; margin: 0.25rem 0 0 0;">Pay Period: <strong>Month ${p.month}/${p.year}</strong> &bull; Voucher Ref: <code style="font-family: var(--font-mono); font-weight: 700; color: #4f46e5;">#${voucherCode}</code></p>
+                                <div class="payslip-company-title">${escapeHtml(companyName)}</div>
+                                <div class="payslip-company-addr">R.R Mansion, S-491, School Block II, Shakarpur, Delhi - 110092</div>
+                                <div class="payslip-doc-badge">PAYSLIP FOR MONTH: ${p.month}/${p.year}</div>
                             </div>
                             <div style="text-align: right;">
-                                <span class="badge badge-${p.status === 'paid' ? 'success' : 'warning'}" style="font-size: 0.92rem; padding: 0.4rem 0.85rem; font-weight: 800; letter-spacing: 0.04em;">
-                                    ${p.status.toUpperCase()}
-                                </span>
-                                <div style="font-size: 0.76rem; color: #94a3b8; margin-top: 0.35rem;">Generated: ${new Date(p.created_at || Date.now()).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                                <div style="font-size: 0.85rem; font-weight: 700; color: #0f172a;">Payslip Ref: #${voucherCode}</div>
+                                <div style="font-size: 0.78rem; color: #64748b; margin-top: 3px;">Date: ${new Date(p.created_at || Date.now()).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                                <div style="margin-top: 6px;"><span class="badge ${statusBadge}" style="text-transform: uppercase; font-weight: 700;">${p.status.toUpperCase()}</span></div>
                             </div>
                         </div>
 
-                        <!-- Candidate & Entity Details Grid -->
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; background: #f8fafc; padding: 1.2rem; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 1.25rem; font-size: 0.88rem; position: relative; z-index: 2;">
-                            <div style="display: flex; flex-direction: column; gap: 0.35rem;">
-                                <div><span style="color: #64748b;">Employee Name:</span> <strong style="color: #0f172a; font-size: 0.96rem;">${p.user_name}</strong></div>
-                                <div><span style="color: #64748b;">Employee Code:</span> <strong style="font-family: var(--font-mono); color: #4f46e5;">${empCodeFormatted}</strong></div>
-                                <div><span style="color: #64748b;">Official Email:</span> <span>${p.user_email}</span></div>
-                                <div><span style="color: #64748b;">Profession / Designation:</span> <strong>${p.user_job || 'Staff'}</strong></div>
-                            </div>
-                            <div style="display: flex; flex-direction: column; gap: 0.35rem;">
-                                <div><span style="color: #64748b;">Company / Entity:</span> <strong style="color: #4f46e5;">${companyName}</strong></div>
-                                <div><span style="color: #64748b;">Department:</span> <strong>${p.user_dept || 'General'}</strong></div>
-                                <div><span style="color: #64748b;">Payment Method:</span> <span>${p.payment_mode || 'Bank Transfer'}</span></div>
-                                <div><span style="color: #64748b;">Disbursal Date:</span> <span>${p.paid_at || 'Disbursed / Finalized'}</span></div>
-                            </div>
-                        </div>
-
-                        <!-- 30/31-Day Calculation Basis Banner -->
-                        <div style="background: rgba(79, 70, 229, 0.05); border: 1px solid rgba(79, 70, 229, 0.2); border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.82rem; color: #3730a3; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; position: relative; z-index: 2;">
-                            <div>
-                                <strong>Calendar Day Rate Policy:</strong> Total Month Days = <strong>${numDays} Days</strong> &bull; 
-                                Daily Rate = ₹${baseSal.toLocaleString()} &divide; ${numDays} = <strong>₹${dailyRate}/day</strong>
-                            </div>
-                            <div>
-                                Present + Paid Leaves: <strong>${(p.present_days || 0) + (p.paid_leave_days || 0)} Days</strong> &bull; 
-                                Absent Days: <strong style="color: #e11d48;">${p.unpaid_days || 0} Day(s)</strong>
-                            </div>
-                        </div>
+                        <!-- Employee Details Table -->
+                        <table class="payslip-meta-grid">
+                            <tr>
+                                <td class="lbl">Employee Name:</td>
+                                <td class="val">${escapeHtml(p.user_name)}</td>
+                                <td class="lbl">Employee Code:</td>
+                                <td class="val" style="font-family: var(--font-mono);">${empCodeFormatted}</td>
+                            </tr>
+                            <tr>
+                                <td class="lbl">Designation:</td>
+                                <td class="val">${escapeHtml(p.user_job || 'Staff')}</td>
+                                <td class="lbl">Department:</td>
+                                <td class="val">${escapeHtml(p.user_dept || 'General')}</td>
+                            </tr>
+                            <tr>
+                                <td class="lbl">Payment Method:</td>
+                                <td class="val">${escapeHtml(p.payment_mode || 'Bank Transfer')}</td>
+                                <td class="lbl">Official Email:</td>
+                                <td class="val">${escapeHtml(p.user_email || 'N/A')}</td>
+                            </tr>
+                            <tr>
+                                <td class="lbl">Total Month Days:</td>
+                                <td class="val">${numDays} Days</td>
+                                <td class="lbl">Payable Days:</td>
+                                <td class="val">${(p.present_days || 0) + (p.paid_leave_days || 0)} Days</td>
+                            </tr>
+                            <tr>
+                                <td class="lbl">Absent / LWP Days:</td>
+                                <td class="val" style="color: #b91c1c; font-weight: 700;">${p.unpaid_days || 0} Day(s)</td>
+                                <td class="lbl">Daily Divisor Rate:</td>
+                                <td class="val" style="font-family: var(--font-mono);">₹${dailyRate}/day</td>
+                            </tr>
+                        </table>
 
                         <!-- Itemized Earnings & Deductions Table -->
-                        <table class="payslip-table" style="width: 100%; border-collapse: collapse; margin-bottom: 1.25rem; font-size: 0.88rem; position: relative; z-index: 2;">
+                        <table class="payslip-table">
                             <thead>
-                                <tr style="background: #0f172a; color: #ffffff;">
-                                    <th style="padding: 0.75rem 1rem; text-align: left; width: 32%;">Earnings Component</th>
-                                    <th style="padding: 0.75rem 1rem; text-align: right; width: 18%;">Amount (INR)</th>
-                                    <th style="padding: 0.75rem 1rem; text-align: left; width: 32%;">Deductions Component</th>
-                                    <th style="padding: 0.75rem 1rem; text-align: right; width: 18%;">Amount (INR)</th>
+                                <tr>
+                                    <th style="width: 32%; text-align: left;">Earnings</th>
+                                    <th style="width: 18%; text-align: right;">Amount (₹)</th>
+                                    <th style="width: 32%; text-align: left;">Deductions</th>
+                                    <th style="width: 18%; text-align: right;">Amount (₹)</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr style="border-bottom: 1px solid #e2e8f0;">
-                                    <td style="padding: 0.75rem 1rem;"><strong>Base Monthly Salary</strong><br><small style="color: #64748b;">Contracted package</small></td>
-                                    <td style="padding: 0.75rem 1rem; text-align: right; font-weight: 700; font-family: var(--font-mono);">₹${baseSal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    <td style="padding: 0.75rem 1rem;">
-                                        <strong>Absent / Unpaid Days</strong><br>
-                                        <small style="color: #e11d48;">${p.unpaid_days} day(s) &times; ₹${dailyRate}/d</small>
+                                <tr>
+                                    <td><strong>Basic Monthly Salary</strong></td>
+                                    <td style="text-align: right; font-family: var(--font-mono); font-weight: 600;">₹${baseSal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td><strong>Unpaid Absence / LWP Deduction</strong></td>
+                                    <td style="text-align: right; font-family: var(--font-mono); font-weight: 600; color: ${dedAmt > 0 ? '#b91c1c' : '#0f172a'};">
+                                        ${dedAmt > 0 ? '-₹' + dedAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '₹0.00'}
                                     </td>
-                                    <td style="padding: 0.75rem 1rem; text-align: right; font-weight: 700; color: #e11d48; font-family: var(--font-mono);">${dedAmt > 0 ? '-₹' + dedAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '₹0.00'}</td>
                                 </tr>
-                                <tr style="border-bottom: 1px solid #e2e8f0;">
-                                    <td style="padding: 0.75rem 1rem;"><strong>Incentives & Performance Bonus</strong></td>
-                                    <td style="padding: 0.75rem 1rem; text-align: right; font-weight: 700; font-family: var(--font-mono);">₹${bonusSal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    <td style="padding: 0.75rem 1rem;"><strong>Statutory & Other Deductions</strong></td>
-                                    <td style="padding: 0.75rem 1rem; text-align: right; font-family: var(--font-mono);">₹0.00</td>
+                                <tr>
+                                    <td>Incentives & Performance Bonus</td>
+                                    <td style="text-align: right; font-family: var(--font-mono); font-weight: 600;">₹${bonusSal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td>Statutory & Other Deductions</td>
+                                    <td style="text-align: right; font-family: var(--font-mono); font-weight: 600;">₹0.00</td>
                                 </tr>
-                                <tr style="background: #f1f5f9; font-weight: 700;">
-                                    <td style="padding: 0.75rem 1rem;">Gross Earnings</td>
-                                    <td style="padding: 0.75rem 1rem; text-align: right; font-family: var(--font-mono);">₹${grossSal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    <td style="padding: 0.75rem 1rem;">Total Deductions</td>
-                                    <td style="padding: 0.75rem 1rem; text-align: right; color: #e11d48; font-family: var(--font-mono);">${dedAmt > 0 ? '-₹' + dedAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '₹0.00'}</td>
-                                </tr>
-                                <tr style="background: #ecfdf5; border-top: 2px solid #10b981; border-bottom: 2px solid #10b981;">
-                                    <td colspan="2" style="padding: 1rem; font-size: 1.1rem; font-weight: 800; color: #065f46;">
-                                        NET TAKE-HOME PAYABLE
+                                <tr class="total-row">
+                                    <td><strong>Gross Earnings</strong></td>
+                                    <td style="text-align: right; font-family: var(--font-mono); font-weight: 700;">₹${grossSal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td><strong>Total Deductions</strong></td>
+                                    <td style="text-align: right; font-family: var(--font-mono); font-weight: 700; color: ${dedAmt > 0 ? '#b91c1c' : '#0f172a'};">
+                                        ${dedAmt > 0 ? '-₹' + dedAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '₹0.00'}
                                     </td>
-                                    <td colspan="2" style="padding: 1rem; text-align: right; font-size: 1.45rem; font-weight: 900; color: #059669; font-family: var(--font-mono);">
+                                </tr>
+                                <tr class="net-pay-row">
+                                    <td colspan="2" style="font-weight: 800; font-size: 0.95rem; text-transform: uppercase;">NET TAKE-HOME PAYABLE</td>
+                                    <td colspan="2" style="text-align: right; font-size: 1.25rem; font-weight: 900; color: #0f172a; font-family: var(--font-mono);">
                                         ₹${netSal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </td>
                                 </tr>
@@ -1352,29 +1351,27 @@ Pay Period: *${mName} ${p.year}*
                         </table>
 
                         <!-- Net in Words & Remarks -->
-                        <div style="margin-bottom: 1.5rem; padding: 0.85rem 1rem; background: #f8fafc; border-left: 4px solid #10b981; border-radius: 4px; font-size: 0.86rem; position: relative; z-index: 2;">
-                            <div><span style="color: #64748b; font-weight: 600;">Net Amount in Words:</span> <strong style="color: #0f172a; text-transform: uppercase;">${words}</strong></div>
-                            ${p.remarks ? `<div style="margin-top: 0.35rem; color: #64748b; font-size: 0.8rem;">Note: ${p.remarks}</div>` : ''}
+                        <div class="payslip-words-box">
+                            <div><strong>Amount in Words:</strong> Indian Rupees ${words} Only</div>
+                            ${p.remarks ? `<div style="margin-top: 4px; color: #64748b; font-size: 0.78rem;"><strong>Remarks:</strong> ${escapeHtml(p.remarks)}</div>` : ''}
                         </div>
 
                         <!-- Signatures & Verification Stamp -->
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px dashed #cbd5e1; position: relative; z-index: 2;">
-                            <div style="text-align: center;">
-                                <div style="height: 48px; border-bottom: 1px solid #94a3b8; width: 75%; margin: 0 auto;"></div>
-                                <div style="font-size: 0.82rem; font-weight: 700; color: #475569; margin-top: 0.4rem;">Employee Signature</div>
-                                <div style="font-size: 0.74rem; color: #94a3b8;">${p.user_name}</div>
+                        <div class="payslip-sign-row">
+                            <div class="sign-box">
+                                <div class="sign-line"></div>
+                                <div class="sign-title">Employee Signature</div>
+                                <div class="sign-sub">${escapeHtml(p.user_name)}</div>
                             </div>
-                            <div style="text-align: center;">
-                                <div style="height: 48px; border-bottom: 1px solid #94a3b8; width: 75%; margin: 0 auto; display: flex; align-items: flex-end; justify-content: center;">
-                                    <span style="font-family: 'Brush Script MT', cursive, sans-serif; font-size: 1.4rem; color: #4f46e5;">Authorized Payroll Dept</span>
-                                </div>
-                                <div style="font-size: 0.82rem; font-weight: 700; color: #475569; margin-top: 0.4rem;">Authorized Signatory & Seal</div>
-                                <div style="font-size: 0.74rem; color: #94a3b8;">For ${companyName}</div>
+                            <div class="sign-box">
+                                <div class="sign-line"></div>
+                                <div class="sign-title">Authorized Signatory</div>
+                                <div class="sign-sub">For Getting Roots Coaching & Training Pvt. Ltd.</div>
                             </div>
                         </div>
 
                         <div style="text-align: center; margin-top: 1.5rem; font-size: 0.72rem; color: #94a3b8;">
-                            This is an electronically generated salary voucher under TGC Connect HRMS. No physical signature is required. Confidential.
+                            This is an official computer-generated salary slip and does not require a physical seal if electronically verified.
                         </div>
                     </div>
                 `;

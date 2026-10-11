@@ -324,7 +324,7 @@ switch ($action) {
         if (!in_array($status, ['present', 'late', 'half_day', 'absent'])) {
             $status = 'present';
         }
-        $locName = trim($input['location_name'] ?? 'Office Hub (Admin Authorized)');
+        $locName = normalizeLocationName($input['location_name'] ?? '');
         $notes = trim($input['notes'] ?? 'Executive Authorized Punch');
         $sendNotif = isset($input['send_notification']) ? (bool)$input['send_notification'] : true;
 
@@ -523,7 +523,7 @@ switch ($action) {
 
         $checkInTime = isset($input['check_in_time']) ? trim($input['check_in_time']) : ($existing['check_in_time'] ?? null);
         $checkOutTime = isset($input['check_out_time']) ? trim($input['check_out_time']) : ($existing['check_out_time'] ?? null);
-        $locName = trim($input['location_name'] ?? ($existing['location_name'] ?? 'Office Hub (Admin Authorized)'));
+        $locName = normalizeLocationName($input['location_name'] ?? ($existing['location_name'] ?? ''));
         $notes = trim($input['notes'] ?? ($existing['notes'] ?? 'Updated by Admin'));
         $sendNotif = !empty($input['send_notification']);
 
@@ -645,8 +645,6 @@ switch ($action) {
         $lat = isset($input['latitude']) && is_numeric($input['latitude']) ? floatval($input['latitude']) : null;
         $lng = isset($input['longitude']) && is_numeric($input['longitude']) ? floatval($input['longitude']) : null;
         $accuracy = isset($input['accuracy_meters']) && is_numeric($input['accuracy_meters']) ? floatval($input['accuracy_meters']) : 15.0;
-        $locName = trim($input['location_name'] ?? '');
-
         if ($lat === null || $lng === null || ($lat == 0 && $lng == 0)) {
             sendResponse(false, [
                 'message' => 'Physical GPS location is required to mark attendance. Please enable device location and tap Acquire Location.',
@@ -654,9 +652,7 @@ switch ($action) {
             ], 400);
         }
 
-        if (!$locName) {
-            $locName = "GPS Verified Location (±" . round($accuracy) . "m)";
-        }
+        $locName = normalizeLocationName($input['location_name'] ?? '', $lat, $lng);
 
         // 3. Verify Onboarding Identity Data
         $inputEmail = strtolower(trim($input['email'] ?? ''));
@@ -1033,10 +1029,7 @@ switch ($action) {
         $lng = floatval($input['longitude'] ?? 0);
         $accuracy = floatval($input['accuracy_meters'] ?? 0);
         $deviceFingerprint = trim($input['device_fingerprint'] ?? '');
-        $locName = trim($input['location_name'] ?? '');
-        if (!$locName) {
-            $locName = "GPS Punch (±{$accuracy}m)";
-        }
+        $locName = normalizeLocationName($input['location_name'] ?? '', $lat, $lng);
         $ip = getClientIp();
         $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
 
@@ -1251,8 +1244,8 @@ switch ($action) {
         $title = trim($input['title'] ?? 'Time-Bound GPS Punch');
         $validity = intval($input['validity_minutes'] ?? 10);
         $radius = intval($input['radius_meters'] ?? 500);
-        $targetLat = (!empty($input['target_lat']) && is_numeric($input['target_lat'])) ? floatval($input['target_lat']) : null;
-        $targetLng = (!empty($input['target_lng']) && is_numeric($input['target_lng'])) ? floatval($input['target_lng']) : null;
+        $targetLat = (!empty($input['target_lat']) && is_numeric($input['target_lat'])) ? floatval($input['target_lat']) : 28.6330;
+        $targetLng = (!empty($input['target_lng']) && is_numeric($input['target_lng'])) ? floatval($input['target_lng']) : 77.2770;
 
 
         $token = 'tgc-' . substr(md5(uniqid(mt_rand(), true)), 0, 8);

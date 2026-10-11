@@ -18,6 +18,9 @@ switch ($action) {
         $targetUserId = (isset($_GET['user_id']) && $user['role'] === 'admin') ? intval($_GET['user_id']) : $user['id'];
         $year = intval($_GET['year'] ?? date('Y'));
 
+        // Automatically synchronize monthly leave accrual on the 1st of each month
+        syncMonthlyLeaveAccrual($pdo, $targetUserId);
+
         $targetUserStmt = $pdo->prepare("SELECT id, name, role, date_of_joining FROM users WHERE id = ?");
         $targetUserStmt->execute([$targetUserId]);
         $targetUser = $targetUserStmt->fetch() ?: $user;
@@ -27,87 +30,67 @@ switch ($action) {
         $quota = $stmt->fetch();
 
         if (!$quota) {
-            $pdo->prepare("INSERT INTO leave_quotas (user_id, year, casual_leave_total, sick_leave_total, earned_leave_total, casual_leave_used, sick_leave_used, earned_leave_used) VALUES (?, ?, 12.0, 12.0, 12.0, 0.0, 0.0, 0.0)")
-                ->execute([$targetUserId, $year]);
+            $monthsAccrued = (int) date('n');
+            $pdo->prepare("INSERT INTO leave_quotas (user_id, year, casual_leave_total, casual_leave_assigned, earned_leave_total, earned_leave_assigned, sick_leave_total, sick_leave_used, comp_off_total, casual_leave_used, earned_leave_used, comp_off_used) VALUES (?, ?, 12.0, ?, 12.0, ?, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)")
+                ->execute([$targetUserId, $year, $monthsAccrued, $monthsAccrued]);
             $stmt->execute([$targetUserId, $year]);
             $quota = $stmt->fetch();
         }
 
-        // Calculate eligible months in the 1-year cycle (1 to 12)
         $currentYear = (int) date('Y');
         $currentMonth = (int) date('n');
 
-        $eligibleMonths = 12;
-        if ($year == $currentYear) {
-            $joinTs = !empty($targetUser['date_of_joining']) ? strtotime($targetUser['date_of_joining']) : 0;
-            $joinYear = $joinTs ? (int) date('Y', $joinTs) : 0;
-            $joinMonth = $joinTs ? (int) date('n', $joinTs) : 1;
-
-            if ($joinYear === $currentYear) {
-                $eligibleMonths = max(1, min(12, $currentMonth - $joinMonth + 1));
-            } else {
-                $eligibleMonths = max(1, min(12, $currentMonth));
-            }
-        } elseif ($year < $currentYear) {
-            $eligibleMonths = 12;
-        } else {
-            $eligibleMonths = 0;
-        }
-
-        // Accrued at 1.0 day per month (1 CL, 1 SL, 1 EL each month in a 1-year cycle)
+        // CL and EL: Accrues 1.0 day on the 1st of each month (accumulates and rolls over)
         $clTotal = (float) ($quota['casual_leave_total'] ?? 12.0);
-        $slTotal = (float) ($quota['sick_leave_total'] ?? 12.0);
         $elTotal = (float) ($quota['earned_leave_total'] ?? 12.0);
         $coTotal = (float) ($quota['comp_off_total'] ?? 0.0);
 
+        $clAssigned = (float) ($quota['casual_leave_assigned'] ?? min($clTotal, (float) $currentMonth));
+        $elAssigned = (float) ($quota['earned_leave_assigned'] ?? min($elTotal, (float) $currentMonth));
+
         $clUsed = (float) ($quota['casual_leave_used'] ?? 0.0);
-        $slUsed = (float) ($quota['sick_leave_used'] ?? 0.0);
         $elUsed = (float) ($quota['earned_leave_used'] ?? 0.0);
         $coUsed = (float) ($quota['comp_off_used'] ?? 0.0);
 
-        $clAccrued = min($clTotal, (float) $eligibleMonths * 1.0);
-        $slAccrued = min($slTotal, (float) $eligibleMonths * 1.0);
-        $elAccrued = min($elTotal, (float) $eligibleMonths * 1.0);
-
-        // Available balance: unused leaves from prior months shift/rollover automatically
-        $clAvailable = max(0.0, round($clAccrued - $clUsed, 1));
-        $slAvailable = max(0.0, round($slAccrued - $slUsed, 1));
-        $elAvailable = max(0.0, round($elAccrued - $elUsed, 1));
+        // Available balance (accumulated assigned leaves minus used)
+        $clAvailable = max(0.0, round($clAssigned - $clUsed, 1));
+        $elAvailable = max(0.0, round($elAssigned - $elUsed, 1));
+        $coAvailable = max(0.0, round($coTotal - $coUsed, 1));
 
         $clRemainingYear = max(0.0, round($clTotal - $clUsed, 1));
-        $slRemainingYear = max(0.0, round($slTotal - $slUsed, 1));
         $elRemainingYear = max(0.0, round($elTotal - $elUsed, 1));
-        $coAvailable = max(0.0, round($coTotal - $coUsed, 1));
 
         sendResponse(true, [
             'quota' => [
                 'year' => $year,
                 'cycle_month' => $currentMonth,
-                'eligible_months' => $eligibleMonths,
-                // Casual Leave
+                'assigned_date' => date('Y-m-01'),
+                // Casual Leave (CL)
                 'casual_leave_total' => $clTotal,
-                'casual_leave_accrued' => $clAccrued,
+                'casual_leave_assigned' => $clAssigned,
+                'casual_leave_accrued' => $clAssigned,
                 'casual_leave_used' => $clUsed,
                 'casual_leave_available' => $clAvailable,
                 'casual_leave_remaining' => $clRemainingYear,
-                // Sick Leave
-                'sick_leave_total' => $slTotal,
-                'sick_leave_accrued' => $slAccrued,
-                'sick_leave_used' => $slUsed,
-                'sick_leave_available' => $slAvailable,
-                'sick_leave_remaining' => $slRemainingYear,
-                // Earned Leave
+                // Earned Leave (EL)
                 'earned_leave_total' => $elTotal,
-                'earned_leave_accrued' => $elAccrued,
+                'earned_leave_assigned' => $elAssigned,
+                'earned_leave_accrued' => $elAssigned,
                 'earned_leave_used' => $elUsed,
                 'earned_leave_available' => $elAvailable,
                 'earned_leave_remaining' => $elRemainingYear,
-                // Compensatory Off (Comp Leave)
+                // Compensatory Off (Comp Off)
                 'comp_off_total' => $coTotal,
                 'comp_off_accrued' => $coTotal,
                 'comp_off_used' => $coUsed,
                 'comp_off_available' => $coAvailable,
                 'comp_off_remaining' => $coAvailable,
+                // Sick Leave (Discontinued, maintained as 0 for backward compatibility)
+                'sick_leave_total' => 0.0,
+                'sick_leave_accrued' => 0.0,
+                'sick_leave_used' => 0.0,
+                'sick_leave_available' => 0.0,
+                'sick_leave_remaining' => 0.0,
             ]
         ]);
         break;
@@ -119,8 +102,12 @@ switch ($action) {
         }
 
         $leaveType = trim($input['leave_type'] ?? 'casual');
-        if (!in_array($leaveType, ['casual', 'sick', 'earned', 'comp_off'])) {
-            sendResponse(false, ['message' => 'Invalid leave category. Allowed categories: casual, sick, earned, comp_off.'], 400);
+        if ($leaveType === 'sick') {
+            sendResponse(false, ['message' => 'Sick Leave (SL) has been retired. Please select Casual Leave (CL), Earned Leave (EL), or Bulk Leave.'], 400);
+        }
+
+        if (!in_array($leaveType, ['casual', 'earned', 'bulk', 'comp_off'])) {
+            sendResponse(false, ['message' => 'Invalid leave category. Allowed categories: Casual Leave (CL), Earned Leave (EL), Bulk Leave, Compensatory Off.'], 400);
         }
 
         $startDate = trim($input['start_date'] ?? '');
@@ -153,55 +140,47 @@ switch ($action) {
         }
         if ($totalDays <= 0) $totalDays = 1;
 
-        // Check Quotas with monthly accrual and rollover
+        // Ensure user quota is synchronized up to current month (1st of month accrual)
+        syncMonthlyLeaveAccrual($pdo, $user['id']);
+
         $year = (int) date('Y', $startTs);
-        $leaveMonth = (int) date('n', $startTs);
         $stmtQ = $pdo->prepare("SELECT * FROM leave_quotas WHERE user_id = ? AND year = ?");
         $stmtQ->execute([$user['id'], $year]);
         $quota = $stmtQ->fetch();
 
         if ($quota) {
-            // Determine eligible months up to leave start date
-            $joinTs = !empty($user['date_of_joining']) ? strtotime($user['date_of_joining']) : 0;
-            $joinYear = $joinTs ? (int) date('Y', $joinTs) : 0;
-            $joinMonth = $joinTs ? (int) date('n', $joinTs) : 1;
+            $clTotal = (float) ($quota['casual_leave_total'] ?? 12.0);
+            $clUsed = (float) ($quota['casual_leave_used'] ?? 0.0);
+            $clAssigned = (float) ($quota['casual_leave_assigned'] ?? 1.0);
+            $clAvail = max(0.0, round($clAssigned - $clUsed, 1));
+            $clRemYear = max(0.0, round($clTotal - $clUsed, 1));
 
-            if ($joinYear === $year) {
-                $accrualMonths = max(1, min(12, $leaveMonth - $joinMonth + 1));
-            } else {
-                $accrualMonths = max(1, min(12, $leaveMonth));
-            }
+            $elTotal = (float) ($quota['earned_leave_total'] ?? 12.0);
+            $elUsed = (float) ($quota['earned_leave_used'] ?? 0.0);
+            $elAssigned = (float) ($quota['earned_leave_assigned'] ?? 1.0);
+            $elAvail = max(0.0, round($elAssigned - $elUsed, 1));
+            $elRemYear = max(0.0, round($elTotal - $elUsed, 1));
+
+            $coTotal = (float) ($quota['comp_off_total'] ?? 0.0);
+            $coUsed = (float) ($quota['comp_off_used'] ?? 0.0);
+            $coAvail = max(0.0, round($coTotal - $coUsed, 1));
 
             if ($leaveType === 'casual') {
-                $total = (float) ($quota['casual_leave_total'] ?? 12.0);
-                $used = (float) ($quota['casual_leave_used'] ?? 0.0);
-                $accrued = min($total, (float) $accrualMonths * 1.0);
-                $available = max(0.0, round($accrued - $used, 1));
-                if ($totalDays > $available) {
-                    sendResponse(false, ['message' => "Insufficient Casual Leave balance. Accrued up to month {$leaveMonth}: {$accrued} day(s), Used: {$used} day(s), Available: {$available} day(s), Requested: {$totalDays} day(s). (CL accrues 1 day/month and shifts to next month automatically)."], 422);
-                }
-            } elseif ($leaveType === 'sick') {
-                $total = (float) ($quota['sick_leave_total'] ?? 12.0);
-                $used = (float) ($quota['sick_leave_used'] ?? 0.0);
-                $accrued = min($total, (float) $accrualMonths * 1.0);
-                $available = max(0.0, round($accrued - $used, 1));
-                if ($totalDays > $available) {
-                    sendResponse(false, ['message' => "Insufficient Sick Leave balance. Accrued up to month {$leaveMonth}: {$accrued} day(s), Used: {$used} day(s), Available: {$available} day(s), Requested: {$totalDays} day(s). (SL accrues 1 day/month and shifts to next month automatically)."], 422);
+                if ($totalDays > $clRemYear) {
+                    sendResponse(false, ['message' => "Insufficient Casual Leave balance. Annual remaining: {$clRemYear} day(s), Requested: {$totalDays} day(s). If taking 3+ continuous days, please apply under 'Bulk Leave'."], 422);
                 }
             } elseif ($leaveType === 'earned') {
-                $total = (float) ($quota['earned_leave_total'] ?? 12.0);
-                $used = (float) ($quota['earned_leave_used'] ?? 0.0);
-                $accrued = min($total, (float) $accrualMonths * 1.0);
-                $available = max(0.0, round($accrued - $used, 1));
-                if ($totalDays > $available) {
-                    sendResponse(false, ['message' => "Insufficient Earned Leave balance. Accrued up to month {$leaveMonth}: {$accrued} day(s), Used: {$used} day(s), Available: {$available} day(s), Requested: {$totalDays} day(s). (EL accrues 1 day/month and shifts to next month automatically)."], 422);
+                if ($totalDays > $elRemYear) {
+                    sendResponse(false, ['message' => "Insufficient Earned Leave balance. Annual remaining: {$elRemYear} day(s), Requested: {$totalDays} day(s). If taking 3+ continuous days, please apply under 'Bulk Leave'."], 422);
+                }
+            } elseif ($leaveType === 'bulk') {
+                $combinedRemaining = $clRemYear + $elRemYear;
+                if ($totalDays > $combinedRemaining) {
+                    sendResponse(false, ['message' => "Requested Bulk Leave of {$totalDays} days exceeds your total annual quota across Casual & Earned leave ({$combinedRemaining} days available)."], 422);
                 }
             } elseif ($leaveType === 'comp_off') {
-                $total = (float) ($quota['comp_off_total'] ?? 0.0);
-                $used = (float) ($quota['comp_off_used'] ?? 0.0);
-                $available = max(0.0, round($total - $used, 1));
-                if ($totalDays > $available) {
-                    sendResponse(false, ['message' => "Insufficient Compensatory Off balance. Total credited: {$total} day(s), Used: {$used} day(s), Available: {$available} day(s), Requested: {$totalDays} day(s)."], 422);
+                if ($totalDays > $coAvail) {
+                    sendResponse(false, ['message' => "Insufficient Compensatory Off balance. Available: {$coAvail} day(s), Requested: {$totalDays} day(s)."], 422);
                 }
             }
         }
@@ -213,11 +192,13 @@ switch ($action) {
         $stmt->execute([$user['id'], $leaveType, $startDate, $endDate, $totalDays, $reason]);
         $newLeaveId = $pdo->lastInsertId();
 
-        logAdminAction($pdo, null, 'apply_leave', $user['id'], "Employee {$user['name']} applied for {$totalDays} days {$leaveType} leave.");
+        $typeName = ($leaveType === 'bulk') ? 'Bulk Continuous Leave' : strtoupper($leaveType) . ' Leave';
+        logAdminAction($pdo, null, 'apply_leave', $user['id'], "Employee {$user['name']} applied for {$totalDays} days {$typeName} ({$startDate} to {$endDate}).");
 
         sendResponse(true, [
-            'message' => "Leave application for {$totalDays} day(s) submitted successfully!",
+            'message' => "Application for {$totalDays} day(s) {$typeName} submitted successfully for Admin review!",
             'leave_id' => $newLeaveId,
+            'total_days' => $totalDays,
         ]);
         break;
 
@@ -291,34 +272,53 @@ switch ($action) {
         // If approved and was not approved previously, deduct from quota
         if ($status === 'approved' && $prevStatus !== 'approved') {
             $year = (int) date('Y', strtotime($leave['start_date']));
+            $tot = (float) $leave['total_days'];
             if ($leave['leave_type'] === 'casual') {
                 $pdo->prepare("UPDATE leave_quotas SET casual_leave_used = casual_leave_used + ? WHERE user_id = ? AND year = ?")
-                    ->execute([$leave['total_days'], $leave['user_id'], $year]);
-            } elseif ($leave['leave_type'] === 'sick') {
-                $pdo->prepare("UPDATE leave_quotas SET sick_leave_used = sick_leave_used + ? WHERE user_id = ? AND year = ?")
-                    ->execute([$leave['total_days'], $leave['user_id'], $year]);
+                    ->execute([$tot, $leave['user_id'], $year]);
             } elseif ($leave['leave_type'] === 'earned') {
                 $pdo->prepare("UPDATE leave_quotas SET earned_leave_used = earned_leave_used + ? WHERE user_id = ? AND year = ?")
-                    ->execute([$leave['total_days'], $leave['user_id'], $year]);
+                    ->execute([$tot, $leave['user_id'], $year]);
+            } elseif ($leave['leave_type'] === 'bulk') {
+                // Deduct from CL up to available, remainder from EL
+                $stmtQ = $pdo->prepare("SELECT * FROM leave_quotas WHERE user_id = ? AND year = ?");
+                $stmtQ->execute([$leave['user_id'], $year]);
+                $q = $stmtQ->fetch();
+                $clRemaining = max(0.0, (float)($q['casual_leave_total'] ?? 12.0) - (float)($q['casual_leave_used'] ?? 0.0));
+                $clDeduct = min($tot, $clRemaining);
+                $elDeduct = max(0.0, $tot - $clDeduct);
+
+                if ($clDeduct > 0) {
+                    $pdo->prepare("UPDATE leave_quotas SET casual_leave_used = casual_leave_used + ? WHERE user_id = ? AND year = ?")
+                        ->execute([$clDeduct, $leave['user_id'], $year]);
+                }
+                if ($elDeduct > 0) {
+                    $pdo->prepare("UPDATE leave_quotas SET earned_leave_used = earned_leave_used + ? WHERE user_id = ? AND year = ?")
+                        ->execute([$elDeduct, $leave['user_id'], $year]);
+                }
             } elseif ($leave['leave_type'] === 'comp_off') {
                 $pdo->prepare("UPDATE leave_quotas SET comp_off_used = comp_off_used + ? WHERE user_id = ? AND year = ?")
-                    ->execute([$leave['total_days'], $leave['user_id'], $year]);
+                    ->execute([$tot, $leave['user_id'], $year]);
             }
         } elseif ($prevStatus === 'approved' && $status === 'rejected') {
             // Restore quota if previously approved leave gets rejected
             $year = (int) date('Y', strtotime($leave['start_date']));
+            $tot = (float) $leave['total_days'];
             if ($leave['leave_type'] === 'casual') {
                 $pdo->prepare("UPDATE leave_quotas SET casual_leave_used = GREATEST(0, casual_leave_used - ?) WHERE user_id = ? AND year = ?")
-                    ->execute([$leave['total_days'], $leave['user_id'], $year]);
-            } elseif ($leave['leave_type'] === 'sick') {
-                $pdo->prepare("UPDATE leave_quotas SET sick_leave_used = GREATEST(0, sick_leave_used - ?) WHERE user_id = ? AND year = ?")
-                    ->execute([$leave['total_days'], $leave['user_id'], $year]);
+                    ->execute([$tot, $leave['user_id'], $year]);
             } elseif ($leave['leave_type'] === 'earned') {
                 $pdo->prepare("UPDATE leave_quotas SET earned_leave_used = GREATEST(0, earned_leave_used - ?) WHERE user_id = ? AND year = ?")
-                    ->execute([$leave['total_days'], $leave['user_id'], $year]);
+                    ->execute([$tot, $leave['user_id'], $year]);
+            } elseif ($leave['leave_type'] === 'bulk') {
+                // Restore half/half or available
+                $half = round($tot / 2, 1);
+                $otherHalf = round($tot - $half, 1);
+                $pdo->prepare("UPDATE leave_quotas SET casual_leave_used = GREATEST(0, casual_leave_used - ?), earned_leave_used = GREATEST(0, earned_leave_used - ?) WHERE user_id = ? AND year = ?")
+                    ->execute([$half, $otherHalf, $leave['user_id'], $year]);
             } elseif ($leave['leave_type'] === 'comp_off') {
                 $pdo->prepare("UPDATE leave_quotas SET comp_off_used = GREATEST(0, comp_off_used - ?) WHERE user_id = ? AND year = ?")
-                    ->execute([$leave['total_days'], $leave['user_id'], $year]);
+                    ->execute([$tot, $leave['user_id'], $year]);
             }
         }
 

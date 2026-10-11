@@ -91,33 +91,36 @@ switch ($action) {
             if ($existing) {
                 $stmtUpdate = $pdo->prepare("
                     UPDATE payrolls SET
+                        start_date = ?, end_date = ?,
                         base_salary = ?, total_working_days = ?, present_days = ?, paid_leaves = ?,
-                        unpaid_days = ?, daily_rate = ?, deduction_amount = ?, net_salary = ?, status = 'processed',
+                        unpaid_days = ?, daily_rate = ?, deduction_amount = ?, net_salary = ?, status = 'published',
+                        is_published = 1, published_at = NOW(), published_by = ?,
                         remarks = ?
                     WHERE id = ?
                 ");
                 $stmtUpdate->execute([
+                    $startDate, $endDate,
                     $baseSalary, $totalMonthDays, $presentDays, $paidLeaves,
                     $unpaidDays, $dailyRate, $deductionAmount, $netSalary,
-                    $remarks, $existing['id']
+                    $user['id'], $remarks, $existing['id']
                 ]);
             } else {
                 $stmtInsert = $pdo->prepare("
-                    INSERT INTO payrolls (user_id, month, year, base_salary, total_working_days, present_days, paid_leaves, unpaid_days, daily_rate, deduction_amount, net_salary, status, remarks)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'processed', ?)
+                    INSERT INTO payrolls (user_id, month, year, start_date, end_date, base_salary, total_working_days, present_days, paid_leaves, unpaid_days, daily_rate, deduction_amount, net_salary, status, is_published, published_at, published_by, remarks)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'published', 1, NOW(), ?, ?)
                 ");
                 $stmtInsert->execute([
-                    $emp['id'], $month, $year, $baseSalary, $totalMonthDays, $presentDays, $paidLeaves,
-                    $unpaidDays, $dailyRate, $deductionAmount, $netSalary, $remarks
+                    $emp['id'], $month, $year, $startDate, $endDate, $baseSalary, $totalMonthDays, $presentDays, $paidLeaves,
+                    $unpaidDays, $dailyRate, $deductionAmount, $netSalary, $user['id'], $remarks
                 ]);
             }
             $processed++;
         }
 
-        logAdminAction($pdo, $user['id'], 'generate_payroll', null, "Calculated monthly payroll for {$month}/{$year} across {$processed} employee(s).");
+        logAdminAction($pdo, $user['id'], 'generate_payroll', null, "Calculated & released monthly payroll for {$month}/{$year} across {$processed} employee(s).");
 
         sendResponse(true, [
-            'message' => "Monthly payroll calculated successfully for {$processed} employee(s).",
+            'message' => "Monthly payroll calculated and published to employee profiles for {$processed} employee(s).",
             'month' => $month,
             'year' => $year,
             'total_working_days' => $totalWorkingDays,
@@ -130,23 +133,35 @@ switch ($action) {
             sendResponse(false, ['message' => 'Unauthorized'], 401);
         }
 
-        $month = intval($_GET['month'] ?? date('n'));
-        $year = intval($_GET['year'] ?? date('Y'));
-
-        $sql = "
-            SELECT p.*, u.employee_code, u.name as user_name, u.email as user_email, u.company as user_company, u.department as user_dept, u.job_profile as user_job, u.phone as user_phone, u.photo_path
-            FROM payrolls p
-            JOIN users u ON p.user_id = u.id
-            WHERE p.month = ? AND p.year = ?
-        ";
-        $params = [$month, $year];
-
         if ($user['role'] !== 'admin') {
-            $sql .= " AND p.user_id = ?";
-            $params[] = $user['id'];
+            // CRITICAL: Employees ONLY see slips that have been explicitly generated and released/published by admin!
+            $sql = "
+                SELECT p.*, u.employee_code, u.name as user_name, u.email as user_email, u.company as user_company, u.department as user_dept, u.job_profile as user_job, u.phone as user_phone, u.photo_path
+                FROM payrolls p
+                JOIN users u ON p.user_id = u.id
+                WHERE p.user_id = ? AND p.is_published = 1
+            ";
+            $params = [$user['id']];
+            if (!empty($_GET['month']) && !empty($_GET['year'])) {
+                $sql .= " AND ((p.month = ? AND p.year = ?) OR (p.start_date IS NOT NULL AND MONTH(p.end_date) = ? AND YEAR(p.end_date) = ?))";
+                $params[] = intval($_GET['month']);
+                $params[] = intval($_GET['year']);
+                $params[] = intval($_GET['month']);
+                $params[] = intval($_GET['year']);
+            }
+            $sql .= " ORDER BY COALESCE(p.start_date, CONCAT(p.year, '-', LPAD(p.month, 2, '0'), '-01')) DESC, p.id DESC";
+        } else {
+            $month = intval($_GET['month'] ?? date('n'));
+            $year = intval($_GET['year'] ?? date('Y'));
+            $sql = "
+                SELECT p.*, u.employee_code, u.name as user_name, u.email as user_email, u.company as user_company, u.department as user_dept, u.job_profile as user_job, u.phone as user_phone, u.photo_path
+                FROM payrolls p
+                JOIN users u ON p.user_id = u.id
+                WHERE (p.month = ? AND p.year = ?) OR (p.start_date IS NOT NULL AND MONTH(p.end_date) = ? AND YEAR(p.end_date) = ?)
+                ORDER BY p.id DESC
+            ";
+            $params = [$month, $year, $month, $year];
         }
-
-        $sql .= " ORDER BY p.id DESC";
 
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
@@ -155,11 +170,10 @@ switch ($action) {
         foreach ($payrolls as &$pay) {
             $pay['photo_url'] = $pay['photo_path'] ? 'uploads/' . $pay['photo_path'] : null;
             $pay['user_company'] = !empty($pay['user_company']) ? $pay['user_company'] : 'Getting Roots Coaching & Training Pvt. Ltd.';
+            $pay['is_published'] = (bool)$pay['is_published'];
         }
 
         sendResponse(true, [
-            'month' => $month,
-            'year' => $year,
             'payrolls' => $payrolls,
         ]);
         break;
@@ -184,14 +198,154 @@ switch ($action) {
             sendResponse(false, ['message' => 'Payslip record not found.'], 404);
         }
 
-        if ($user['role'] !== 'admin' && $payroll['user_id'] != $user['id']) {
-            sendResponse(false, ['message' => 'Unauthorized access.'], 403);
+        if ($user['role'] !== 'admin') {
+            if ((int)$payroll['user_id'] !== (int)$user['id']) {
+                sendResponse(false, ['message' => 'Unauthorized access.'], 403);
+            }
+            if (empty($payroll['is_published'])) {
+                sendResponse(false, ['message' => 'This salary slip has not been released by administration yet.'], 403);
+            }
         }
 
         $payroll['photo_url'] = $payroll['photo_path'] ? 'uploads/' . $payroll['photo_path'] : null;
         $payroll['user_company'] = !empty($payroll['user_company']) ? $payroll['user_company'] : 'Getting Roots Coaching & Training Pvt. Ltd.';
+        $payroll['is_published'] = (bool)$payroll['is_published'];
 
         sendResponse(true, ['payroll' => $payroll]);
+        break;
+
+    case 'generate_custom_slip':
+        $user = getCurrentUser($pdo);
+        if (!$user || $user['role'] !== 'admin') {
+            sendResponse(false, ['message' => 'Unauthorized. Admin access required.'], 403);
+        }
+
+        $startDate = trim($input['start_date'] ?? '');
+        $endDate = trim($input['end_date'] ?? '');
+        $targetUserId = intval($input['user_id'] ?? 0);
+        $publish = isset($input['publish']) ? intval($input['publish']) : 1; // 1 = released to profile
+
+        if (empty($startDate) || empty($endDate)) {
+            sendResponse(false, ['message' => 'Start date and End date are required (YYYY-MM-DD).'], 400);
+        }
+
+        $res = calculateCustomRangePayroll($pdo, $startDate, $endDate, $targetUserId);
+        if (!$res['success'] || empty($res['employees'])) {
+            sendResponse(false, ['message' => $res['message'] ?? 'No active employee data found for this range.'], 400);
+        }
+
+        $count = 0;
+        $generatedSlips = [];
+
+        foreach ($res['employees'] as $empCalc) {
+            $uId = $empCalc['user_id'];
+            $endMonth = (int)date('n', strtotime($endDate));
+            $endYear = (int)date('Y', strtotime($endDate));
+
+            // Check if slip exists for user & exact date range
+            $stmtCheck = $pdo->prepare("SELECT id FROM payrolls WHERE user_id = ? AND start_date = ? AND end_date = ? LIMIT 1");
+            $stmtCheck->execute([$uId, $startDate, $endDate]);
+            $existing = $stmtCheck->fetch();
+
+            $statusStr = $publish ? 'published' : 'processed';
+
+            if ($existing) {
+                $slipId = (int)$existing['id'];
+                $stmtUpdate = $pdo->prepare("
+                    UPDATE payrolls SET
+                        month = ?, year = ?, base_salary = ?, total_working_days = ?,
+                        present_days = ?, paid_leaves = ?, unpaid_days = ?, daily_rate = ?,
+                        deduction_amount = ?, bonus_amount = 0.00, net_salary = ?, status = ?,
+                        is_published = ?, published_at = IF(? = 1, NOW(), published_at),
+                        published_by = IF(? = 1, ?, published_by), remarks = ?
+                    WHERE id = ?
+                ");
+                $stmtUpdate->execute([
+                    $endMonth, $endYear, $empCalc['base_salary'], $empCalc['total_calendar_days'],
+                    $empCalc['present_days'], $empCalc['paid_leaves'], $empCalc['unpaid_days'],
+                    $empCalc['daily_rate'], $empCalc['deduction_amount'], $empCalc['net_salary'],
+                    $statusStr, $publish, $publish, $user['id'], $empCalc['remarks'],
+                    $slipId
+                ]);
+            } else {
+                $stmtInsert = $pdo->prepare("
+                    INSERT INTO payrolls (
+                        user_id, month, year, start_date, end_date, base_salary,
+                        total_working_days, present_days, paid_leaves, unpaid_days,
+                        daily_rate, deduction_amount, bonus_amount, net_salary,
+                        status, is_published, published_at, published_by, remarks
+                    ) VALUES (
+                        ?, ?, ?, ?, ?, ?,
+                        ?, ?, ?, ?,
+                        ?, ?, 0.00, ?,
+                        ?, ?, IF(? = 1, NOW(), NULL), IF(? = 1, ?, NULL), ?
+                    )
+                ");
+                $stmtInsert->execute([
+                    $uId, $endMonth, $endYear, $startDate, $endDate, $empCalc['base_salary'],
+                    $empCalc['total_calendar_days'], $empCalc['present_days'], $empCalc['paid_leaves'],
+                    $empCalc['unpaid_days'], $empCalc['daily_rate'], $empCalc['deduction_amount'],
+                    $empCalc['net_salary'], $statusStr, $publish, $publish, $user['id'],
+                    $empCalc['remarks']
+                ]);
+                $slipId = (int)$pdo->lastInsertId();
+            }
+
+            $count++;
+            $generatedSlips[] = [
+                'slip_id' => $slipId,
+                'user_id' => $uId,
+                'user_name' => $empCalc['user_name'],
+                'net_salary' => $empCalc['net_salary'],
+                'is_published' => (bool)$publish,
+            ];
+        }
+
+        $logMsg = $count === 1 
+            ? "Generated & released custom payslip for {$res['employees'][0]['user_name']} ({$startDate} to {$endDate})."
+            : "Generated & released custom payslips for {$count} employee(s) for period {$startDate} to {$endDate}.";
+        logAdminAction($pdo, $user['id'], 'generate_custom_slip', null, $logMsg);
+
+        sendResponse(true, [
+            'message' => $publish 
+                ? ($count === 1 ? "Payslip generated & released to employee profile!" : "Successfully generated and released {$count} payslips to employee profiles!")
+                : "Payslip saved as draft (hidden from employee).",
+            'count' => $count,
+            'slips' => $generatedSlips,
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+        ]);
+        break;
+
+    case 'toggle_publish':
+        $user = getCurrentUser($pdo);
+        if (!$user || $user['role'] !== 'admin') {
+            sendResponse(false, ['message' => 'Unauthorized. Admin access required.'], 403);
+        }
+
+        $id = intval($input['id'] ?? ($input['slip_id'] ?? ($_GET['id'] ?? 0)));
+        $publish = !empty($input['publish']) ? 1 : 0;
+
+        if ($id <= 0) {
+            sendResponse(false, ['message' => 'Valid payslip ID is required.'], 400);
+        }
+
+        $stmt = $pdo->prepare("
+            UPDATE payrolls SET 
+                is_published = ?,
+                published_at = IF(? = 1, NOW(), NULL),
+                published_by = IF(? = 1, ?, NULL),
+                status = IF(? = 1, 'published', 'processed')
+            WHERE id = ?
+        ");
+        $stmt->execute([$publish, $publish, $user['id'], $id]);
+
+        logAdminAction($pdo, $user['id'], 'toggle_publish_payroll', $id, ($publish ? 'Released payslip #' . $id . ' to employee profile' : 'Unpublished/hid payslip #' . $id . ' from employee profile'));
+
+        sendResponse(true, [
+            'message' => $publish ? 'Payslip released to employee profile!' : 'Payslip unreleased & hidden from employee profile.',
+            'is_published' => (bool)$publish
+        ]);
         break;
 
     case 'status':
@@ -295,8 +449,13 @@ switch ($action) {
             sendResponse(false, ['message' => $res['message'] ?? 'Employee record not found.'], 404);
         }
 
+        $empRecord = $res['employees'][0];
+        if ($user['role'] !== 'admin' && empty($empRecord['is_published'])) {
+            sendResponse(false, ['message' => 'This salary slip has not been released by administration yet.'], 403);
+        }
+
         sendResponse(true, [
-            'payroll' => $res['employees'][0],
+            'payroll' => $empRecord,
             'meta' => [
                 'start_date' => $res['start_date'],
                 'end_date' => $res['end_date'],
@@ -599,9 +758,20 @@ function calculateCustomRangePayroll($pdo, $startDate, $endDate, $filterUserId =
         $voucherCode = 'PAY-RNG-' . date('Ymd', $startTime) . '-' . date('Ymd', $endTime) . '-' . str_pad($emp['id'], 4, '0', STR_PAD_LEFT);
         $remarks = "Custom Range ({$diffDays}d) | {$presentDays}d pres, {$paidLeaves}d leave, {$unpaidDays}d absent";
 
+        // Check if slip is already generated & published in database
+        $stmtSlip = $pdo->prepare("SELECT id, is_published, published_at, status FROM payrolls WHERE user_id = ? AND start_date = ? AND end_date = ? LIMIT 1");
+        $stmtSlip->execute([$emp['id'], $startDate, $endDate]);
+        $slipRec = $stmtSlip->fetch();
+        $isGenerated = !empty($slipRec);
+        $slipId = $slipRec ? (int)$slipRec['id'] : null;
+        $isPublished = $slipRec ? (int)$slipRec['is_published'] : 0;
+        $publishedAt = $slipRec['published_at'] ?? null;
+        $slipStatus = $slipRec['status'] ?? 'pending';
+
         $results[] = [
             'user_id' => (int)$emp['id'],
             'user_name' => $emp['name'],
+            'employee_code' => $emp['employee_code'] ?? ('TGC-' . str_pad($emp['id'], 4, '0', STR_PAD_LEFT)),
             'user_email' => $emp['email'],
             'user_phone' => $emp['phone'] ?: '',
             'user_company' => !empty($emp['company']) ? $emp['company'] : 'Getting Roots Coaching & Training Pvt. Ltd.',
@@ -627,6 +797,11 @@ function calculateCustomRangePayroll($pdo, $startDate, $endDate, $filterUserId =
             'start_date' => $startDate,
             'end_date' => $endDate,
             'day_breakdown' => $dayBreakdown,
+            'is_generated' => $isGenerated,
+            'slip_id' => $slipId,
+            'is_published' => $isPublished,
+            'published_at' => $publishedAt,
+            'slip_status' => $slipStatus,
         ];
     }
 
