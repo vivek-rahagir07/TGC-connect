@@ -1296,11 +1296,134 @@ function showIosPwaInstallHint() {
 }
 
 // Global trigger function to prompt install anywhere in app
-window.triggerPwaInstall = function() {
-  if (deferredPwaPrompt) {
-    deferredPwaPrompt.prompt();
-  } else {
-    showToast('To install: use your browser menu and choose "Add to Home Screen" or "Install App"', 'info');
+window.triggerPwaInstall = async function() {
+  playSound('click');
+
+  // If already running in standalone mode (installed)
+  if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+    showToast('TGC Connect is already installed and running as an app!', 'success');
+    return;
   }
+
+  // 1. If native deferredPwaPrompt is ready, prompt immediately!
+  if (deferredPwaPrompt) {
+    try {
+      deferredPwaPrompt.prompt();
+      const choice = await deferredPwaPrompt.userChoice;
+      if (choice && choice.outcome === 'accepted') {
+        playSound('success');
+        showToast('Installing TGC Connect...', 'success');
+      }
+      deferredPwaPrompt = null;
+      hidePwaInstallBanner();
+    } catch (e) {
+      console.warn('Install prompt error:', e);
+    }
+    return;
+  }
+
+  // 2. iOS Safari
+  const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+  if (isIos) {
+    showIosInstallModal();
+    return;
+  }
+
+  // 3. Fallback guide modal for Desktop Chrome/Edge/Firefox
+  showGenericInstallModal();
 };
+
+function showIosInstallModal() {
+  const existing = document.getElementById('tgcIosGuideModal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'tgcIosGuideModal';
+  modal.className = 'pwa-guide-modal-overlay';
+  modal.innerHTML = `
+    <div class="pwa-guide-modal-box">
+      <div class="pwa-guide-header">
+        <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">
+          📲
+        </div>
+        <div>
+          <div style="font-size: 1.15rem; font-weight: 800;">Install TGC Connect</div>
+          <div style="font-size: 0.78rem; color: #cbd5e1;">Add to your iPhone or iPad Home Screen</div>
+        </div>
+        <button type="button" class="pwa-guide-close" onclick="document.getElementById('tgcIosGuideModal').remove()">&times;</button>
+      </div>
+      <div class="pwa-guide-body">
+        <div class="pwa-step-card">
+          <div class="pwa-step-num">1</div>
+          <div style="font-size: 0.88rem; color: #1e293b; font-weight: 600;">
+            Tap the <strong>Share</strong> button <i style="font-style: normal; font-size: 1.1rem; vertical-align: middle;">⎋</i> in Safari's bottom toolbar.
+          </div>
+        </div>
+        <div class="pwa-step-card">
+          <div class="pwa-step-num">2</div>
+          <div style="font-size: 0.88rem; color: #1e293b; font-weight: 600;">
+            Scroll down the share sheet and tap <strong>Add to Home Screen</strong> <i style="font-style: normal; font-size: 1rem; vertical-align: middle;">➕</i>.
+          </div>
+        </div>
+        <div class="pwa-step-card">
+          <div class="pwa-step-num">3</div>
+          <div style="font-size: 0.88rem; color: #1e293b; font-weight: 600;">
+            Tap <strong>Add</strong> in the top-right corner to finish installing.
+          </div>
+        </div>
+        <button type="button" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 0.75rem;" onclick="document.getElementById('tgcIosGuideModal').remove()">
+          Got It
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function showGenericInstallModal() {
+  const existing = document.getElementById('tgcGenericGuideModal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'tgcGenericGuideModal';
+  modal.className = 'pwa-guide-modal-overlay';
+  modal.innerHTML = `
+    <div class="pwa-guide-modal-box">
+      <div class="pwa-guide-header">
+        <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">
+          📲
+        </div>
+        <div>
+          <div style="font-size: 1.15rem; font-weight: 800;">Install TGC Connect App</div>
+          <div style="font-size: 0.78rem; color: #cbd5e1;">Available for Desktop & Mobile</div>
+        </div>
+        <button type="button" class="pwa-guide-close" onclick="document.getElementById('tgcGenericGuideModal').remove()">&times;</button>
+      </div>
+      <div class="pwa-guide-body">
+        <div class="pwa-step-card">
+          <div class="pwa-step-num">1</div>
+          <div style="font-size: 0.88rem; color: #1e293b; font-weight: 600;">
+            Look for the <strong>Install App icon (⊕ or 📲)</strong> on the right side of your browser's address bar.
+          </div>
+        </div>
+        <div class="pwa-step-card">
+          <div class="pwa-step-num">2</div>
+          <div style="font-size: 0.88rem; color: #1e293b; font-weight: 600;">
+            Or click your browser's <strong>Menu (⋮ or ⋯)</strong> and select <strong>"Install TGC Connect"</strong> or <strong>"Add to Home Screen"</strong>.
+          </div>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <button type="button" class="btn btn-primary" style="flex: 1; justify-content: center;" onclick="if(deferredPwaPrompt){deferredPwaPrompt.prompt();}; document.getElementById('tgcGenericGuideModal').remove();">
+            Try Native Prompt
+          </button>
+          <button type="button" class="btn btn-secondary" style="flex: 1; justify-content: center;" onclick="document.getElementById('tgcGenericGuideModal').remove();">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
 
