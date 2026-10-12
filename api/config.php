@@ -20,7 +20,7 @@ $defaultConfig = [
     'username'    => getenv('DB_USER') ?: 'u286523491_Globle_connect',
     
     // Database Password
-    'password'    => getenv('DB_PASS') !== false ? getenv('DB_PASS') : (getenv('DB_PASSWORD') !== false ? getenv('DB_PASSWORD') : 'Beenu@123456#'),
+    'password'    => getenv('DB_PASS') !== false ? getenv('DB_PASS') : (getenv('DB_PASSWORD') !== false ? getenv('DB_PASSWORD') : ''),
     
     // Character Set
     'charset'     => 'utf8mb4',
@@ -37,7 +37,7 @@ $defaultConfig = [
         'smtp_host'              => 'smtp.gmail.com',
         'smtp_port'              => 587,
         'smtp_user'              => 'tgcconnectglobal@gmail.com',
-        'smtp_password'          => getenv('SMTP_PASSWORD') ?: 'gcozpsiozbtqqkoh',
+        'smtp_password'          => getenv('SMTP_PASSWORD') ?: '',
         // SMS Gateway Settings (Fast2SMS / TextLocal)
         'sms_provider'           => getenv('SMS_PROVIDER') ?: 'fast2sms',    // 'fast2sms' or 'textlocal'
         'sms_api_key'            => getenv('SMS_API_KEY') ?: '',              // API key from Fast2SMS or TextLocal dashboard

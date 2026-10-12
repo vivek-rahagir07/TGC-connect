@@ -10,3 +10,4 @@ api/config.local.php
 uploads/*
 !uploads/.gitkeep
 !uploads/.htaccess
+*.zip
